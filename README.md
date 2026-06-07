@@ -2,7 +2,7 @@
 
 **Coffee competition platform for organizers.** Single-folder web app — no server, no build step, no dependencies.
 
-**[→ Open Seduh Score](https://mfosa.github.io/seduh-score/)**
+**[→ Open Seduh Score](https://mfosa7222.github.io/seduh-score/)**
 
 ---
 
