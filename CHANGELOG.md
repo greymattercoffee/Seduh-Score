@@ -2,6 +2,28 @@
 
 ---
 
+## [3.5.0] — Jun 2025
+
+### BBTC
+- **JSON Save/Load** — `⬇ Save` and `⬆ Load` header buttons. Exports full state as a timestamped `.json` file; imports with `_module:'bbtc'` guard to prevent cross-module contamination. `mid` and `jid` counters included in export. `DEFAULT_STATE`-style merge on import for safe state restoration.
+
+### Throwdown
+- **JSON Save/Load** — `💾 Save` (green) and `📂 Load` (blue) header buttons between Timer and Audience. Mirrors BBTC pattern: `_module:'throwdown'` guard, `_mid` counter, `DEFAULT_STATE()` merge on import. Storage key `seduh_throwdown_v1`.
+- **Judge list** — `judgeList[]` added to state. Judges named and displayed per match.
+- **Standings tab removed** — replaced by leaderboard in Audience view. Cleaner navigation.
+- **Round colour coding** — `roundColour()` helper. Rounds visually distinguished by colour across the bracket view.
+- **Revival markers** — `b.revivedNames[]` tracks redemption returnees. Revived participants shown with ⬆ R badge in bracket.
+- **Audience view redesigned** — single-panel results layout. Cleaner projector display.
+
+### Shared
+- **audience.js** — `aud-lb` guard added (prevents duplicate leaderboard panel). `title` param supported in `aud-ts`. `Audience.init()` called in `bind()` correctly.
+
+### Platform
+- **Dashboard redesigned** — permanent Grey Matter Coffee Werks / Firdaus Omar lockup in header and footer. "Make it your own" slide-over: competition name, subtitle, date, venue, accent colour (6 coffee tones, amber default), logo upload, 3 cover layouts (Band / Editorial / Ticket). Persists to `seduh_event_v1`.
+- **Theme refreshed (v4.0 design system)** — strict superset of previous theme. Token names preserved (`--txt*`, `--am*`, `--bl*`, `--gn*`, `--rd*`, `--pu*`, all `.tmr-*` and `.aud-*` classes). Values warmed up. New tokens added for dashboard (`--ink*`, `--surface2/3`, `--border3`, `--am-soft`, `--accent*`, `--rad-xs`, font vars). Modules inherit new look with zero markup changes.
+
+---
+
 ## [3.1.1] — Jun 2025
 
 ### BBTC
