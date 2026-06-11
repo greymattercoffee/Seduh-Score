@@ -129,7 +129,7 @@
   ];
 
   var TOOLS = [
-    {ic:"⏱",t:"Court Timer",d:"5 / 7 / 10 / 15 min countdown"},
+    {ic:"⏱",t:"Timer",d:"5 / 7 / 10 / 15 min countdown",href:"timer/index.html"},
     {ic:"📺",t:"Audience View",d:"Projector-ready overlay"},
     {ic:"💾",t:"Auto-save",d:"Saved to this device"}
   ];
@@ -225,7 +225,10 @@
 
   function renderTools(){
     document.getElementById("tools").innerHTML = TOOLS.map(function(t){
-      return '<div class="tool"><div class="tool-ic">'+t.ic+'</div><div><div class="tool-t">'+t.t+'</div><div class="tool-d">'+t.d+'</div></div></div>';
+      var inner = '<div class="tool-ic">'+t.ic+'</div><div><div class="tool-t">'+t.t+'</div><div class="tool-d">'+t.d+'</div></div>';
+      return t.href
+        ? '<a class="tool" href="'+t.href+'">'+inner+'</a>'
+        : '<div class="tool">'+inner+'</div>';
     }).join("");
   }
 
