@@ -2,6 +2,13 @@
 
 ---
 
+## [3.5.3] — Jun 2025
+
+### Standalone Timer
+- **Custom timer input** — type any duration in minutes and press Set (or Enter) to load it. Preset buttons remain for quick access; custom value clears them. Hides in fullscreen mode.
+
+---
+
 ## [3.5.2] — Jun 2025
 
 ### BBTC

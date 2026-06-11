@@ -70,6 +70,33 @@ body{
 }
 .tmr-preset:hover,.tmr-preset.on{border-color:#D97706;background:#D97706;color:#fff}
 
+/* Custom timer input */
+.tmr-custom{display:flex;gap:8px;align-items:center;justify-content:center}
+.tmr-custom-input{
+  width:80px;
+  padding:9px 12px;
+  border:2px solid #374151;
+  border-radius:8px;
+  background:#1F2937;
+  color:#F9FAFB;
+  font-size:15px;font-weight:700;
+  text-align:center;
+  outline:none;
+}
+.tmr-custom-input:focus{border-color:#D97706}
+.tmr-custom-input::placeholder{color:#4B5563}
+.tmr-custom-label{font-size:13px;color:#6B7280;font-weight:600}
+.tmr-custom-set{
+  padding:9px 18px;
+  border:2px solid #374151;
+  border-radius:8px;
+  background:transparent;
+  color:#9CA3AF;
+  font-size:13px;font-weight:700;
+  cursor:pointer;
+}
+.tmr-custom-set:hover{border-color:#D97706;color:#D97706}
+
 /* Display */
 .tmr-display{
   font-size:22vw;
@@ -116,6 +143,7 @@ body:has(#tmr-overlay.fs) .timer-hdr{display:none}
 body:has(#tmr-overlay.fs) .timer-foot{display:none}
 body:has(#tmr-overlay.fs) .timer-stage{padding:0;justify-content:center}
 body:has(#tmr-overlay.fs) .tmr-presets{display:none}
+body:has(#tmr-overlay.fs) .tmr-custom{display:none}
 body:has(#tmr-overlay.fs) .tmr-controls{display:none}
 body:has(#tmr-overlay.fs) .tmr-footer{display:none}
 body:has(#tmr-overlay.fs) .tmr-display{font-size:30vw;cursor:pointer}
@@ -191,6 +219,12 @@ body:has(#tmr-overlay.fs) .fs-exit{display:flex}
     <button class="tmr-preset" data-secs="900">15 min</button>
   </div>
 
+  <div class="tmr-custom">
+    <input class="tmr-custom-input" id="tmr-custom-input" type="number" min="1" max="99" placeholder="min">
+    <span class="tmr-custom-label">min</span>
+    <button class="tmr-custom-set" id="tmr-custom-set">Set</button>
+  </div>
+
   <div class="tmr-display" id="tmr-display">07:00</div>
 
   <div class="tmr-controls">
@@ -226,7 +260,21 @@ body:has(#tmr-overlay.fs) .fs-exit{display:flex}
 Timer.init();
 Timer.set(420);
 
-// fs-exit button and Escape are additional exit paths (timer.js Escape also fires)
+// Custom timer — type minutes, press Set or Enter
+const customInput = document.getElementById('tmr-custom-input');
+const customSet   = document.getElementById('tmr-custom-set');
+
+function applyCustom() {
+  const mins = parseFloat(customInput.value);
+  if (!mins || mins <= 0) return;
+  Timer.set(Math.round(mins * 60));
+  customInput.value = '';
+  customInput.blur();
+}
+customSet.addEventListener('click', applyCustom);
+customInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyCustom(); });
+
+// fs-exit button — Escape is handled by timer.js
 const fsExit = document.getElementById('fs-exit');
 const ovl    = document.getElementById('tmr-overlay');
 fsExit.addEventListener('click', () => ovl.classList.remove('fs'));
