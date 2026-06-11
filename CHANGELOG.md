@@ -2,21 +2,33 @@
 
 ---
 
+## [3.5.2] — Jun 2025
+
+### BBTC
+- **Fix: Timer listener accumulation** — all static timer element listeners (close, fullscreen, presets, start/pause/reset, display-tap) moved out of `bind()` into a new one-time `initTimer()` call. Previously, switching tabs re-ran `bind()`, which re-registered the `tmr-fs` toggle listener — after any tab switch the toggle fired twice per click and cancelled itself, making fullscreen impossible to enter or exit.
+- **Fix: Timer Escape key** — Escape now exits the BBTC timer overlay fullscreen mode (handled in `initTimer()`).
+
+### Shared
+- **Fix: Timer Escape key** — Escape exits fullscreen in Throwdown and the standalone timer page. Added to `shared/timer.js` `init()` — no-op on standalone (overlay element absent, optional chaining guards).
+- **Fix: timer.js null guard** — `tmr-fs` click now uses optional chaining (`ovl()?.classList.toggle`) to prevent a silent TypeError on the standalone timer page where `#tmr-overlay` does not exist.
+
+---
+
+## [3.5.1] — Jun 2025
+
+### Shared
+- **Fix: Timer fullscreen display-tap** — tapping the large timer display exits fullscreen mode. Works on all devices including mobile (no keyboard required). `cursor:pointer` added to `.fs` display rule in `theme.css`. Listener added in `shared/timer.js` (covers Throwdown); `bbtc/index.html` has its own equivalent handler in `initTimer()`.
+- **Standalone Timer page** — `timer/index.html` added. Loads `shared/timer.js` and `shared/theme.css`. Default 7 min preset. Fullscreen court display with Escape key and `fs-exit` button. Grey Matter Coffee Werks credit in header. Passive entry point to Seduh Score platform via footer link.
+
+---
+
 ## [3.5.0] — Jun 2025
 
 ### BBTC
 - **JSON Save/Load** — `⬇ Save` and `⬆ Load` header buttons. Exports full state as a timestamped `.json` file; imports with `_module:'bbtc'` guard to prevent cross-module contamination. `mid` and `jid` counters included in export. `DEFAULT_STATE`-style merge on import for safe state restoration.
 
-### Throwdown
-- **JSON Save/Load** — `💾 Save` (green) and `📂 Load` (blue) header buttons between Timer and Audience. Mirrors BBTC pattern: `_module:'throwdown'` guard, `_mid` counter, `DEFAULT_STATE()` merge on import. Storage key `seduh_throwdown_v1`.
-- **Judge list** — `judgeList[]` added to state. Judges named and displayed per match.
-- **Standings tab removed** — replaced by leaderboard in Audience view. Cleaner navigation.
-- **Round colour coding** — `roundColour()` helper. Rounds visually distinguished by colour across the bracket view.
-- **Revival markers** — `b.revivedNames[]` tracks redemption returnees. Revived participants shown with ⬆ R badge in bracket.
-- **Audience view redesigned** — single-panel results layout. Cleaner projector display.
-
 ### Shared
-- **audience.js** — `aud-lb` guard added (prevents duplicate leaderboard panel). `title` param supported in `aud-ts`. `Audience.init()` called in `bind()` correctly.
+- **audience.js** — `aud-lb` guard added (prevents duplicate leaderboard panel).
 
 ### Platform
 - **Dashboard redesigned** — permanent Grey Matter Coffee Werks / Firdaus Omar lockup in header and footer. "Make it your own" slide-over: competition name, subtitle, date, venue, accent colour (6 coffee tones, amber default), logo upload, 3 cover layouts (Band / Editorial / Ticket). Persists to `seduh_event_v1`.

@@ -624,7 +624,6 @@ function bind() {
   const $ = id => document.getElementById(id);
   const on = (id,ev,fn) => { const el=$(id); if(el) el.addEventListener(ev,fn); };
 
-  Timer.init();
   on('tmrbtn','click',() => Timer.open());
   on('aud-close','click',() => document.getElementById('aud-overlay').classList.remove('show'));
   on('audbtn','click',() => showAudience());
@@ -768,6 +767,7 @@ function loadThrowdownDemo(){
   STORE.save({...S,_mid:mid});
 }
 
+Timer.init();
 render();
 </script>
 </body>

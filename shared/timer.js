@@ -56,7 +56,17 @@ const Timer = (() => {
       ovl().classList.remove('running','done');
     });
     el('tmr-close')?.addEventListener('click', () => ovl().classList.remove('show'));
-    el('tmr-fs')?.addEventListener('click',   () => ovl().classList.toggle('fs'));
+    el('tmr-fs')?.addEventListener('click',   () => ovl()?.classList.toggle('fs'));
+
+    // Tap the display to exit fullscreen — works on mobile, no keyboard needed
+    dsp()?.addEventListener('click', () => {
+      if (ovl()?.classList.contains('fs')) ovl().classList.remove('fs');
+    });
+
+    // Escape key to exit fullscreen
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && ovl()?.classList.contains('fs')) ovl().classList.remove('fs');
+    });
 
     dsp().textContent = fmt(ms);
   }

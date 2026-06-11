@@ -221,7 +221,7 @@ input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--
 #tmr-overlay{display:none;position:fixed;inset:0;z-index:1001;background:#111827;overflow:hidden;flex-direction:column;align-items:center;justify-content:center}
 #tmr-overlay.show{display:flex}
 #tmr-overlay.fs .tmr-extras{display:none}
-#tmr-overlay.fs .tmr-display{font-size:30vw}
+#tmr-overlay.fs .tmr-display{font-size:30vw;cursor:pointer}
 .tmr-extras{display:flex;flex-direction:column;align-items:center;gap:1rem;width:100%}
 .tmr-presets{display:flex;gap:10px;margin-bottom:.5rem}
 .tmr-preset{padding:10px 24px;border:2px solid #374151;border-radius:8px;background:transparent;color:#9CA3AF;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.04em}
@@ -367,6 +367,34 @@ function fmtTime(ms){
   const tot=Math.max(0,Math.ceil(ms/1000));
   const m=Math.floor(tot/60),s=tot%60;
   return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+
+function initTimer(){
+  const ovl=document.getElementById('tmr-overlay');
+  const dsp=document.getElementById('tmr-display');
+  document.getElementById('tmr-close').addEventListener('click',()=>ovl.classList.remove('show'));
+  document.getElementById('tmr-fs').addEventListener('click',()=>ovl.classList.toggle('fs'));
+  dsp.addEventListener('click',()=>{if(ovl.classList.contains('fs'))ovl.classList.remove('fs');});
+  document.querySelectorAll('[data-secs]').forEach(b=>b.addEventListener('click',()=>{
+    if(TMR.running){clearInterval(TMR.iv);TMR.running=false;}
+    ovl.classList.remove('running','done');
+    TMR.ms=+b.dataset.secs*1000;TMR.preset=+b.dataset.secs;
+    dsp.textContent=fmtTime(TMR.ms);
+    document.querySelectorAll('[data-secs]').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+  }));
+  document.getElementById('tmr-start').addEventListener('click',()=>{
+    if(TMR.running||TMR.ms<=0)return;
+    ovl.classList.add('running');ovl.classList.remove('done');
+    TMR.running=true;
+    TMR.iv=setInterval(()=>{
+      TMR.ms-=100;dsp.textContent=fmtTime(TMR.ms);
+      if(TMR.ms<=0){clearInterval(TMR.iv);TMR.running=false;TMR.ms=0;ovl.classList.remove('running');ovl.classList.add('done');}
+    },100);
+  });
+  document.getElementById('tmr-pause').addEventListener('click',()=>{if(!TMR.running)return;clearInterval(TMR.iv);TMR.running=false;ovl.classList.remove('running');});
+  document.getElementById('tmr-reset').addEventListener('click',()=>{clearInterval(TMR.iv);TMR.running=false;TMR.ms=TMR.preset*1000;dsp.textContent=fmtTime(TMR.ms);ovl.classList.remove('running','done');});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ovl.classList.contains('fs'))ovl.classList.remove('fs');});
 }
 
 function saveState(){
@@ -626,6 +654,52 @@ function generateCSV(){
   a.click();URL.revokeObjectURL(url);
 }
 
+/* ── JSON Save / Load ── */
+function exportJSON(){
+  const payload=JSON.stringify({
+    _v:1,_module:'bbtc',
+    judges:S.judges,teams:S.teams,matches:S.matches,bracket:S.bracket,
+    qfSlots:S.qfSlots,eventDate:S.eventDate,eventVenue:S.eventVenue,
+    mid,jid
+  },null,2);
+  const name='BBTC_'+(S.eventDate||new Date().toISOString().slice(0,10)).replace(/\s/g,'_')+'.json';
+  const blob=new Blob([payload],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);
+}
+
+function importJSON(){
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='.json,application/json';
+  inp.addEventListener('change',()=>{
+    const file=inp.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=e=>{
+      try{
+        const d=JSON.parse(e.target.result);
+        if(d._module!=='bbtc')return alert('This save file is not for BBTC.');
+        if(!confirm('Load saved competition? This will replace your current data.'))return;
+        S.judges=d.judges||[];
+        S.teams=d.teams||[];
+        S.matches=d.matches||[];
+        S.bracket=d.bracket||null;
+        S.qfSlots=d.qfSlots||8;
+        S.eventDate=d.eventDate||'';
+        S.eventVenue=d.eventVenue||'';
+        mid=d.mid||0;
+        jid=d.jid||0;
+        S.tab='setup';S.sid=null;S.creating=false;
+        S.bracketPicking=null;S.bracketJids=[];
+        S.nm={t1:'',t2:'',round:'preliminary',jids:[]};
+        render();
+      }catch(err){alert('Could not read file. Make sure it is a valid BBTC save.');}
+    };
+    reader.readAsText(file);
+  });
+  inp.click();
+}
+
 /* ── Audience ── */
 function showAudience(){
   const lb=calcPrelimLB();
@@ -662,7 +736,7 @@ function render(){
 
 function rMain(){
   const done=S.matches.filter(m=>m.done).length;
-  return '<div class="hdr"><div class="hdr-ac"></div><div><div class="hdr-s">Brunei</div><div class="hdr-t">Barista Team Championship</div></div><div class="hdr-btns"><button class="btn-hdr btn-o" id="homebtn">← Home</button><button class="btn-hdr btn-am" id="tmrbtn">⏱ Timer</button><button class="btn-hdr btn-am" id="pubview">📺 Audience</button><button class="btn-hdr btn-bl" id="exportbtn">📄 PDF</button><button class="btn-hdr btn-gn" id="csvbtn">📊 CSV</button><button class="btn-hdr btn-rd" id="resetbtn">↺ Reset</button><div class="badge">'+done+'/'+S.matches.length+' done</div></div></div>'
+  return '<div class="hdr"><div class="hdr-ac"></div><div><div class="hdr-s">Brunei</div><div class="hdr-t">Barista Team Championship</div></div><div class="hdr-btns"><button class="btn-hdr btn-o" id="homebtn">← Home</button><button class="btn-hdr btn-am" id="tmrbtn">⏱ Timer</button><button class="btn-hdr btn-am" id="pubview">📺 Audience</button><button class="btn-hdr btn-bl" id="exportbtn">📄 PDF</button><button class="btn-hdr btn-gn" id="csvbtn">📊 CSV</button><button class="btn-hdr btn-gn" id="savejson">⬇ Save</button><button class="btn-hdr btn-bl" id="loadjson">⬆ Load</button><button class="btn-hdr btn-rd" id="resetbtn">↺ Reset</button><div class="badge">'+done+'/'+S.matches.length+' done</div></div></div>'
   +'<div class="tabs">'+[['setup','Setup'],['prelims','Prelims ('+S.matches.filter(m=>m.round==='preliminary').length+')'],['bracket','Bracket'],['history','History'],['standings','Standings']].map(([t,l])=>'<button class="tbtn'+(S.tab===t?' on':'')+'" data-tab="'+t+'">'+l+'</button>').join('')+'</div>'
   +'<div class="body">'+(S.tab==='setup'?rSetup():S.tab==='prelims'?rPrelims():S.tab==='bracket'?rBracket():S.tab==='history'?rHistory():rStandings())+'</div>';
 }
@@ -787,32 +861,12 @@ function bind(){
   on('pdf-close','click',()=>document.getElementById('pdf-overlay').classList.remove('show'));
   on('pdf-print','click',()=>window.print());
   on('csvbtn','click',()=>generateCSV());
+  on('savejson','click',()=>exportJSON());
+  on('loadjson','click',()=>importJSON());
 
   // Timer
   on('tmrbtn','click',()=>document.getElementById('tmr-overlay').classList.add('show'));
-  on('tmr-close','click',()=>document.getElementById('tmr-overlay').classList.remove('show'));
-  on('tmr-fs','click',()=>document.getElementById('tmr-overlay').classList.toggle('fs'));
-  document.querySelectorAll('[data-secs]').forEach(b=>b.addEventListener('click',()=>{
-    if(TMR.running){clearInterval(TMR.iv);TMR.running=false;}
-    document.getElementById('tmr-overlay').classList.remove('running','done');
-    TMR.ms=+b.dataset.secs*1000;TMR.preset=+b.dataset.secs;
-    document.getElementById('tmr-display').textContent=fmtTime(TMR.ms);
-    document.querySelectorAll('[data-secs]').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on');
-  }));
-  on('tmr-start','click',()=>{
-    if(TMR.running||TMR.ms<=0)return;
-    document.getElementById('tmr-overlay').classList.add('running');
-    document.getElementById('tmr-overlay').classList.remove('done');
-    TMR.running=true;
-    TMR.iv=setInterval(()=>{
-      TMR.ms-=100;
-      document.getElementById('tmr-display').textContent=fmtTime(TMR.ms);
-      if(TMR.ms<=0){clearInterval(TMR.iv);TMR.running=false;TMR.ms=0;document.getElementById('tmr-overlay').classList.remove('running');document.getElementById('tmr-overlay').classList.add('done');}
-    },100);
-  });
-  on('tmr-pause','click',()=>{if(!TMR.running)return;clearInterval(TMR.iv);TMR.running=false;document.getElementById('tmr-overlay').classList.remove('running');});
-  on('tmr-reset','click',()=>{clearInterval(TMR.iv);TMR.running=false;TMR.ms=TMR.preset*1000;document.getElementById('tmr-display').textContent=fmtTime(TMR.ms);document.getElementById('tmr-overlay').classList.remove('running','done');});
+
 
   // Reset
   on('resetbtn','click',()=>{if(confirm('Reset ALL competition data? This cannot be undone.')){localStorage.removeItem(STORE_KEY);mid=0;jid=0;S={judges:[],teams:[],matches:[],bracket:null,tab:'setup',sid:null,creating:false,bracketPicking:null,bracketJids:[],nm:{t1:'',t2:'',round:'preliminary',jids:[]},qfSlots:8,eventDate:'',eventVenue:''};render();}});
@@ -910,6 +964,7 @@ function bind(){
   });
 }
 
+initTimer();
 render();
 </script>
 </body>

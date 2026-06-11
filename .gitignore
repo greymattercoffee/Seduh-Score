@@ -8,3 +8,8 @@ Desktop.ini
 # Editor
 .vscode/
 *.swp
+
+# Local assets / generated
+.thumbnail
+uploads/
+Roadmap.pdf

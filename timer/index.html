@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Timer — Seduh Score</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#111827;
+  color:#F9FAFB;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+
+/* ── Header ── */
+.timer-hdr{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:.75rem 1.5rem;
+  background:#1F2937;
+  border-bottom:2px solid #D97706;
+  flex-shrink:0;
+  gap:12px;
+}
+.timer-hdr-brand{display:flex;align-items:center;gap:10px}
+.timer-hdr-ac{width:4px;height:32px;background:#D97706;border-radius:2px;flex-shrink:0}
+.timer-hdr-s{font-size:9px;color:#D97706;letter-spacing:.2em;text-transform:uppercase;margin-bottom:2px;font-weight:700}
+.timer-hdr-t{font-size:15px;font-weight:700;color:#F9FAFB;letter-spacing:-.01em}
+.timer-hdr-right{display:flex;align-items:center;gap:10px}
+.timer-hdr-credit{font-size:10px;color:#6B7280;text-align:right;line-height:1.6}
+.timer-hdr-credit strong{color:#9CA3AF;font-weight:600}
+.btn-home{
+  display:flex;align-items:center;gap:4px;
+  padding:6px 12px;border-radius:5px;
+  font-size:12px;font-weight:600;cursor:pointer;
+  border:1.5px solid #374151;
+  background:transparent;color:#9CA3AF;
+  text-decoration:none;
+}
+.btn-home:hover{border-color:#6B7280;color:#F9FAFB}
+
+/* ── Timer stage ── */
+.timer-stage{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2rem;
+  padding:2rem 1.5rem;
+}
+
+/* Presets */
+.tmr-presets{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.tmr-preset{
+  padding:10px 24px;
+  border:2px solid #374151;
+  border-radius:8px;
+  background:transparent;
+  color:#9CA3AF;
+  font-size:15px;font-weight:700;
+  cursor:pointer;
+  letter-spacing:.04em;
+  transition:all .15s;
+}
+.tmr-preset:hover,.tmr-preset.on{border-color:#D97706;background:#D97706;color:#fff}
+
+/* Display */
+.tmr-display{
+  font-size:22vw;
+  font-weight:900;
+  color:#F9FAFB;
+  letter-spacing:-.02em;
+  line-height:1;
+  font-variant-numeric:tabular-nums;
+  text-align:center;
+  transition:color .2s;
+}
+
+/* State colours */
+body.running .tmr-display{color:#D97706}
+body.done .tmr-display{color:#EF4444;animation:blink 1s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Controls */
+.tmr-controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.tmr-btn{
+  padding:12px 28px;
+  border-radius:8px;
+  font-size:14px;font-weight:700;
+  cursor:pointer;border:2px solid;
+  transition:all .15s;
+}
+.tmr-start{background:#065F46;border-color:#065F46;color:#fff}.tmr-start:hover{background:#047857}
+.tmr-pause{background:#1D4ED8;border-color:#1D4ED8;color:#fff}.tmr-pause:hover{background:#1E40AF}
+.tmr-reset{background:#374151;border-color:#374151;color:#fff}.tmr-reset:hover{background:#1F2937}
+
+/* Footer row */
+.tmr-footer{display:flex;gap:10px;align-items:center}
+.tmr-fs-btn{
+  padding:8px 20px;
+  border:2px solid #374151;
+  border-radius:6px;
+  background:transparent;color:#9CA3AF;
+  font-size:13px;font-weight:700;cursor:pointer;
+}
+.tmr-fs-btn:hover{border-color:#6B7280;color:#F9FAFB}
+
+/* ── Fullscreen mode ── */
+body.fs .timer-hdr{display:none}
+body.fs .timer-stage{padding:0;justify-content:center}
+body.fs .tmr-presets{display:none}
+body.fs .tmr-controls{display:none}
+body.fs .tmr-footer{display:none}
+body.fs .tmr-display{font-size:30vw}
+body.fs .fs-exit{display:flex!important}
+
+/* Exit fullscreen hint — always visible in fs mode */
+.fs-exit{
+  display:none;
+  position:fixed;
+  bottom:1.5rem;right:1.5rem;
+  padding:8px 16px;
+  border:2px solid #374151;
+  border-radius:6px;
+  background:#1F2937;color:#6B7280;
+  font-size:12px;font-weight:700;cursor:pointer;
+  z-index:10;
+}
+.fs-exit:hover{color:#F9FAFB;border-color:#6B7280}
+body.fs .fs-exit{display:flex}
+
+/* In fullscreen, clicking the display exits */
+body.fs .tmr-display{cursor:pointer}
+
+/* ── Seduh Score footer ── */
+.timer-foot{
+  padding:.65rem 1.5rem;
+  background:#1F2937;
+  border-top:1px solid #374151;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-shrink:0;
+  flex-wrap:wrap;
+  gap:8px;
+}
+body.fs .timer-foot{display:none}
+.timer-foot-brand{font-size:11px;color:#4B5563;font-weight:600;letter-spacing:.04em}
+.timer-foot-brand span{color:#6B7280}
+.timer-foot-hint{font-size:11px;color:#374151}
+.timer-foot-link{
+  font-size:11px;color:#D97706;font-weight:600;
+  text-decoration:none;letter-spacing:.02em;
+}
+.timer-foot-link:hover{color:#F59E0B}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="timer-hdr">
+  <div class="timer-hdr-brand">
+    <div class="timer-hdr-ac"></div>
+    <div>
+      <div class="timer-hdr-s">Seduh Score</div>
+      <div class="timer-hdr-t">Competition Timer</div>
+    </div>
+  </div>
+  <div class="timer-hdr-right">
+    <div class="timer-hdr-credit">
+      <strong>Grey Matter Coffee Werks</strong><br>
+      Brunei
+    </div>
+    <a class="btn-home" href="../index.html">← Home</a>
+  </div>
+</header>
+
+<!-- Timer stage -->
+<main class="timer-stage">
+
+  <div class="tmr-presets">
+    <button class="tmr-preset" data-secs="300">5 min</button>
+    <button class="tmr-preset on" data-secs="420">7 min</button>
+    <button class="tmr-preset" data-secs="600">10 min</button>
+    <button class="tmr-preset" data-secs="900">15 min</button>
+  </div>
+
+  <div class="tmr-display" id="tmr-display">07:00</div>
+
+  <div class="tmr-controls">
+    <button class="tmr-btn tmr-start" id="tmr-start">▶ Start</button>
+    <button class="tmr-btn tmr-pause" id="tmr-pause">⏸ Pause</button>
+    <button class="tmr-btn tmr-reset" id="tmr-reset">↺ Reset</button>
+  </div>
+
+  <div class="tmr-footer">
+    <button class="tmr-fs-btn" id="tmr-fs">⛶ Fullscreen</button>
+  </div>
+
+</main>
+
+<!-- Exit fullscreen hint (visible only in fs mode) -->
+<button class="fs-exit" id="fs-exit">✕ Exit fullscreen</button>
+
+<!-- Footer -->
+<footer class="timer-foot">
+  <span class="timer-foot-brand">
+    Seduh Score · <span>Grey Matter Coffee Werks, Brunei</span>
+  </span>
+  <span class="timer-foot-hint">
+    Running a full competition? &nbsp;
+    <a class="timer-foot-link" href="../index.html">Open Seduh Score →</a>
+  </span>
+</footer>
+
+<script src="../shared/timer.js"></script>
+<script>
+// Timer.js uses IDs to find elements — init() wires them all up.
+// The standalone page doesn't use Timer.open() / Timer.close() because
+// the timer IS the page; it's always visible.
+Timer.init();
+
+// Default to 7 min on load (Throwdown / Girls Got Drip format)
+Timer.set(420);
+
+// Fullscreen toggle — hides header/footer/controls, maximises display
+const fsBtn   = document.getElementById('tmr-fs');
+const fsExit  = document.getElementById('fs-exit');
+
+function enterFS() { document.body.classList.add('fs'); }
+function exitFS()  { document.body.classList.remove('fs'); }
+
+fsBtn.addEventListener('click',  enterFS);
+fsExit.addEventListener('click', exitFS);
+
+// Tap the display to exit fullscreen (works on mobile, no keyboard needed)
+document.getElementById('tmr-display').addEventListener('click', () => {
+  if (document.body.classList.contains('fs')) exitFS();
+});
+
+// Escape key fallback for desktop
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.body.classList.contains('fs')) exitFS();
+});
+</script>
+</body>
+</html>
