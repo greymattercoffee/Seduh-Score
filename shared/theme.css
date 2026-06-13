@@ -287,6 +287,9 @@ label.field-lbl{font-size:12px;font-weight:700;color:var(--ink2);display:block;m
 #tmr-overlay{display:none;position:fixed;inset:0;z-index:1001;background:#1c1510;flex-direction:column;align-items:center;justify-content:center}
 #tmr-overlay.show{display:flex}
 #tmr-overlay.fs .tmr-extras{display:none}
+#tmr-overlay.fs .tmr-presets{display:none}
+#tmr-overlay.fs .tmr-controls{display:none}
+#tmr-overlay.fs .tmr-footer{display:none}
 #tmr-overlay.fs .tmr-display{font-size:30vw;cursor:pointer}
 .tmr-extras{display:flex;flex-direction:column;align-items:center;gap:1rem;width:100%}
 .tmr-presets{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
