@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BBTC Organizer</title>
+<link rel="stylesheet" href="../shared/theme.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -217,38 +218,6 @@ input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--
 .aud-h-row{display:flex;align-items:center;gap:8px;padding:.75rem 1rem;background:#fff;border:1.5px solid #E5E7EB;border-radius:8px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
 .aud-h-rb{font-size:9px;background:#F3F4F6;border:1.5px solid #E5E7EB;color:#6B7280;border-radius:4px;padding:2px 8px;flex-shrink:0;white-space:nowrap;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
 .aud-h-time{font-size:10px;background:#F3F4F6;border:1.5px solid #E5E7EB;color:#6B7280;border-radius:4px;padding:2px 8px;flex-shrink:0;white-space:nowrap;font-weight:600}
-/* Timer overlay */
-#tmr-overlay{display:none;position:fixed;inset:0;z-index:1001;background:#111827;overflow:hidden;flex-direction:column;align-items:center;justify-content:center}
-#tmr-overlay.show{display:flex}
-#tmr-overlay.fs .tmr-extras{display:none}
-#tmr-overlay.fs .tmr-display{font-size:30vw;cursor:pointer}
-.tmr-extras{display:flex;flex-direction:column;align-items:center;gap:1rem;width:100%}
-.tmr-presets{display:flex;gap:10px;margin-bottom:.5rem}
-.tmr-custom{display:flex;gap:8px;align-items:center;justify-content:center}
-.tmr-custom-input{width:72px;padding:8px 10px;border:2px solid #374151;border-radius:8px;background:#1F2937;color:#F9FAFB;font-size:15px;font-weight:700;text-align:center;outline:none}
-.tmr-custom-input:focus{border-color:#D97706}
-.tmr-custom-input::placeholder{color:#4B5563}
-.tmr-custom-label{font-size:13px;color:#6B7280;font-weight:600}
-.tmr-custom-set{padding:8px 16px;border:2px solid #374151;border-radius:8px;background:transparent;color:#9CA3AF;font-size:13px;font-weight:700;cursor:pointer}
-.tmr-custom-set:hover{border-color:#D97706;color:#D97706}
-#tmr-overlay.fs .tmr-custom{display:none}
-.tmr-preset{padding:10px 24px;border:2px solid #374151;border-radius:8px;background:transparent;color:#9CA3AF;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.04em}
-.tmr-preset:hover,.tmr-preset.on{border-color:#D97706;background:#D97706;color:#fff}
-.tmr-display{font-size:22vw;font-weight:900;color:#F9FAFB;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums;text-align:center}
-#tmr-overlay.running .tmr-display{color:#D97706}
-#tmr-overlay.warning .tmr-display{color:#EF4444;animation:blink .6s ease-in-out infinite}
-#tmr-overlay.done .tmr-display{color:#EF4444;animation:blink 1s ease-in-out infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
-.tmr-controls{display:flex;gap:10px;margin-top:1rem}
-.tmr-btn{padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:2px solid}
-.tmr-start{background:#065F46;border-color:#065F46;color:#fff}.tmr-start:hover{background:#047857}
-.tmr-pause{background:#1D4ED8;border-color:#1D4ED8;color:#fff}.tmr-pause:hover{background:#1E40AF}
-.tmr-reset{background:#374151;border-color:#374151;color:#fff}.tmr-reset:hover{background:#1F2937}
-.tmr-footer{display:flex;gap:10px;margin-top:1.5rem}
-.tmr-close{padding:8px 20px;border:2px solid #374151;border-radius:6px;background:transparent;color:#9CA3AF;font-size:13px;font-weight:700;cursor:pointer}
-.tmr-close:hover{border-color:#6B7280;color:#F9FAFB}
-.tmr-fs-btn{padding:8px 20px;border:2px solid #374151;border-radius:6px;background:transparent;color:#9CA3AF;font-size:13px;font-weight:700;cursor:pointer}
-.tmr-fs-btn:hover{border-color:#6B7280;color:#F9FAFB}
 /* PDF overlay */
 #pdf-overlay{display:none;position:fixed;inset:0;z-index:1000;background:#E5E7EB;overflow-y:auto;flex-direction:column}
 #pdf-overlay.show{display:flex}
