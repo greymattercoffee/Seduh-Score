@@ -9,6 +9,9 @@
 - **Fix: Last-10-seconds flash not showing on standalone timer page** — `theme.css` sets `#tmr-overlay { display:none; position:fixed }` for the popup overlay pattern used by BBTC and Throwdown. The standalone `timer/index.html` never overrode this, so the timer element was hidden entirely. Added CSS overrides in `timer/index.html` to keep the timer always-visible and in page flow (`position:static`), switching to full-screen fixed only when the `.fs` class is applied.
 - **Timer warning state hardened** — `running` class is removed during the warning window so the red flash can never be overridden by the amber running colour.
 
+### Liga Seduh
+- **Fix: Timer audio missing** — `liga/index.html` was loading `timer.js` but not `sound.js`. Beep (last 10 s) and horn (time's up) now fire correctly.
+
 ---
 
 ## [4.0.0] — Liga Seduh · June 2026
