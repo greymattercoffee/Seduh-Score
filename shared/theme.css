@@ -1,233 +1,67 @@
-/* ═══════════════════════════════════════════════════════════════
-   SEDUH SCORE — theme.css  (consolidated handoff build)
-   Coffee competition platform · Grey Matter Coffee Werks, Brunei
-   Single-file build of the design system. In the design-system project
-   this is split into tokens/*.css + patterns/*.css imported by styles.css;
-   this file is the flattened equivalent for diffing against production.
-═══════════════════════════════════════════════════════════════ */
-
-
-/* ╔══════════ tokens/fonts.css ══════════╗ */
-/* ───────────────────────────────────────────────────────────────
-   Seduh Score — Webfonts
-   Three Google Fonts, kept from the live platform:
-     · Bricolage Grotesque — display / headings (variable optical size)
-     · Hanken Grotesk      — body / UI text
-     · Space Mono          — labels, eyebrows, numeric data
-   The platform loads these from the Google Fonts CDN. Self-host the
-   .woff2 files for production if offline use is required.
-─────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────
+   Seduh Score — Shared Theme  v4.0 (vanilla, drop-in)
+   Refreshed design system. Class names preserved from v2.0 so
+   BBTC / Throwdown / future modules inherit the new look with
+   zero markup changes (roadmap v3.4 — platform cohesion).
+   No build step, no dependencies. One <link> per module.
+───────────────────────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
 
-
-/* ╔══════════ tokens/colors.css ══════════╗ */
-/* ───────────────────────────────────────────────────────────────
-   Seduh Score — Colour tokens
-   Warm coffee neutrals + Seduh Amber house accent + functional
-   competition semantics. These are not decorative: blue = rounds,
-   green = completion / winners, purple = redemption, red = destructive.
-   Token NAMES are a contract — BBTC / Throwdown / shared JS read
-   --txt*, --am*, --bl*, --gn*, --rd*, --pu*. Never rename them.
-─────────────────────────────────────────────────────────────── */
 :root{
-  /* ── Warm coffee neutrals (ink scale on warm paper) ── */
-  --ink:#211a14;   /* primary text — warm near-black espresso */
-  --ink2:#4d443c;  /* secondary text */
-  --ink3:#8a7f73;  /* tertiary / muted */
-  --ink4:#b4a99c;  /* faint / placeholder */
+  /* ── Warm coffee neutrals ── */
+  --ink:#211a14; --ink2:#4d443c; --ink3:#8a7f73; --ink4:#b4a99c;
+  /* Module-facing text token names (v2.0 contract — BBTC/Throwdown read these) */
+  --txt:#211a14; --txt2:#4d443c; --txt3:#8a7f73;
+  --bg:#f3efe8; --surface:#ffffff; --surface2:#faf7f1; --surface3:#f6f2ea;
+  --border:#e5ddd0; --border2:#efe9de; --border3:#d9cfbe;
 
-  /* Module-facing text token names (v2.0 contract — modules read these) */
-  --txt:#211a14;
-  --txt2:#4d443c;
-  --txt3:#8a7f73;
+  /* ── Seduh Amber (house brand constant) ── */
+  --am:#b45309; --am-h:#92400e; --am-bg:#fbf0df; --am-bd:#e09a36; --am-soft:#f6e8d2;
 
-  /* ── Surfaces ── */
-  --bg:#f3efe8;        /* app background — warm paper */
-  --surface:#ffffff;   /* cards, sheets */
-  --surface2:#faf7f1;  /* subtle raised / input fill */
-  --surface3:#f6f2ea;  /* hover wells */
+  /* ── Module / semantic accents ── */
+  --bl:#1d4ed8; --bl-bg:#eaf1fe; --bl-bd:#a9c6f7;
+  --gn:#0b7a52; --gn-bg:#e6f6ee; --gn-bd:#8fd9b8;
+  --rd:#a52121; --rd-bg:#fbeaea; --rd-bd:#eda3a3;
+  --pu:#6d28d9; --pu-bg:#f1ecfe; --pu-bd:#c3b0f5;
 
-  /* ── Borders (warm hairlines) ── */
-  --border:#e5ddd0;
-  --border2:#efe9de;
-  --border3:#d9cfbe;
-
-  /* ── Seduh Amber — the house brand constant ── */
-  --am:#b45309;     /* house accent */
-  --am-h:#92400e;   /* hover / pressed */
-  --am-bg:#fbf0df;  /* tinted fill */
-  --am-bd:#e09a36;  /* tinted border */
-  --am-soft:#f6e8d2;/* selection / soft wash */
-
-  /* ── Functional competition semantics ── */
-  --bl:#1d4ed8; --bl-bg:#eaf1fe; --bl-bd:#a9c6f7;  /* Rounds / scheduled */
-  --gn:#0b7a52; --gn-bg:#e6f6ee; --gn-bd:#8fd9b8;  /* Completion / winners / live */
-  --rd:#a52121; --rd-bg:#fbeaea; --rd-bd:#eda3a3;  /* Destructive / ties */
-  --pu:#6d28d9; --pu-bg:#f1ecfe; --pu-bd:#c3b0f5;  /* Redemption / revival */
-
-  /* ── User-customisable accent (defaults to house amber) ──
-     The "Make it your own" layer overrides these at runtime. */
+  /* ── User-customizable accent (defaults to house amber) ── */
   --accent:#b45309; --accent-h:#92400e; --accent-bg:#fbf0df; --accent-bd:#e09a36; --accent-ink:#ffffff;
 
-  /* ── Grey Matter Coffee Werks — parent brand ── */
-  --gmcw-teal:#3197a7;  /* coffee-bean teal segment */
-  --gmcw-ink:#333333;   /* wordmark black */
-  --gmcw-grey:#4d4d4d;  /* bean greyscale */
-
-  /* ── Rank medals (leaderboard) ── */
-  --rank-1:#d97706; --rank-2:#9ca3af; --rank-3:#92400e;
-
-  /* ── Semantic text aliases ── */
-  --text-strong:var(--ink);
-  --text-body:var(--ink2);
-  --text-muted:var(--ink3);
-  --text-faint:var(--ink4);
-  --text-accent:var(--accent);
-}
-
-
-/* ╔══════════ tokens/typography.css ══════════╗ */
-/* ───────────────────────────────────────────────────────────────
-   Seduh Score — Typography tokens
-   Display: Bricolage Grotesque (tight, confident headlines)
-   Body:    Hanken Grotesk (legible UI text)
-   Mono:    Space Mono (labels, eyebrows, numeric scores)
-   Craft-forward + technical — speciality coffee meets competition infra.
-─────────────────────────────────────────────────────────────── */
-:root{
-  /* ── Families ── */
-  --font-display:'Bricolage Grotesque',system-ui,sans-serif;
-  --font-body:'Hanken Grotesk',system-ui,sans-serif;
-  --font-mono:'Space Mono',ui-monospace,monospace;
-
-  /* ── Weights ── */
-  --fw-regular:400;
-  --fw-medium:500;
-  --fw-semibold:600;
-  --fw-bold:700;
-  --fw-extrabold:800;
-
-  /* ── Display scale (Bricolage) — clamp() fluid for hero use ── */
-  --fs-hero:clamp(38px,7.5vw,76px);
-  --fs-display:clamp(28px,4vw,44px);
-  --fs-h2:clamp(17px,2.4vw,22px);
-  --fs-stat:24px;
-
-  /* ── Body scale (Hanken) ── */
-  --fs-lead:clamp(15px,2vw,19px);
-  --fs-body:14px;
-  --fs-sm:13px;
-  --fs-xs:12px;
-
-  /* ── Mono scale (Space Mono) — labels & eyebrows ── */
-  --fs-eyebrow:11px;
-  --fs-label:10px;
-  --fs-micro:9.5px;
-
-  /* ── Tracking ── */
-  --ls-tight:-.03em;
-  --ls-snug:-.01em;
-  --ls-eyebrow:.18em;
-  --ls-label:.12em;
-  --ls-tag:.2em;
-
-  /* ── Line heights ── */
-  --lh-tight:.98;
-  --lh-snug:1.1;
-  --lh-body:1.5;
-}
-
-
-/* ╔══════════ tokens/spacing.css ══════════╗ */
-/* ───────────────────────────────────────────────────────────────
-   Seduh Score — Spacing, radius, shadow & layout tokens
-   Warm, soft-edged surfaces. Shadows are brown-tinted (never neutral
-   grey) so cards sit on warm paper, not a cold screen.
-─────────────────────────────────────────────────────────────── */
-:root{
-  /* ── Radius ── */
-  --rad-xs:6px;   /* tags, mini swatches */
-  --rad-s:9px;    /* inputs, buttons, wells */
-  --rad:14px;     /* cards, sheets, modules */
-  --rad-pill:99px;/* chips, badges, pills */
-
-  /* ── Brown-tinted elevation ── */
+  /* ── Radius & shadow ── */
+  --rad:14px; --rad-s:9px; --rad-xs:6px;
   --shadow-sm:0 1px 2px rgba(60,40,20,.05),0 1px 3px rgba(60,40,20,.06);
   --shadow-md:0 4px 14px rgba(70,45,20,.08),0 2px 4px rgba(70,45,20,.05);
   --shadow-lg:0 18px 50px rgba(60,40,20,.16),0 6px 16px rgba(60,40,20,.08);
 
-  /* ── Spacing scale (4px base) ── */
-  --space-1:4px;
-  --space-2:8px;
-  --space-3:12px;
-  --space-4:16px;
-  --space-5:22px;
-  --space-6:30px;
-  --space-8:44px;
-  --space-10:60px;
-
-  /* ── Borders ── */
-  --bw-hair:1px;     /* card hairline */
-  --bw:1.5px;        /* inputs, buttons, chips */
-  --bw-rail:4px;     /* status left-rail on rows */
-
-  /* ── Layout ── */
-  --container:1080px;       /* dashboard / page max width */
-  --container-narrow:900px; /* module app width */
-  --focus-ring:0 0 0 3px var(--accent-bg);
+  /* ── Type ── */
+  --font-display:'Bricolage Grotesque',system-ui,sans-serif;
+  --font-body:'Hanken Grotesk',system-ui,sans-serif;
+  --font-mono:'Space Mono',ui-monospace,monospace;
 }
-
-
-/* ╔══════════ tokens/base.css ══════════╗ */
-/* ───────────────────────────────────────────────────────────────
-   Seduh Score — Base reset + global elements + typography helpers
-─────────────────────────────────────────────────────────────── */
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{
-  background:var(--bg);
-  color:var(--ink);
-  font-family:var(--font-body);
-  line-height:var(--lh-body);
-  -webkit-font-smoothing:antialiased;
-  text-rendering:optimizeLegibility;
-}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);line-height:1.5;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 input,select,button,textarea{font-family:inherit}
 button{cursor:pointer}
 ::selection{background:var(--am-soft);color:var(--am-h)}
 
 /* ── Typography helpers ── */
-.eyebrow{
-  font-family:var(--font-mono);font-size:var(--fs-eyebrow);letter-spacing:var(--ls-eyebrow);
-  text-transform:uppercase;color:var(--accent);font-weight:var(--fw-bold);
-}
+.eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:700}
 .mono{font-family:var(--font-mono)}
-.label{
-  font-family:var(--font-mono);font-size:var(--fs-label);font-weight:var(--fw-bold);
-  text-transform:uppercase;letter-spacing:var(--ls-label);color:var(--ink3);
-}
-.hint{font-size:var(--fs-xs);color:var(--ink3)}
-.empty{text-align:center;padding:3rem 1rem;color:var(--ink3);font-size:var(--fs-sm)}
+.label{font-family:var(--font-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink3)}
+.hint{font-size:12px;color:var(--ink3)}
+.empty{text-align:center;padding:3rem 1rem;color:var(--ink3);font-size:13px}
 
 /* ── Layout ── */
-.container{max-width:var(--container);margin:0 auto;padding:0 0 var(--space-10)}
+.container{max-width:1080px;margin:0 auto;padding:0 0 60px}
 
-
-/* ╔══════════ patterns/components.css ══════════╗ */
-/* ───────────────────────────────────────────────────────────────
-   Seduh Score — Core component classes
-   Ported verbatim (values → tokens) from the live shared/theme.css.
-   These class names are the v2.0 contract the modules depend on.
-─────────────────────────────────────────────────────────────── */
-
-/* ════════ Platform header (permanent Seduh / Grey Matter lockup) ════════ */
+/* ════════ PLATFORM HEADER (permanent Seduh / Grey Matter lockup) ════════ */
 .plat-hdr{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:14px;
   padding:14px clamp(16px,4vw,40px);background:rgba(255,255,255,.86);backdrop-filter:blur(12px);
   border-bottom:1px solid var(--border2)}
 .plat-hdr-logo{display:flex;align-items:center;gap:11px;text-decoration:none}
 .plat-hdr-ac{width:5px;height:34px;border-radius:3px;background:var(--accent);flex-shrink:0}
-.plat-mark{display:flex;align-items:center;color:var(--accent);flex-shrink:0}  /* brew-waves Seduh mark — recolours via currentColor */
-.plat-mark svg{display:block;width:34px;height:29px}
 .plat-hdr-name{font-family:var(--font-display);font-weight:800;font-size:18px;letter-spacing:-.02em;color:var(--ink);line-height:1;white-space:nowrap}
 .plat-hdr-sub{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-top:3px}
 .plat-hdr-module{margin-left:6px;padding:4px 11px;background:var(--accent-bg);border:1.5px solid var(--accent-bd);
@@ -302,21 +136,14 @@ label.field-lbl{font-size:12px;font-weight:700;color:var(--ink2);display:block;m
 .lb-row.qf{background:var(--gn-bg);border-color:var(--gn-bd);border-left:4px solid var(--gn)}
 .lb-row.qf .lb-name{color:var(--gn);font-weight:700}
 .rnk{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:12px;font-weight:700;flex-shrink:0}
-.r1{background:var(--rank-1);color:#fff}.r2{background:var(--rank-2);color:#fff}.r3{background:var(--rank-3);color:#fff}.ro{background:var(--surface2);color:var(--ink3);border:1.5px solid var(--border)}
+.r1{background:#d97706;color:#fff}.r2{background:#9ca3af;color:#fff}.r3{background:#92400e;color:#fff}.ro{background:var(--surface2);color:var(--ink3);border:1.5px solid var(--border)}
 .lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lb-pts{text-align:right;flex-shrink:0}
 .lb-pn{font-family:var(--font-display);font-size:24px;color:var(--accent);line-height:1;font-weight:700}
 .lb-pl{font-family:var(--font-mono);font-size:9.5px;color:var(--ink3);font-weight:700;text-transform:uppercase}
 
-
-/* ╔══════════ patterns/dashboard.css ══════════╗ */
-/* ───────────────────────────────────────────────────────────────
-   Seduh Score — Dashboard layout (hero + modules + tools + sheet)
-   Ported from the live index.html dashboard. Powers the platform
-   landing view: 3 cover layouts (Band / Editorial / Ticket), the
-   competition-format module grid, and the "Make it your own" sheet.
-─────────────────────────────────────────────────────────────── */
-.main{flex:1;width:100%;max-width:var(--container);margin:0 auto;padding:clamp(20px,4vw,40px) clamp(16px,4vw,40px) 80px}
+/* ════════ DASHBOARD ════════ */
+.main{flex:1;width:100%;max-width:1080px;margin:0 auto;padding:clamp(20px,4vw,40px) clamp(16px,4vw,40px) 80px}
 .shell{min-height:100vh;display:flex;flex-direction:column}
 .btn-customize{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:99px;white-space:nowrap;
   border:1.5px solid var(--accent-bd);background:var(--accent-bg);color:var(--accent-h);font-weight:700;font-size:13px;transition:transform .12s,box-shadow .12s}
@@ -338,7 +165,7 @@ label.field-lbl{font-size:12px;font-weight:700;color:var(--ink2);display:block;m
 .metachip .k{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);font-weight:700;display:block}
 .metachip.empty{color:var(--ink4)}.metachip.empty svg{color:var(--ink4)}
 
-/* logo slot */
+/* logo slot (vanilla file upload) */
 .logo-slot{position:relative;display:grid;place-items:center;border:1.5px dashed var(--border3);background:var(--surface2);
   border-radius:var(--rad-s);overflow:hidden;cursor:pointer;color:var(--ink4)}
 .logo-slot:hover{border-color:var(--accent-bd);color:var(--accent)}
@@ -409,13 +236,11 @@ label.field-lbl{font-size:12px;font-weight:700;color:var(--ink2);display:block;m
 /* ── Tools strip ── */
 .tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:30px}
 .tool{display:flex;align-items:center;gap:12px;padding:15px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rad-s)}
-a.tool{text-decoration:none;cursor:pointer}
-a.tool:hover{border-color:var(--accent);background:var(--surface3)}
 .tool-ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);font-size:18px;flex-shrink:0}
 .tool-t{font-weight:700;font-size:13.5px;color:var(--ink)}
 .tool-d{font-size:11.5px;color:var(--ink3);margin-top:1px}
 
-/* ── Footer (permanent credit) ── */
+/* ── Footer (permanent credit — roadmap v4.1 IP) ── */
 .foot{margin-top:54px;padding-top:24px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:14px;
   align-items:center;justify-content:space-between;font-size:12px;color:var(--ink3)}
 .foot a{color:var(--am);text-decoration:none;font-weight:700}
@@ -458,23 +283,7 @@ a.tool:hover{border-color:var(--accent);background:var(--surface3)}
 .sheet-foot{flex-shrink:0;display:flex;gap:10px;padding:16px 22px;border-top:1px solid var(--border2);background:var(--surface2)}
 .sheet-foot .btn-p{flex:1}
 
-/* ── Reveal ── */
-@media(prefers-reduced-motion:no-preference){
-  .reveal{animation:rise .55s cubic-bezier(.2,.7,.3,1)}
-  .reveal.d1{animation-delay:.04s}.reveal.d2{animation-delay:.11s}.reveal.d3{animation-delay:.18s}.reveal.d4{animation-delay:.25s}
-  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
-}
-
-
-/* ╔══════════ patterns/overlays.css ══════════╗ */
-/* ───────────────────────────────────────────────────────────────
-   Seduh Score — Projector overlays (timer + audience)
-   The class / ID names here are generated at runtime by
-   shared/timer.js and shared/audience.js — they are a hard contract.
-   Never rename .tmr-* / .aud-* or drop these blocks.
-─────────────────────────────────────────────────────────────── */
-
-/* ════════ Court timer overlay (dark, projector) ════════ */
+/* ════════ Court timer overlay (shared — timer.js contract) ════════ */
 #tmr-overlay{display:none;position:fixed;inset:0;z-index:1001;background:#1c1510;flex-direction:column;align-items:center;justify-content:center}
 #tmr-overlay.show{display:flex}
 #tmr-overlay.fs .tmr-extras{display:none}
@@ -487,6 +296,7 @@ a.tool:hover{border-color:var(--accent);background:var(--surface3)}
 .tmr-display{font-family:var(--font-display);font-size:22vw;font-weight:800;color:#faf7f1;letter-spacing:-.02em;line-height:1;
   font-variant-numeric:tabular-nums;text-align:center;min-width:2ch}
 #tmr-overlay.running .tmr-display{color:var(--am-bd)}
+#tmr-overlay.warning .tmr-display{color:#ef4444;animation:blink .6s ease-in-out infinite}
 #tmr-overlay.done .tmr-display{color:#ef4444;animation:blink 1s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 .tmr-controls{display:flex;gap:10px;margin-top:1rem;flex-wrap:wrap;justify-content:center}
@@ -499,7 +309,7 @@ a.tool:hover{border-color:var(--accent);background:var(--surface3)}
   font-size:13px;font-weight:700;cursor:pointer}
 .tmr-footer button:hover{border-color:#8a7f73;color:#faf7f1}
 
-/* ════════ Audience overlay (light, projector standings/results) ════════ */
+/* ════════ Audience overlay (shared — audience.js contract) ════════ */
 #aud-overlay{display:none;position:fixed;inset:0;z-index:998;background:var(--bg);overflow:hidden;flex-direction:column}
 #aud-overlay.show{display:flex}
 .aud-banner{display:flex;align-items:center;gap:14px;padding:.9rem 2rem;background:var(--surface);border-bottom:3px solid var(--am);flex-shrink:0;box-shadow:var(--shadow-md)}
@@ -517,11 +327,17 @@ a.tool:hover{border-color:var(--accent);background:var(--surface3)}
 .aud-sec-title{font-family:var(--font-mono);font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--am);margin-bottom:1rem;padding-bottom:.6rem;border-bottom:2px solid var(--am);font-weight:700}
 @media(max-width:720px){.aud-body{grid-template-columns:1fr}.aud-panel:first-child{border-right:none;border-bottom:2px solid var(--border2)}}
 
-/* ── Print (PDF export) ── */
+/* ── Reveal ── */
+@media(prefers-reduced-motion:no-preference){
+  .reveal{animation:rise .55s cubic-bezier(.2,.7,.3,1)}
+  .reveal.d1{animation-delay:.04s}.reveal.d2{animation-delay:.11s}.reveal.d3{animation-delay:.18s}.reveal.d4{animation-delay:.25s}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+}
+
+/* ── Print ── */
 @media print{
   body>*{display:none!important}
   #pdf-overlay{display:block!important;position:static!important;background:#fff!important;overflow:visible!important}
   .pdf-toolbar{display:none!important}
   .pdf-page{width:100%!important;margin:0!important;padding:12mm 14mm!important;box-shadow:none!important}
 }
-

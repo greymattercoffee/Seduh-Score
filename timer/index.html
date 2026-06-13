@@ -109,9 +109,10 @@ body{
   transition:color .2s;
 }
 
-/* State colours — react to classes timer.js puts on #tmr-overlay sentinel */
-body:has(#tmr-overlay.running) .tmr-display{color:#D97706}
-body:has(#tmr-overlay.done) .tmr-display{color:#EF4444;animation:blink 1s ease-in-out infinite}
+/* State colours */
+#tmr-overlay.running .tmr-display{color:#D97706}
+#tmr-overlay.warning .tmr-display{color:#EF4444;animation:blink .6s ease-in-out infinite}
+#tmr-overlay.done .tmr-display{color:#EF4444;animation:blink 1s ease-in-out infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* Controls */
@@ -138,15 +139,15 @@ body:has(#tmr-overlay.done) .tmr-display{color:#EF4444;animation:blink 1s ease-i
 }
 .tmr-fs-btn:hover{border-color:#6B7280;color:#F9FAFB}
 
-/* ── Fullscreen mode — react to .fs class timer.js puts on #tmr-overlay sentinel ── */
+/* ── Fullscreen mode ── */
 body:has(#tmr-overlay.fs) .timer-hdr{display:none}
 body:has(#tmr-overlay.fs) .timer-foot{display:none}
 body:has(#tmr-overlay.fs) .timer-stage{padding:0;justify-content:center}
-body:has(#tmr-overlay.fs) .tmr-presets{display:none}
-body:has(#tmr-overlay.fs) .tmr-custom{display:none}
-body:has(#tmr-overlay.fs) .tmr-controls{display:none}
-body:has(#tmr-overlay.fs) .tmr-footer{display:none}
-body:has(#tmr-overlay.fs) .tmr-display{font-size:30vw;cursor:pointer}
+#tmr-overlay.fs .tmr-presets{display:none}
+#tmr-overlay.fs .tmr-controls{display:none}
+#tmr-overlay.fs .tmr-footer{display:none}
+#tmr-overlay.fs .tmr-custom{display:none}
+#tmr-overlay.fs .tmr-display{font-size:30vw;cursor:pointer}
 
 /* Exit fullscreen hint — visible only in fs mode */
 .fs-exit{
@@ -187,10 +188,6 @@ body:has(#tmr-overlay.fs) .fs-exit{display:flex}
 </head>
 <body>
 
-<!-- Sentinel div — timer.js attaches running/done/fs classes here.
-     Kept hidden; CSS body:has() selectors react to its class changes. -->
-<div id="tmr-overlay" style="display:none" aria-hidden="true"></div>
-
 <!-- Header -->
 <header class="timer-hdr">
   <div class="timer-hdr-brand">
@@ -211,6 +208,7 @@ body:has(#tmr-overlay.fs) .fs-exit{display:flex}
 
 <!-- Timer stage -->
 <main class="timer-stage">
+<div id="tmr-overlay">
 
   <div class="tmr-presets">
     <button class="tmr-preset" data-secs="300">5 min</button>
@@ -237,6 +235,7 @@ body:has(#tmr-overlay.fs) .fs-exit{display:flex}
     <button class="tmr-fs-btn" id="tmr-fs">⛶ Fullscreen</button>
   </div>
 
+</div>
 </main>
 
 <!-- Exit fullscreen hint (visible only in fs mode) -->
@@ -253,14 +252,18 @@ body:has(#tmr-overlay.fs) .fs-exit{display:flex}
   </span>
 </footer>
 
+<script src="../shared/sound.js"></script>
 <script src="../shared/timer.js"></script>
 <script>
-// timer.js wires all button listeners and manages state classes on #tmr-overlay.
-// The sentinel div above receives those classes; body:has() CSS reacts to them.
+// Timer.js uses IDs to find elements — init() wires them all up.
+// The standalone page doesn't use Timer.open() / Timer.close() because
+// the timer IS the page; it's always visible.
 Timer.init();
+
+// Default to 7 min on load (Throwdown / Girls Got Drip format)
 Timer.set(420);
 
-// Custom timer — type minutes, press Set or Enter
+// Custom timer input
 const customInput = document.getElementById('tmr-custom-input');
 const customSet   = document.getElementById('tmr-custom-set');
 
@@ -274,10 +277,16 @@ function applyCustom() {
 customSet.addEventListener('click', applyCustom);
 customInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyCustom(); });
 
-// fs-exit button — Escape is handled by timer.js
-const fsExit = document.getElementById('fs-exit');
+// Fullscreen is toggled by timer.js via #tmr-overlay.fs
+// fs-exit button and Escape provide additional exit paths
 const ovl    = document.getElementById('tmr-overlay');
+const fsExit = document.getElementById('fs-exit');
+
 fsExit.addEventListener('click', () => ovl.classList.remove('fs'));
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') ovl.classList.remove('fs');
+});
 </script>
 </body>
 </html>
