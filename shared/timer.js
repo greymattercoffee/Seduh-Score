@@ -81,6 +81,21 @@ const Timer = (() => {
       dsp().textContent = fmt(ms);
       ovl().classList.remove('running','done','warning');
     });
+    // Custom time input — present on standalone page and all module overlays
+    const customInput = el('tmr-custom-input');
+    const customSet   = el('tmr-custom-set');
+    if (customInput && customSet) {
+      const applyCustom = () => {
+        const mins = parseFloat(customInput.value);
+        if (!mins || mins <= 0) return;
+        setPreset(Math.round(mins * 60));
+        customInput.value = '';
+        customInput.blur();
+      };
+      customSet.addEventListener('click', applyCustom);
+      customInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyCustom(); });
+    }
+
     el('tmr-close')?.addEventListener('click', () => ovl().classList.remove('show'));
     el('tmr-fs')?.addEventListener('click',   () => ovl().classList.toggle('fs'));
 

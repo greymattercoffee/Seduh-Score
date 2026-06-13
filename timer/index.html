@@ -270,20 +270,6 @@ Timer.init();
 // Default to 7 min on load (Throwdown / Girls Got Drip format)
 Timer.set(420);
 
-// Custom timer input
-const customInput = document.getElementById('tmr-custom-input');
-const customSet   = document.getElementById('tmr-custom-set');
-
-function applyCustom() {
-  const mins = parseFloat(customInput.value);
-  if (!mins || mins <= 0) return;
-  Timer.set(Math.round(mins * 60));
-  customInput.value = '';
-  customInput.blur();
-}
-customSet.addEventListener('click', applyCustom);
-customInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyCustom(); });
-
 // Fullscreen is toggled by timer.js via #tmr-overlay.fs
 // fs-exit button and Escape provide additional exit paths
 const ovl    = document.getElementById('tmr-overlay');
