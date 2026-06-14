@@ -2,15 +2,44 @@
 
 ---
 
+## [4.0.2] — CSS Audit & theme.css cleanup · June 2026
+
+### shared/theme.css
+- Three separate `:root` blocks consolidated into one canonical block —
+  section comments preserved for readability
+- Version comment added: `/* Seduh Score — theme.css v4.1 — audited June 2026 */`
+- **Dead token removed:** `--rad-xs` — confirmed unused across all modules
+- **9 orphan classes removed:** `.plat-hdr-module`, `.chip-num`, `.chip-rm`,
+  `.inf-v`, `.inf-l`, `.badge-am`, `.badge-bl`, `.badge-rd`, `.badge-gn` —
+  confirmed unused across all modules
+- `border-radius:99px` literal replaced with `var(--rad-pill)` across 9
+  selectors within theme.css — no module files touched
+- All `.tmr-*` / `.aud-*` / `#pdf-overlay` overlay classes and print rules
+  confirmed intact — 80/80 verification pass
+- Net: 95 tokens in single `:root` block; 1 token removed, 9 classes removed
+
+---
+
 ## [4.0.1] — Timer fixes · June 2026
 
 ### Shared
-- **Fix: Timer horn inaudible** — time's-up horn was synthesised at 100–150 Hz, below the range most laptop and phone speakers reproduce. Raised to 330 Hz (square) / 247 Hz (sawtooth) so it carries on any device.
-- **Fix: Last-10-seconds flash not showing on standalone timer page** — `theme.css` sets `#tmr-overlay { display:none; position:fixed }` for the popup overlay pattern used by BBTC and Throwdown. The standalone `timer/index.html` never overrode this, so the timer element was hidden entirely. Added CSS overrides in `timer/index.html` to keep the timer always-visible and in page flow (`position:static`), switching to full-screen fixed only when the `.fs` class is applied.
-- **Timer warning state hardened** — `running` class is removed during the warning window so the red flash can never be overridden by the amber running colour.
+- **Fix: Timer horn inaudible** — time's-up horn was synthesised at 100–150 Hz,
+  below the range most laptop and phone speakers reproduce. Raised to 330 Hz
+  (square) / 247 Hz (sawtooth) so it carries on any device.
+- **Fix: Last-10-seconds flash not showing on standalone timer page** —
+  `theme.css` sets `#tmr-overlay { display:none; position:fixed }` for the
+  popup overlay pattern used by BBTC and Throwdown. The standalone
+  `timer/index.html` never overrode this, so the timer element was hidden
+  entirely. Added CSS overrides in `timer/index.html` to keep the timer
+  always-visible and in page flow (`position:static`), switching to full-screen
+  fixed only when the `.fs` class is applied.
+- **Timer warning state hardened** — `running` class is removed during the
+  warning window so the red flash can never be overridden by the amber running
+  colour.
 
 ### Liga Seduh
-- **Fix: Timer audio missing** — `liga/index.html` was loading `timer.js` but not `sound.js`. Beep (last 10 s) and horn (time's up) now fire correctly.
+- **Fix: Timer audio missing** — `liga/index.html` was loading `timer.js` but
+  not `sound.js`. Beep (last 10 s) and horn (time's up) now fire correctly.
 
 ---
 
@@ -18,14 +47,26 @@
 
 ### liga/index.html (new module)
 - **Liga Seduh Bawah Tanah** — full round-robin league module
-- Setup: event info, brewer roster (add/remove), rounds with ceiling validation (`floor((N−1)/2)`), device list management
-- Schedule generator: randomised greedy with retry (up to 5000 attempts), no-repeat pair constraint, duo fairness rotation; N mod 3 determines triads/duos per round
-- Scoring: `resolveMatch()` pure function handles all cases — 2-1-0 clean, 3-0-0 sweep (revote for 2nd/3rd), 1-1-1 deadlock (tiebreaker judge + revote), duo 2-0/1-1, solo walkover; amber ⚖ TB badge on judge-broken matches
-- Standings: live league table sorted Pts → W → Votes; `--rank-1/-2/-3` medal tokens for top 3
-- Final tab: locked until all regular matches are done; auto-selects top 3; cutoff-tie detection triggers RPS picker with checkboxes; 5-vote pool (3 brewer + 2 external judge); Final result does not alter league table
-- Report tab: champion result, frozen league table, device usage summary (matches/wins per device, per-brewer device history), per-brewer season summary, CSV export
-- Audience view: `Audience.show()` with live standings and current-round matchups; inline hex throughout (no CSS var cascade into overlay)
-- Demo mode: 8-brewer mid-season state (2 of 3 rounds done) including a sweep, a deadlock, and a duo
+- Setup: event info, brewer roster (add/remove), rounds with ceiling validation
+  (`floor((N−1)/2)`), device list management
+- Schedule generator: randomised greedy with retry (up to 5000 attempts),
+  no-repeat pair constraint, duo fairness rotation; N mod 3 determines
+  triads/duos per round
+- Scoring: `resolveMatch()` pure function handles all cases — 2-1-0 clean,
+  3-0-0 sweep (revote for 2nd/3rd), 1-1-1 deadlock (tiebreaker judge + revote),
+  duo 2-0/1-1, solo walkover; amber ⚖ TB badge on judge-broken matches
+- Standings: live league table sorted Pts → W → Votes; `--rank-1/-2/-3` medal
+  tokens for top 3
+- Final tab: locked until all regular matches are done; auto-selects top 3;
+  cutoff-tie detection triggers RPS picker with checkboxes; 5-vote pool
+  (3 brewer + 2 external judge); Final result does not alter league table
+- Report tab: champion result, frozen league table, device usage summary
+  (matches/wins per device, per-brewer device history), per-brewer season
+  summary, CSV export
+- Audience view: `Audience.show()` with live standings and current-round
+  matchups; inline hex throughout (no CSS var cascade into overlay)
+- Demo mode: 8-brewer mid-season state (2 of 3 rounds done) including a sweep,
+  a deadlock, and a duo
 - JSON save/load with `_module:'liga'` guard; storage key `seduh_liga_v1`
 
 ### index.html (dashboard)
