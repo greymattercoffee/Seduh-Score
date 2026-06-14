@@ -1,3 +1,4 @@
+/* Seduh Score — theme.css v4.1 — audited June 2026 */
 /* ═══════════════════════════════════════════════════════════════
    SEDUH SCORE — theme.css  (consolidated handoff build)
    Coffee competition platform · Grey Matter Coffee Werks, Brunei
@@ -20,14 +21,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
 
 
-/* ╔══════════ tokens/colors.css ══════════╗ */
+/* ╔══════════ tokens — colours · typography · spacing ══════════╗ */
 /* ───────────────────────────────────────────────────────────────
-   Seduh Score — Colour tokens
-   Warm coffee neutrals + Seduh Amber house accent + functional
-   competition semantics. These are not decorative: blue = rounds,
-   green = completion / winners, purple = redemption, red = destructive.
+   Seduh Score — Design tokens (single consolidated :root)
+   Colours: warm coffee neutrals + Seduh Amber + competition semantics.
    Token NAMES are a contract — BBTC / Throwdown / shared JS read
    --txt*, --am*, --bl*, --gn*, --rd*, --pu*. Never rename them.
+   Typography: Bricolage Grotesque (display) · Hanken Grotesk (body) · Space Mono (mono)
+   Spacing: 4px base scale · brown-tinted shadows · warm soft-edged radius
 ─────────────────────────────────────────────────────────────── */
 :root{
   /* ── Warm coffee neutrals (ink scale on warm paper) ── */
@@ -83,18 +84,7 @@
   --text-muted:var(--ink3);
   --text-faint:var(--ink4);
   --text-accent:var(--accent);
-}
 
-
-/* ╔══════════ tokens/typography.css ══════════╗ */
-/* ───────────────────────────────────────────────────────────────
-   Seduh Score — Typography tokens
-   Display: Bricolage Grotesque (tight, confident headlines)
-   Body:    Hanken Grotesk (legible UI text)
-   Mono:    Space Mono (labels, eyebrows, numeric scores)
-   Craft-forward + technical — speciality coffee meets competition infra.
-─────────────────────────────────────────────────────────────── */
-:root{
   /* ── Families ── */
   --font-display:'Bricolage Grotesque',system-ui,sans-serif;
   --font-body:'Hanken Grotesk',system-ui,sans-serif;
@@ -135,21 +125,11 @@
   --lh-tight:.98;
   --lh-snug:1.1;
   --lh-body:1.5;
-}
 
-
-/* ╔══════════ tokens/spacing.css ══════════╗ */
-/* ───────────────────────────────────────────────────────────────
-   Seduh Score — Spacing, radius, shadow & layout tokens
-   Warm, soft-edged surfaces. Shadows are brown-tinted (never neutral
-   grey) so cards sit on warm paper, not a cold screen.
-─────────────────────────────────────────────────────────────── */
-:root{
   /* ── Radius ── */
-  --rad-xs:6px;   /* tags, mini swatches */
-  --rad-s:9px;    /* inputs, buttons, wells */
-  --rad:14px;     /* cards, sheets, modules */
-  --rad-pill:99px;/* chips, badges, pills */
+  --rad-s:9px;     /* inputs, buttons, wells */
+  --rad:14px;      /* cards, sheets, modules */
+  --rad-pill:99px; /* chips, badges, pills */
 
   /* ── Brown-tinted elevation ── */
   --shadow-sm:0 1px 2px rgba(60,40,20,.05),0 1px 3px rgba(60,40,20,.06);
@@ -230,10 +210,8 @@ button{cursor:pointer}
 .plat-mark svg{display:block;width:34px;height:29px}
 .plat-hdr-name{font-family:var(--font-display);font-weight:800;font-size:18px;letter-spacing:-.02em;color:var(--ink);line-height:1;white-space:nowrap}
 .plat-hdr-sub{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-top:3px}
-.plat-hdr-module{margin-left:6px;padding:4px 11px;background:var(--accent-bg);border:1.5px solid var(--accent-bd);
-  border-radius:99px;font-family:var(--font-mono);font-size:10px;color:var(--accent-h);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
 .plat-hdr-actions{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.plat-back{font-size:12px;color:var(--ink3);text-decoration:none;padding:7px 13px;border:1.5px solid var(--border);border-radius:99px;font-weight:600}
+.plat-back{font-size:12px;color:var(--ink3);text-decoration:none;padding:7px 13px;border:1.5px solid var(--border);border-radius:var(--rad-pill);font-weight:600}
 .plat-back:hover{color:var(--accent);border-color:var(--accent-bd)}
 
 /* ── Tabs ── */
@@ -261,9 +239,7 @@ label.field-lbl{font-size:12px;font-weight:700;color:var(--ink2);display:block;m
 
 /* ── Chips ── */
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.chip{display:flex;align-items:center;gap:6px;padding:5px 10px 5px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;font-size:13px;font-weight:600}
-.chip-num{font-family:var(--font-mono);font-size:10px;color:var(--ink3)}
-.chip-rm{background:none;border:none;cursor:pointer;color:var(--ink3);font-size:16px;line-height:1;padding:0}
+.chip{display:flex;align-items:center;gap:6px;padding:5px 10px 5px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rad-pill);font-size:13px;font-weight:600}
 
 /* ── Buttons ── */
 .btn-p{background:var(--accent);color:var(--accent-ink);border:none;padding:11px 22px;border-radius:var(--rad-s);font-size:14px;font-weight:700;transition:background .14s,transform .12s}
@@ -271,7 +247,7 @@ label.field-lbl{font-size:12px;font-weight:700;color:var(--ink2);display:block;m
 .btn-p:disabled{background:var(--border);color:var(--ink3);cursor:default}
 .btn-o{background:var(--surface);border:1.5px solid var(--border);padding:9px 16px;border-radius:var(--rad-s);font-size:13px;color:var(--ink2);font-weight:700}
 .btn-o:hover{border-color:var(--ink3)}
-.btn-sm{padding:6px 13px;font-size:11px;font-weight:700;border-radius:99px;border:1.5px solid;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase}
+.btn-sm{padding:6px 13px;font-size:11px;font-weight:700;border-radius:var(--rad-pill);border:1.5px solid;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase}
 .btn-am{background:var(--am-bg);border-color:var(--am-bd);color:var(--am)}.btn-am:hover{background:var(--am);color:#fff}
 .btn-bl{background:var(--bl-bg);border-color:var(--bl-bd);color:var(--bl)}.btn-bl:hover{background:var(--bl);color:#fff}
 .btn-gn{background:var(--gn-bg);border-color:var(--gn-bd);color:var(--gn)}.btn-gn:hover{background:var(--gn);color:#fff}
@@ -280,15 +256,9 @@ label.field-lbl{font-size:12px;font-weight:700;color:var(--ink2);display:block;m
 
 /* ── Info strip ── */
 .inf{display:flex;gap:1.5rem;padding:.7rem 1rem;background:var(--surface2);border-radius:var(--rad-s);border:1px solid var(--border)}
-.inf-v{font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--accent)}
-.inf-l{font-family:var(--font-mono);font-size:9.5px;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.1em}
 
 /* ── Badge ── */
-.badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;border:1.5px solid}
-.badge-am{background:var(--am-bg);border-color:var(--am-bd);color:var(--am)}
-.badge-gn{background:var(--gn-bg);border-color:var(--gn-bd);color:var(--gn)}
-.badge-bl{background:var(--bl-bg);border-color:var(--bl-bd);color:var(--bl)}
-.badge-rd{background:var(--rd-bg);border-color:var(--rd-bd);color:var(--rd)}
+.badge{display:inline-block;padding:4px 10px;border-radius:var(--rad-pill);font-size:11px;font-weight:700;border:1.5px solid}
 .badge-pu{background:var(--pu-bg);border-color:var(--pu-bd);color:var(--pu)}
 
 /* ── Section divider ── */
@@ -318,7 +288,7 @@ label.field-lbl{font-size:12px;font-weight:700;color:var(--ink2);display:block;m
 ─────────────────────────────────────────────────────────────── */
 .main{flex:1;width:100%;max-width:var(--container);margin:0 auto;padding:clamp(20px,4vw,40px) clamp(16px,4vw,40px) 80px}
 .shell{min-height:100vh;display:flex;flex-direction:column}
-.btn-customize{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:99px;white-space:nowrap;
+.btn-customize{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:var(--rad-pill);white-space:nowrap;
   border:1.5px solid var(--accent-bd);background:var(--accent-bg);color:var(--accent-h);font-weight:700;font-size:13px;transition:transform .12s,box-shadow .12s}
 .btn-customize:hover{transform:translateY(-1px);box-shadow:var(--shadow-md)}
 .btn-customize svg{width:15px;height:15px}
@@ -333,7 +303,7 @@ label.field-lbl{font-size:12px;font-weight:700;color:var(--ink2);display:block;m
 .hero-name{font-family:var(--font-display);font-weight:800;letter-spacing:-.03em;line-height:.98;color:var(--ink);font-size:clamp(38px,7.5vw,76px);text-wrap:balance}
 .hero-sub{font-size:clamp(15px,2vw,19px);color:var(--ink2);margin-top:16px;max-width:46ch;line-height:1.5}
 .hero-meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
-.metachip{display:inline-flex;align-items:center;gap:9px;padding:9px 15px;background:var(--surface);border:1px solid var(--border);border-radius:99px;font-size:13.5px;font-weight:600;color:var(--ink2);box-shadow:var(--shadow-sm)}
+.metachip{display:inline-flex;align-items:center;gap:9px;padding:9px 15px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rad-pill);font-size:13.5px;font-weight:600;color:var(--ink2);box-shadow:var(--shadow-sm)}
 .metachip svg{width:15px;height:15px;color:var(--accent);flex-shrink:0}
 .metachip .k{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);font-weight:700;display:block}
 .metachip.empty{color:var(--ink4)}.metachip.empty svg{color:var(--ink4)}
@@ -404,7 +374,7 @@ label.field-lbl{font-size:12px;font-weight:700;color:var(--ink2);display:block;m
 .mod-go svg{width:15px;height:15px;transition:transform .16s}
 .mod:hover .mod-go svg{transform:translateX(3px)}
 .mod.soon{opacity:.72}
-.soon-tag{font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--ink3);background:var(--surface3);border:1px solid var(--border);border-radius:99px;padding:3px 9px}
+.soon-tag{font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--ink3);background:var(--surface3);border:1px solid var(--border);border-radius:var(--rad-pill);padding:3px 9px}
 
 /* ── Tools strip ── */
 .tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:30px}
@@ -420,7 +390,7 @@ a.tool:hover{border-color:var(--accent);background:var(--surface3)}
   align-items:center;justify-content:space-between;font-size:12px;color:var(--ink3)}
 .foot a{color:var(--am);text-decoration:none;font-weight:700}
 .foot .credit{line-height:1.7}
-.live-pill{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;color:var(--gn);background:var(--gn-bg);border:1px solid var(--gn-bd);border-radius:99px;padding:4px 11px}
+.live-pill{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;color:var(--gn);background:var(--gn-bg);border:1px solid var(--gn-bd);border-radius:var(--rad-pill);padding:4px 11px}
 .live-pill .dot{width:6px;height:6px;border-radius:50%;background:var(--gn);animation:pulse 1.8s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 
@@ -507,7 +477,7 @@ a.tool:hover{border-color:var(--accent);background:var(--surface3)}
 .aud-title-block .aud-sub{font-family:var(--font-mono);font-size:10px;color:var(--am);letter-spacing:.25em;text-transform:uppercase;margin-bottom:3px;font-weight:700}
 .aud-title-block{flex-shrink:0}
 .aud-title-block .aud-title{font-family:var(--font-display);font-size:22px;color:var(--ink);font-weight:800;letter-spacing:-.01em;white-space:nowrap}
-.aud-module-tag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;border:1.5px solid;margin-left:4px}
+.aud-module-tag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:var(--rad-pill);border:1.5px solid;margin-left:4px}
 .aud-ts{margin-left:auto;text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--ink3);line-height:1.7;font-weight:600}
 .aud-close{background:var(--surface3);border:1.5px solid var(--border);color:var(--ink2);font-size:12px;font-weight:700;padding:7px 16px;border-radius:var(--rad-s);cursor:pointer;flex-shrink:0;text-transform:uppercase}
 .aud-close:hover{background:var(--am);color:#fff;border-color:var(--am)}
@@ -524,4 +494,3 @@ a.tool:hover{border-color:var(--accent);background:var(--surface3)}
   .pdf-toolbar{display:none!important}
   .pdf-page{width:100%!important;margin:0!important;padding:12mm 14mm!important;box-shadow:none!important}
 }
-
