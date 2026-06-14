@@ -13,3 +13,6 @@ Desktop.ini
 .thumbnail
 uploads/
 Roadmap.pdf
+
+# Audit handoff files
+handoff_*.md
