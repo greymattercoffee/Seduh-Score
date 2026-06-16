@@ -145,11 +145,12 @@ let mid = 0;
 const DEFAULT_STATE = () => ({
   eventName: '', eventDate: '', eventVenue: '',
   judges: 3,
-  judgeList: [],       // [{name}] — for record keeping; not linked to rounds
+  judgeList: [],
   redemption: false,
   redemptionRounds: { r1: true, r2: false },
-  redemptionCap: 0,    // 0 = no cap; N = max N winners revived from redemption
-  wildCard: false,     // enable random loser revival after each main round
+  redemptionCap: 0,
+  wildCard: false,
+  thirdPlace: false,    // enable 3rd place match before Final
   participants: [],
   bracket: null,
   matches: [],
@@ -308,8 +309,18 @@ function advanceBracket() {
       b.redemptionPool = [];
       b.phase = 'redemption';
     } else if (advancingWinners.length >= 2) {
-      const nextPairs = buildPairs(shuffle(advancingWinners));
       const nextLabel = getNextRoundLabel(b, advancingWinners.length);
+      // 3rd place: if enabled and next round is Final, push 3rd place match alongside
+      if (S.thirdPlace && nextLabel === 'Final' && losers.length >= 2) {
+        const thirdLosers = losers.filter(l => l !== wcPerson).slice(0, 2);
+        if (thirdLosers.length === 2) {
+          b.rounds.push({ label: '3rd Place', phase: 'third', roundNum: b.mainRoundsDone + 1, pairs: buildPairs(thirdLosers) });
+          b.rounds.push({ label: 'Final', phase: 'main', roundNum: b.mainRoundsDone + 1, pairs: buildPairs(shuffle(advancingWinners)) });
+          b.phase = 'main';
+          save(); return;
+        }
+      }
+      const nextPairs = buildPairs(shuffle(advancingWinners));
       b.rounds.push({ label: nextLabel, phase: 'main', roundNum: b.mainRoundsDone + 1, pairs: nextPairs });
       b.phase = 'main';
     } else if (advancingWinners.length === 1) {
@@ -320,16 +331,38 @@ function advanceBracket() {
     const cap = S.redemptionCap > 0 ? S.redemptionCap : winners.length;
     const rdWinners = winners.slice(0, cap);
 
+    // Lucky loser: if winners < cap, pause to randomly fill the gap from redemption losers
+    const alreadyDrawn = (b.luckyLosers || []).length;
+    if (rdWinners.length + alreadyDrawn < cap) {
+      const rdLosers = lastRound.pairs
+        .filter(p => !p.bye && p.loser)
+        .map(p => p.loser)
+        .filter(l => !rdWinners.includes(l) && !(b.luckyLosers || []).includes(l));
+      if (rdLosers.length > 0) {
+        if (!b.luckyLosers) b.luckyLosers = [];
+        b.pendingLuckyLoser = {
+          rdRound: lastRound.roundNum,
+          slotsNeeded: cap - rdWinners.length - b.luckyLosers.length,
+          pool: rdLosers,
+        };
+        save(); return; // pause for draw
+      }
+    }
+
+    // All slots filled — merge main winners + redemption winners + lucky losers
+    const allRevived = [...rdWinners, ...(b.luckyLosers || [])].slice(0, cap);
     const mainWinners = b.rounds
       .filter(r => r.phase === 'main' && isRoundComplete(r))
       .slice(-1)[0]?.pairs.map(p => p.winner).filter(Boolean) || [];
 
-    const merged = shuffle([...mainWinners, ...rdWinners]);
+    const merged = shuffle([...mainWinners, ...allRevived]);
     if (merged.length >= 2) {
       const nextLabel = getNextRoundLabel(b, merged.length);
       const nextPairs = buildPairs(merged);
       if (!b.revivedNames) b.revivedNames = [];
-      b.revivedNames.push(...rdWinners);
+      b.revivedNames.push(...allRevived);
+      b.luckyLosers = [];       // reset for next redemption round
+      b.pendingLuckyLoser = null;
       b.rounds.push({ label: nextLabel, phase: 'main', roundNum: b.mainRoundsDone + 1, pairs: nextPairs });
       b.phase = 'main';
     } else {
@@ -425,6 +458,16 @@ function skipWildCard() {
     b.phase = 'redemption';
   } else if (winners.length >= 2) {
     const nextLabel = getNextRoundLabel(b, winners.length);
+    // 3rd place: if enabled and this resolves to a Final, push 3rd place match alongside
+    if (S.thirdPlace && nextLabel === 'Final' && losers.length >= 2) {
+      const thirdLosers = losers.slice(0, 2);
+      if (thirdLosers.length === 2) {
+        b.rounds.push({ label: '3rd Place', phase: 'third', roundNum: b.mainRoundsDone + 1, pairs: buildPairs(thirdLosers) });
+        b.rounds.push({ label: 'Final', phase: 'main', roundNum: b.mainRoundsDone + 1, pairs: buildPairs(shuffle(winners)) });
+        b.phase = 'main';
+        save(); render(); return;
+      }
+    }
     const nextPairs = buildPairs(shuffle(winners));
     b.rounds.push({ label: nextLabel, phase: 'main', roundNum: b.mainRoundsDone + 1, pairs: nextPairs });
     b.phase = 'main';
@@ -433,6 +476,40 @@ function skipWildCard() {
   }
 
   save();
+  render();
+}
+
+function drawLuckyLoser() {
+  const b = S.bracket;
+  const pending = b.pendingLuckyLoser;
+  if (!pending || !pending.pool.length) return;
+
+  // Pick randomly from remaining pool
+  const idx = Math.floor(Math.random() * pending.pool.length);
+  const lucky = pending.pool[idx];
+
+  if (!b.luckyLosers) b.luckyLosers = [];
+  b.luckyLosers.push(lucky);
+
+  // Remove from pool and decrement slots needed
+  pending.pool = pending.pool.filter(n => n !== lucky);
+  pending.slotsNeeded--;
+
+  if (pending.slotsNeeded <= 0 || pending.pool.length === 0) {
+    // All slots filled — clear pending, proceed to merge on Continue
+    b.pendingLuckyLoser = { ...pending, done: true };
+  }
+
+  save();
+  render(); // show reveal, organiser taps Continue or Draw again
+}
+
+function continueAfterLuckyLoser() {
+  const b = S.bracket;
+  // Clear pending state then re-run redemption advancement
+  b.pendingLuckyLoser = null;
+  save();
+  advanceBracket();
   render();
 }
 
@@ -581,6 +658,13 @@ function rSetup() {
     + '</div></div>'
     + '</div></div>'
 
+    + '<div class="card"><div class="card-hdr">3rd place match</div><div class="card-body">'
+    + '<div class="redemption-row"><input type="checkbox" class="big-check" id="tp-enable"'+(S.thirdPlace?' checked':'')+'>'
+    + '<div><div style="font-size:13px;font-weight:700;margin-bottom:4px">Enable 3rd place match</div>'
+    + '<p class="hint">The two semi-final losers play a 3rd place match before the Final. Winner takes 3rd, loser takes 4th.</p>'
+    + '</div></div>'
+    + '</div></div>'
+
     + '<div class="card"><div class="card-hdr">Judges — '+S.judgeList.length+' added <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:9px">(optional — record keeping only)</span></div><div class="card-body">'
     + '<div class="ir"><input id="j-inp" type="text" placeholder="Judge name…" style="width:auto"/><button class="btn-p" id="j-add">Add</button></div>'
     + (S.judgeList.length ? '<div class="p-list" style="margin-top:8px">'+S.judgeList.map((j,i)=>'<div class="p-item"><span class="p-seed">'+(i+1)+'</span><span class="p-name">'+j.name+'</span><button class="p-rm" data-jrm="'+j.name+'">×</button></div>').join('')+'</div>' : '<p class="hint" style="margin-top:10px">No judges added yet.</p>')
@@ -607,9 +691,14 @@ function rBracket() {
     const col = roundColour(round.label, round.phase);
     const revivedNames = b.revivedNames || [];
     out += '<div class="bracket-section">'
-      + '<div class="section-title" style="color:'+col.fg+';border-left:3px solid '+col.fg+';padding-left:8px">'+(isRd?'🔄 ':'⚔️ ')+round.label+(isRd?' <span class="badge badge-pu" style="font-size:9px">Redemption</span>':'')+'</div>'
+      + '<div class="section-title" style="color:'+col.fg+';border-left:3px solid '+col.fg+';padding-left:8px">'
+      + (isRd ? '🔄 ' : round.phase === 'third' ? '🥉 ' : '⚔️ ')
+      + round.label
+      + (isRd ? ' <span class="badge badge-pu" style="font-size:9px">Redemption</span>' : '')
+      + (round.phase === 'third' ? ' <span class="badge badge-bl" style="font-size:9px">3rd Place</span>' : '')
+      + '</div>'
       + round.pairs.map(pair => {
-          const isCurrent = ri === b.rounds.length - 1 && !isRoundComplete(round);
+          const isCurrent = !isRoundComplete(round);
           const isDone = pair.winner !== null;
           const hasBoth = pair.t1 && pair.t2 && !pair.bye;
           const cls = pair.bye ? '' : isDone ? ' done' : hasBoth && isCurrent ? ' active' : '';
@@ -660,26 +749,53 @@ function rBracket() {
     if (latest && b.rounds.length > 0) {
       const drawnRound = +latest[0];
       const drawnName = latest[1];
-      // Only show reveal for the most recent draw, on the round immediately after
       const justDone = b.mainRoundsDone === drawnRound;
       if (justDone) {
-        out = '<div style="padding:1.25rem;background:var(--pu-bg);border:2px solid var(--pu-bd);border-radius:var(--rad);margin-bottom:1rem;text-align:center">'
+        out += '<div style="padding:1.25rem;background:var(--pu-bg);border:2px solid var(--pu-bd);border-radius:var(--rad);margin-bottom:1rem;text-align:center">'
           + '<div style="font-size:11px;font-weight:700;color:var(--pu);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px">🃏 Wild Card Drawn!</div>'
           + '<div style="font-size:22px;font-weight:700;color:var(--pu);margin-bottom:4px">'+drawnName+'</div>'
           + '<p style="font-size:12px;color:var(--txt3);margin-bottom:12px">Revived and entering the next round</p>'
           + '<button class="btn-p" id="wc-continue" data-round="'+drawnRound+'" style="background:var(--pu);border-color:var(--pu)">Continue → Next Round</button>'
-          + '</div>' + out;
+          + '</div>';
       }
     }
   }
 
+  // Lucky loser pending — show draw interface
+  if (b.pendingLuckyLoser && !b.pendingLuckyLoser.done) {
+    const pending = b.pendingLuckyLoser;
+    const drawn = b.luckyLosers || [];
+    out += '<div style="padding:1.25rem;background:var(--pu-bg);border:2px solid var(--pu-bd);border-radius:var(--rad);margin-bottom:1rem">'
+      + '<div style="font-size:11px;font-weight:700;color:var(--pu);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px">🎲 Lucky Loser Draw</div>'
+      + '<p style="font-size:13px;color:var(--txt2);margin-bottom:8px">Redemption round complete — '+(drawn.length)+' of '+(drawn.length + pending.slotsNeeded)+' lucky loser'+(drawn.length + pending.slotsNeeded > 1 ? 's' : '')+' drawn.</p>'
+      + (drawn.length ? '<div style="margin-bottom:10px">'+drawn.map(n=>'<span style="display:inline-block;font-size:13px;font-weight:700;color:var(--pu);background:#fff;border:1.5px solid var(--pu-bd);border-radius:var(--rad-s);padding:3px 10px;margin:2px 4px 2px 0">'+n+' ⬆ R</span>').join('')+'</div>' : '')
+      + '<div style="display:flex;gap:10px;flex-wrap:wrap">'
+      + '<button class="btn-p" id="do-draw-ll" style="background:var(--pu);border-color:var(--pu)">🎲 Draw Lucky Loser ('+pending.slotsNeeded+' remaining · '+pending.pool.length+' in pool)</button>'
+      + '</div></div>';
+  }
+
+  // Lucky loser all drawn — show continue
+  if (b.pendingLuckyLoser && b.pendingLuckyLoser.done) {
+    const drawn = b.luckyLosers || [];
+    out += '<div style="padding:1.25rem;background:var(--pu-bg);border:2px solid var(--pu-bd);border-radius:var(--rad);margin-bottom:1rem;text-align:center">'
+      + '<div style="font-size:11px;font-weight:700;color:var(--pu);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px">🎲 Lucky Losers Drawn!</div>'
+      + '<div style="margin-bottom:10px">'+drawn.map(n=>'<div style="font-size:20px;font-weight:700;color:var(--pu);margin-bottom:4px">'+n+' ⬆ R</div>').join('')+'</div>'
+      + '<p style="font-size:12px;color:var(--txt3);margin-bottom:12px">Revived and entering the next round</p>'
+      + '<button class="btn-p" id="ll-continue" style="background:var(--pu);border-color:var(--pu)">Continue → Next Round</button>'
+      + '</div>';
+  }
+
   if (b.phase === 'done') {
-    const allWinners = b.rounds.filter(r=>r.phase==='main').map(r=>r.pairs).flat().filter(p=>p.winner&&!p.bye);
-    const finalPair = allWinners[allWinners.length-1];
+    const finalRound = b.rounds.filter(r => r.phase === 'main' && r.label === 'Final').slice(-1)[0];
+    const thirdRound = b.rounds.filter(r => r.phase === 'third').slice(-1)[0];
+    const finalPair  = finalRound?.pairs[0];
+    const thirdPair  = thirdRound?.pairs[0];
     if (finalPair) {
       out += '<div style="padding:1.5rem;background:var(--am-bg);border:2px solid var(--am-bd);border-radius:var(--rad);text-align:center;margin-top:.5rem">'
         + '<div style="font-size:11px;font-weight:700;color:var(--am);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px">🏆 Champion</div>'
-        + '<div style="font-size:26px;font-weight:700;color:var(--am)">'+finalPair.winner+'</div>'
+        + '<div style="font-size:26px;font-weight:700;color:var(--am);margin-bottom:2px">'+finalPair.winner+'</div>'
+        + (finalPair.loser ? '<div style="font-size:13px;color:var(--txt3)">🥈 '+finalPair.loser+'</div>' : '')
+        + (thirdPair?.winner ? '<div style="font-size:13px;color:var(--txt3);margin-top:6px">🥉 '+thirdPair.winner+'</div>' : '')
         + '</div>';
     }
   }
@@ -712,6 +828,7 @@ function rHistory() {
 /* ── Round colour helper ── */
 function roundColour(label, phase) {
   if (phase === 'redemption') return { bg: 'var(--pu-bg)', bd: 'var(--pu-bd)', fg: 'var(--pu)' };
+  if (phase === 'third')      return { bg: 'var(--bl-bg)', bd: 'var(--bl-bd)', fg: 'var(--bl)' };
   const l = label.toLowerCase();
   if (l === 'final')         return { bg: 'var(--gn-bg)', bd: 'var(--gn-bd)', fg: 'var(--gn)' };
   if (l.includes('semi'))    return { bg: 'var(--am-bg)', bd: 'var(--am-bd)', fg: 'var(--am)' };
@@ -820,9 +937,12 @@ function bind() {
 
   // Wild card
   on('wc-enable','change',() => { S.wildCard = $('wc-enable').checked; save(); });
+  on('tp-enable','change',() => { S.thirdPlace = $('tp-enable').checked; save(); });
   on('do-draw-wc','click',() => { drawWildCard(); });
   on('wc-continue','click',() => { const btn = $('wc-continue'); continueAfterWildCard(+(btn?.dataset.round||0)); });
   on('skip-wc','click',() => { skipWildCard(); });
+  on('do-draw-ll','click',() => { drawLuckyLoser(); });
+  on('ll-continue','click',() => { continueAfterLuckyLoser(); });
 
   // Judges list
   const addJ = () => {
