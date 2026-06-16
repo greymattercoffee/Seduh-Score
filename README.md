@@ -2,9 +2,9 @@
 
 **Coffee competition platform for organizers.** Single-folder web app — no server, no build step, no dependencies.
 
-Built by [Firdaus Omar](https://github.com/mfosa7222) · [Grey Matter Coffee Werks](https://greymattercoffeewerks.com), Brunei
+Built by [Firdaus Omar](https://github.com/mfosa7222) · [Grey Matter Coffee Werks](https://greymattercoffee.github.io), Brunei
 
-**[→ Open Seduh Score](https://mfosa7222.github.io/Seduh-Score/)**
+**[→ Open Seduh Score](https://greymattercoffee.github.io/Seduh-Score/)**
 
 ---
 
@@ -34,7 +34,7 @@ Built by [Firdaus Omar](https://github.com/mfosa7222) · [Grey Matter Coffee Wer
 ### GitHub Pages (recommended)
 1. Push this folder to a public GitHub repo
 2. Go to **Settings → Pages → Deploy from branch → main / (root)**
-3. Share `https://mfosa7222.github.io/Seduh-Score/`
+3. Share `https://greymattercoffee.github.io/Seduh-Score/`
 
 ### Local
 Download the folder and open `index.html` in any modern browser. No internet required.
@@ -105,8 +105,8 @@ Organizational licensing available for coffee associations, competition bodies, 
 ## Development
 
 **Stack:** Pure HTML, CSS, JavaScript — no framework, no build step  
-**Repo:** `github.com/mfosa7222/Seduh-Score`  
-**Live:** `mfosa7222.github.io/Seduh-Score`  
+**Repo:** `github.com/greymattercoffee/Seduh-Score`  
+**Live:** `greymattercoffee.github.io/Seduh-Score`  
 **Local path:** `C:\Users\mfosa\OneDrive\Documents\Seduh-Score`
 
 **Documentation:**

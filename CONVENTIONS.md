@@ -368,8 +368,23 @@ Update CHANGELOG.md before committing any release. The CHANGELOG is the handoff 
 
 ## Git workflow
 
+### Branch structure
+
+```
+main   — live, public-facing, what GitHub Pages serves. Always stable.
+dev    — all active development. Work from any device here.
+```
+
+**`main` is protected** — never push directly. All changes arrive via Pull Request from `dev`. This ensures the live URL is never broken mid-work and competition-day stability is guaranteed.
+
+### Daily workflow (any device)
+
+**From phone or tablet** — use GitHub's web editor directly on the `dev` branch. Edit files, commit, all in browser. No local repo required.
+
+**From desktop (PowerShell):**
 ```powershell
 cd C:\Users\mfosa\OneDrive\Documents\Seduh-Score
+git checkout dev
 git add .
 git commit -m "type: short description"
 git push
@@ -377,9 +392,24 @@ git push
 
 Commit message types: `feat`, `fix`, `docs`, `refactor`
 
-Remote: `https://github.com/mfosa7222/Seduh-Score.git`  
-Live URL: `https://mfosa7222.github.io/Seduh-Score/`  
-GitHub Pages: auto-deploys from `main` branch root, ~60 seconds after push.
+### Releasing to live (any device)
+
+When a version is ready:
+1. Open a Pull Request on GitHub — `dev` → `main`
+2. Review the diff
+3. Merge
+4. GitHub Pages rebuilds automatically — live within ~60 seconds
+
+### Setting up the dev branch (once, on desktop)
+```powershell
+git checkout -b dev
+git push -u origin dev
+```
+
+### Repository
+Remote: `https://github.com/greymattercoffee/Seduh-Score.git`  
+Live URL: `https://greymattercoffee.github.io/Seduh-Score/`  
+GitHub Pages: deploys from `main` branch root only.
 
 ---
 

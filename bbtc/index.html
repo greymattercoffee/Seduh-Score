@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BBTC Organizer</title>
+<link rel="stylesheet" href="../shared/theme.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -217,29 +218,6 @@ input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--
 .aud-h-row{display:flex;align-items:center;gap:8px;padding:.75rem 1rem;background:#fff;border:1.5px solid #E5E7EB;border-radius:8px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
 .aud-h-rb{font-size:9px;background:#F3F4F6;border:1.5px solid #E5E7EB;color:#6B7280;border-radius:4px;padding:2px 8px;flex-shrink:0;white-space:nowrap;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
 .aud-h-time{font-size:10px;background:#F3F4F6;border:1.5px solid #E5E7EB;color:#6B7280;border-radius:4px;padding:2px 8px;flex-shrink:0;white-space:nowrap;font-weight:600}
-/* Timer overlay */
-#tmr-overlay{display:none;position:fixed;inset:0;z-index:1001;background:#111827;overflow:hidden;flex-direction:column;align-items:center;justify-content:center}
-#tmr-overlay.show{display:flex}
-#tmr-overlay.fs .tmr-extras{display:none}
-#tmr-overlay.fs .tmr-display{font-size:30vw;cursor:pointer}
-.tmr-extras{display:flex;flex-direction:column;align-items:center;gap:1rem;width:100%}
-.tmr-presets{display:flex;gap:10px;margin-bottom:.5rem}
-.tmr-preset{padding:10px 24px;border:2px solid #374151;border-radius:8px;background:transparent;color:#9CA3AF;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.04em}
-.tmr-preset:hover,.tmr-preset.on{border-color:#D97706;background:#D97706;color:#fff}
-.tmr-display{font-size:22vw;font-weight:900;color:#F9FAFB;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums;text-align:center}
-#tmr-overlay.running .tmr-display{color:#D97706}
-#tmr-overlay.done .tmr-display{color:#EF4444;animation:blink 1s ease-in-out infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
-.tmr-controls{display:flex;gap:10px;margin-top:1rem}
-.tmr-btn{padding:12px 28px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:2px solid}
-.tmr-start{background:#065F46;border-color:#065F46;color:#fff}.tmr-start:hover{background:#047857}
-.tmr-pause{background:#1D4ED8;border-color:#1D4ED8;color:#fff}.tmr-pause:hover{background:#1E40AF}
-.tmr-reset{background:#374151;border-color:#374151;color:#fff}.tmr-reset:hover{background:#1F2937}
-.tmr-footer{display:flex;gap:10px;margin-top:1.5rem}
-.tmr-close{padding:8px 20px;border:2px solid #374151;border-radius:6px;background:transparent;color:#9CA3AF;font-size:13px;font-weight:700;cursor:pointer}
-.tmr-close:hover{border-color:#6B7280;color:#F9FAFB}
-.tmr-fs-btn{padding:8px 20px;border:2px solid #374151;border-radius:6px;background:transparent;color:#9CA3AF;font-size:13px;font-weight:700;cursor:pointer}
-.tmr-fs-btn:hover{border-color:#6B7280;color:#F9FAFB}
 /* PDF overlay */
 #pdf-overlay{display:none;position:fixed;inset:0;z-index:1000;background:#E5E7EB;overflow-y:auto;flex-direction:column}
 #pdf-overlay.show{display:flex}
@@ -296,6 +274,11 @@ input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--
       <button class="tmr-preset" data-secs="600">10 min</button>
       <button class="tmr-preset" data-secs="900">15 min</button>
     </div>
+    <div class="tmr-custom">
+      <input class="tmr-custom-input" id="tmr-custom-input" type="number" min="1" max="99" placeholder="min">
+      <span class="tmr-custom-label">min</span>
+      <button class="tmr-custom-set" id="tmr-custom-set">Set</button>
+    </div>
   </div>
   <div class="tmr-display" id="tmr-display">10:00</div>
   <div class="tmr-extras">
@@ -336,6 +319,8 @@ input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--
   <div id="pdf-content"></div>
 </div>
 
+<script src="../shared/sound.js"></script>
+<script src="../shared/timer.js"></script>
 <script>
 const RC={
   preliminary:   {label:'Preliminary',   drinks:15,time:'10 min',maxJ:45},
@@ -360,42 +345,7 @@ let S={
   qfSlots:8,eventDate:'',eventVenue:''
 };
 
-// Timer state (not persisted)
-let TMR={ms:600000,running:false,iv:null,preset:600};
 
-function fmtTime(ms){
-  const tot=Math.max(0,Math.ceil(ms/1000));
-  const m=Math.floor(tot/60),s=tot%60;
-  return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-}
-
-function initTimer(){
-  const ovl=document.getElementById('tmr-overlay');
-  const dsp=document.getElementById('tmr-display');
-  document.getElementById('tmr-close').addEventListener('click',()=>ovl.classList.remove('show'));
-  document.getElementById('tmr-fs').addEventListener('click',()=>ovl.classList.toggle('fs'));
-  dsp.addEventListener('click',()=>{if(ovl.classList.contains('fs'))ovl.classList.remove('fs');});
-  document.querySelectorAll('[data-secs]').forEach(b=>b.addEventListener('click',()=>{
-    if(TMR.running){clearInterval(TMR.iv);TMR.running=false;}
-    ovl.classList.remove('running','done');
-    TMR.ms=+b.dataset.secs*1000;TMR.preset=+b.dataset.secs;
-    dsp.textContent=fmtTime(TMR.ms);
-    document.querySelectorAll('[data-secs]').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on');
-  }));
-  document.getElementById('tmr-start').addEventListener('click',()=>{
-    if(TMR.running||TMR.ms<=0)return;
-    ovl.classList.add('running');ovl.classList.remove('done');
-    TMR.running=true;
-    TMR.iv=setInterval(()=>{
-      TMR.ms-=100;dsp.textContent=fmtTime(TMR.ms);
-      if(TMR.ms<=0){clearInterval(TMR.iv);TMR.running=false;TMR.ms=0;ovl.classList.remove('running');ovl.classList.add('done');}
-    },100);
-  });
-  document.getElementById('tmr-pause').addEventListener('click',()=>{if(!TMR.running)return;clearInterval(TMR.iv);TMR.running=false;ovl.classList.remove('running');});
-  document.getElementById('tmr-reset').addEventListener('click',()=>{clearInterval(TMR.iv);TMR.running=false;TMR.ms=TMR.preset*1000;dsp.textContent=fmtTime(TMR.ms);ovl.classList.remove('running','done');});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&ovl.classList.contains('fs'))ovl.classList.remove('fs');});
-}
 
 function saveState(){
   try{localStorage.setItem(STORE_KEY,JSON.stringify({
@@ -654,52 +604,6 @@ function generateCSV(){
   a.click();URL.revokeObjectURL(url);
 }
 
-/* ── JSON Save / Load ── */
-function exportJSON(){
-  const payload=JSON.stringify({
-    _v:1,_module:'bbtc',
-    judges:S.judges,teams:S.teams,matches:S.matches,bracket:S.bracket,
-    qfSlots:S.qfSlots,eventDate:S.eventDate,eventVenue:S.eventVenue,
-    mid,jid
-  },null,2);
-  const name='BBTC_'+(S.eventDate||new Date().toISOString().slice(0,10)).replace(/\s/g,'_')+'.json';
-  const blob=new Blob([payload],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);
-}
-
-function importJSON(){
-  const inp=document.createElement('input');
-  inp.type='file';inp.accept='.json,application/json';
-  inp.addEventListener('change',()=>{
-    const file=inp.files[0];if(!file)return;
-    const reader=new FileReader();
-    reader.onload=e=>{
-      try{
-        const d=JSON.parse(e.target.result);
-        if(d._module!=='bbtc')return alert('This save file is not for BBTC.');
-        if(!confirm('Load saved competition? This will replace your current data.'))return;
-        S.judges=d.judges||[];
-        S.teams=d.teams||[];
-        S.matches=d.matches||[];
-        S.bracket=d.bracket||null;
-        S.qfSlots=d.qfSlots||8;
-        S.eventDate=d.eventDate||'';
-        S.eventVenue=d.eventVenue||'';
-        mid=d.mid||0;
-        jid=d.jid||0;
-        S.tab='setup';S.sid=null;S.creating=false;
-        S.bracketPicking=null;S.bracketJids=[];
-        S.nm={t1:'',t2:'',round:'preliminary',jids:[]};
-        render();
-      }catch(err){alert('Could not read file. Make sure it is a valid BBTC save.');}
-    };
-    reader.readAsText(file);
-  });
-  inp.click();
-}
-
 /* ── Audience ── */
 function showAudience(){
   const lb=calcPrelimLB();
@@ -731,12 +635,11 @@ function render(){
   saveState();
   document.getElementById('app').innerHTML=S.sid!==null?rScoring():rMain();
   bind();
-  document.getElementById('tmr-display').textContent=fmtTime(TMR.ms);
 }
 
 function rMain(){
   const done=S.matches.filter(m=>m.done).length;
-  return '<div class="hdr"><div class="hdr-ac"></div><div><div class="hdr-s">Brunei</div><div class="hdr-t">Barista Team Championship</div></div><div class="hdr-btns"><button class="btn-hdr btn-o" id="homebtn">← Home</button><button class="btn-hdr btn-am" id="tmrbtn">⏱ Timer</button><button class="btn-hdr btn-am" id="pubview">📺 Audience</button><button class="btn-hdr btn-bl" id="exportbtn">📄 PDF</button><button class="btn-hdr btn-gn" id="csvbtn">📊 CSV</button><button class="btn-hdr btn-gn" id="savejson">⬇ Save</button><button class="btn-hdr btn-bl" id="loadjson">⬆ Load</button><button class="btn-hdr btn-rd" id="resetbtn">↺ Reset</button><div class="badge">'+done+'/'+S.matches.length+' done</div></div></div>'
+  return '<div class="hdr"><div class="hdr-ac"></div><div><div class="hdr-s">Brunei</div><div class="hdr-t">Barista Team Championship</div></div><div class="hdr-btns"><button class="btn-hdr btn-o" id="homebtn">← Home</button><button class="btn-hdr btn-am" id="tmrbtn">⏱ Timer</button><button class="btn-hdr btn-am" id="pubview">📺 Audience</button><button class="btn-hdr btn-bl" id="exportbtn">📄 PDF</button><button class="btn-hdr btn-gn" id="csvbtn">📊 CSV</button><button class="btn-hdr btn-rd" id="resetbtn">↺ Reset</button><div class="badge">'+done+'/'+S.matches.length+' done</div></div></div>'
   +'<div class="tabs">'+[['setup','Setup'],['prelims','Prelims ('+S.matches.filter(m=>m.round==='preliminary').length+')'],['bracket','Bracket'],['history','History'],['standings','Standings']].map(([t,l])=>'<button class="tbtn'+(S.tab===t?' on':'')+'" data-tab="'+t+'">'+l+'</button>').join('')+'</div>'
   +'<div class="body">'+(S.tab==='setup'?rSetup():S.tab==='prelims'?rPrelims():S.tab==='bracket'?rBracket():S.tab==='history'?rHistory():rStandings())+'</div>';
 }
@@ -861,12 +764,10 @@ function bind(){
   on('pdf-close','click',()=>document.getElementById('pdf-overlay').classList.remove('show'));
   on('pdf-print','click',()=>window.print());
   on('csvbtn','click',()=>generateCSV());
-  on('savejson','click',()=>exportJSON());
-  on('loadjson','click',()=>importJSON());
 
-  // Timer
-  on('tmrbtn','click',()=>document.getElementById('tmr-overlay').classList.add('show'));
-
+  // Timer — shared module (shared/timer.js). init() is idempotent.
+  Timer.init();
+  on('tmrbtn','click',()=>Timer.open());
 
   // Reset
   on('resetbtn','click',()=>{if(confirm('Reset ALL competition data? This cannot be undone.')){localStorage.removeItem(STORE_KEY);mid=0;jid=0;S={judges:[],teams:[],matches:[],bracket:null,tab:'setup',sid:null,creating:false,bracketPicking:null,bracketJids:[],nm:{t1:'',t2:'',round:'preliminary',jids:[]},qfSlots:8,eventDate:'',eventVenue:''};render();}});
@@ -964,7 +865,6 @@ function bind(){
   });
 }
 
-initTimer();
 render();
 </script>
 </body>
