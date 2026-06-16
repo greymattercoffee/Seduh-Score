@@ -88,11 +88,6 @@
       <button class="tmr-preset" data-secs="600">10 min</button>
       <button class="tmr-preset" data-secs="900">15 min</button>
     </div>
-    <div class="tmr-custom">
-      <input class="tmr-custom-input" id="tmr-custom-input" type="number" min="1" max="99" placeholder="min">
-      <span class="tmr-custom-label">min</span>
-      <button class="tmr-custom-set" id="tmr-custom-set">Set</button>
-    </div>
   </div>
   <div class="tmr-display" id="tmr-display">10:00</div>
   <div class="tmr-extras">
@@ -123,8 +118,7 @@
     <button class="aud-close" id="aud-close">✕ Close</button>
   </div>
   <div class="aud-body">
-    <div class="aud-panel"><div class="aud-sec-title">Standings</div><div id="aud-lb"></div></div>
-    <div class="aud-panel"><div class="aud-sec-title">Match results</div><div id="aud-hist"></div></div>
+    <div class="aud-panel" style="flex:1;max-width:100%"><div class="aud-sec-title">Match results</div><div id="aud-hist"></div></div>
   </div>
 </div>
 
@@ -142,7 +136,6 @@
 <div class="app" id="app"></div>
 
 <script src="../shared/storage.js"></script>
-<script src="../shared/sound.js"></script>
 <script src="../shared/timer.js"></script>
 <script src="../shared/audience.js"></script>
 <script>
@@ -152,6 +145,7 @@ let mid = 0;
 const DEFAULT_STATE = () => ({
   eventName: '', eventDate: '', eventVenue: '',
   judges: 3,
+  judgeList: [],       // [{name}] — for record keeping; not linked to rounds
   redemption: false,
   redemptionRounds: { r1: true, r2: false },
   redemptionCap: 0,    // 0 = no cap; N = max N winners revived from redemption
@@ -176,6 +170,47 @@ let S = DEFAULT_STATE();
 
 function save() {
   STORE.save({ ...S, _mid: mid });
+}
+
+function exportJSON() {
+  const payload = { ...S, _mid: mid, _module: 'throwdown' };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const name = (S.eventName || 'throwdown').replace(/\s+/g, '_').toLowerCase();
+  a.href = url;
+  a.download = 'seduh_' + name + '_' + Date.now() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJSON() {
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.json,application/json';
+  inp.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const d = JSON.parse(ev.target.result);
+        if (d._module !== 'throwdown') {
+          alert('This file is not a Throwdown save. Import cancelled.');
+          return;
+        }
+        const { _mid, _module, ...rest } = d;
+        S = { ...DEFAULT_STATE(), ...rest };
+        mid = _mid ?? 0;
+        save();
+        render();
+      } catch {
+        alert('Could not read file. Make sure it is a valid Throwdown JSON export.');
+      }
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
 }
 
 /* ── Bracket helpers ── */
@@ -254,6 +289,10 @@ function advanceBracket() {
     // Collect wild card person if drawn (not skipped)
     const wcPerson = S.wildCard && b.wildCards && b.wildCards[roundNum];
     const advancingWinners = wcPerson ? [...winners, wcPerson] : winners;
+    if (wcPerson) {
+      if (!b.revivedNames) b.revivedNames = [];
+      b.revivedNames.push(wcPerson);
+    }
 
     // Collect losers into redemption pool if enabled for this round
     const rdKey = 'r' + roundNum;
@@ -289,6 +328,8 @@ function advanceBracket() {
     if (merged.length >= 2) {
       const nextLabel = getNextRoundLabel(b, merged.length);
       const nextPairs = buildPairs(merged);
+      if (!b.revivedNames) b.revivedNames = [];
+      b.revivedNames.push(...rdWinners);
       b.rounds.push({ label: nextLabel, phase: 'main', roundNum: b.mainRoundsDone + 1, pairs: nextPairs });
       b.phase = 'main';
     } else {
@@ -300,25 +341,98 @@ function advanceBracket() {
 
 function drawWildCard() {
   const b = S.bracket;
+  const roundNum = b.pendingWildCard;     // capture before clearing
   const losers = b.pendingWildCardLosers || [];
   if (!losers.length) return;
   const lucky = losers[Math.floor(Math.random() * losers.length)];
   if (!b.wildCards) b.wildCards = {};
-  b.wildCards[b.pendingWildCard] = lucky;  // store drawn name
+  b.wildCards[roundNum] = lucky;
   b.pendingWildCard = null;
   b.pendingWildCardLosers = [];
+
+  // Track as revived
+  if (!b.revivedNames) b.revivedNames = [];
+  b.revivedNames.push(lucky);
+
   save();
-  render(); // show reveal banner, then advance happens via bind
+  render(); // show reveal banner — organiser taps Continue to advance
+}
+
+// Called by wc-continue button after reveal. Does NOT call advanceBracket()
+// to avoid double-incrementing mainRoundsDone.
+function continueAfterWildCard(roundNum) {
+  const b = S.bracket;
+  const wcPerson = b.wildCards && b.wildCards[roundNum];  // the drawn name
+
+  // Winners from the round that just completed (the round that triggered the wild card)
+  const mainRound = b.rounds.filter(r => r.phase === 'main' && isRoundComplete(r)).slice(-1)[0];
+  if (!mainRound) return;
+  const winners = mainRound.pairs.map(p => p.winner).filter(Boolean);
+  const losers  = mainRound.pairs.filter(p => !p.bye && p.loser).map(p => p.loser);
+
+  const advancingWinners = wcPerson ? [...winners, wcPerson] : winners;
+
+  // Redemption pool — exclude wild card person
+  const rdKey = 'r' + roundNum;
+  if (S.redemption && S.redemptionRounds[rdKey]) {
+    b.redemptionPool.push(...losers.filter(l => l !== wcPerson));
+  }
+
+  // Fire redemption round if pool ready, else push next main round
+  if (S.redemption && b.redemptionPool.length >= 2 && S.redemptionRounds[rdKey]) {
+    const rdPairs = buildPairs(shuffle(b.redemptionPool));
+    b.rounds.push({ label: 'Redemption Round ' + roundNum, phase: 'redemption', roundNum, pairs: rdPairs });
+    b.redemptionPool = [];
+    b.phase = 'redemption';
+  } else if (advancingWinners.length >= 2) {
+    const nextLabel = getNextRoundLabel(b, advancingWinners.length);
+    const nextPairs = buildPairs(shuffle(advancingWinners));
+    b.rounds.push({ label: nextLabel, phase: 'main', roundNum: b.mainRoundsDone + 1, pairs: nextPairs });
+    b.phase = 'main';
+  } else if (advancingWinners.length === 1) {
+    b.phase = 'done';
+  }
+
+  save();
+  render();
 }
 
 function skipWildCard() {
   const b = S.bracket;
+  const roundNum = b.pendingWildCard;     // capture before clearing
+  const losers = b.pendingWildCardLosers || [];
   if (!b.wildCards) b.wildCards = {};
-  b.wildCards[b.pendingWildCard] = null;  // null = skipped
+  b.wildCards[roundNum] = null;           // null = explicitly skipped
   b.pendingWildCard = null;
   b.pendingWildCardLosers = [];
+
+  // Resume advancement using the correct roundNum (mainRoundsDone was already
+  // incremented in the first advanceBracket call — don't call it again)
+  const lastRound = b.rounds[b.rounds.length - 1];
+  const winners = lastRound.pairs.map(p => p.winner).filter(Boolean);
+
+  // Collect losers into redemption pool if enabled for this round
+  const rdKey = 'r' + roundNum;
+  if (S.redemption && S.redemptionRounds[rdKey]) {
+    b.redemptionPool.push(...losers);
+  }
+
+  // Fire redemption round if pool is ready
+  if (S.redemption && b.redemptionPool.length >= 2 && S.redemptionRounds[rdKey]) {
+    const rdPairs = buildPairs(shuffle(b.redemptionPool));
+    b.rounds.push({ label: 'Redemption Round ' + roundNum, phase: 'redemption', roundNum, pairs: rdPairs });
+    b.redemptionPool = [];
+    b.phase = 'redemption';
+  } else if (winners.length >= 2) {
+    const nextLabel = getNextRoundLabel(b, winners.length);
+    const nextPairs = buildPairs(shuffle(winners));
+    b.rounds.push({ label: nextLabel, phase: 'main', roundNum: b.mainRoundsDone + 1, pairs: nextPairs });
+    b.phase = 'main';
+  } else if (winners.length === 1) {
+    b.phase = 'done';
+  }
+
   save();
-  advanceBracket();
   render();
 }
 
@@ -401,29 +515,6 @@ function renderScoreModal() {
   document.getElementById('sm-cancel')?.addEventListener('click', closeScoring);
 }
 
-/* ── Standings ── */
-function calcStandings() {
-  const wins = {}, losses = {}, played = {};
-  S.participants.forEach(p => { wins[p.name]=0; losses[p.name]=0; played[p.name]=0; });
-  if (S.bracket) {
-    S.bracket.rounds.forEach(round => {
-      round.pairs.filter(p => p.winner).forEach(p => {
-        if (p.bye) return;
-        wins[p.winner] = (wins[p.winner]||0) + 1;
-        losses[p.loser] = (losses[p.loser]||0) + 1;
-        played[p.t1] = (played[p.t1]||0) + 1;
-        played[p.t2] = (played[p.t2]||0) + 1;
-      });
-    });
-  }
-  return S.participants.map(p => ({
-    name: p.name,
-    wins: wins[p.name]||0,
-    losses: losses[p.name]||0,
-    played: played[p.name]||0,
-  })).sort((a,b) => b.wins-a.wins || a.losses-b.losses);
-}
-
 /* ── Render ── */
 function render() {
   save();
@@ -438,14 +529,16 @@ function rMain() {
     + '<div><div class="plat-hdr-sub" style="font-size:10px;color:var(--am);font-weight:700;letter-spacing:.15em;text-transform:uppercase">Seduh Score</div>'
     + '<div class="plat-hdr-name">Throwdown 1v1</div></div>'
     + '<div class="hdr-btns"><button class="hdr-btn btn-am" id="tmrbtn">⏱ Timer</button>'
+    + '<button class="hdr-btn btn-gn" id="savejsonbtn">💾 Save</button>'
+    + '<button class="hdr-btn btn-bl" id="loadjsonbtn">📂 Load</button>'
     + '<button class="hdr-btn btn-am" id="audbtn">📺 Audience</button>'
     + '<button class="hdr-btn btn-rd" id="resetbtn">↺ Reset</button></div></div>'
     + '<div class="tabs">'
-    + [['setup','Setup'],['bracket','Bracket'],['history','History'],['standings','Standings']]
+    + [['setup','Setup'],['bracket','Bracket'],['history','History']]
       .map(([t,l]) => '<button class="tbtn'+(S.tab===t?' on':'')+'" data-tab="'+t+'">'+l+'</button>').join('')
     + '</div>'
     + '<div class="body">'
-    + (S.tab==='setup'?rSetup():S.tab==='bracket'?rBracket():S.tab==='history'?rHistory():rStandings())
+    + (S.tab==='setup'?rSetup():S.tab==='bracket'?rBracket():rHistory())
     + '</div>';
 }
 
@@ -488,6 +581,11 @@ function rSetup() {
     + '</div></div>'
     + '</div></div>'
 
+    + '<div class="card"><div class="card-hdr">Judges — '+S.judgeList.length+' added <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:9px">(optional — record keeping only)</span></div><div class="card-body">'
+    + '<div class="ir"><input id="j-inp" type="text" placeholder="Judge name…" style="width:auto"/><button class="btn-p" id="j-add">Add</button></div>'
+    + (S.judgeList.length ? '<div class="p-list" style="margin-top:8px">'+S.judgeList.map((j,i)=>'<div class="p-item"><span class="p-seed">'+(i+1)+'</span><span class="p-name">'+j.name+'</span><button class="p-rm" data-jrm="'+j.name+'">×</button></div>').join('')+'</div>' : '<p class="hint" style="margin-top:10px">No judges added yet.</p>')
+    + '</div></div>'
+
     + '<div class="card"><div class="card-hdr">Participants — '+S.participants.length+' entered</div><div class="card-body">'
     + '<div class="ir"><input id="p-inp" type="text" placeholder="Participant name…" style="width:auto"/><button class="btn-p" id="p-add">Add</button></div>'
     + (S.participants.length ? '<div class="p-list">'+S.participants.map((p,i)=>'<div class="p-item"><span class="p-seed">'+(i+1)+'</span><span class="p-name">'+p.name+'</span><button class="p-rm" data-prm="'+p.name+'">×</button></div>').join('')+'</div>' : '<p class="hint" style="margin-top:10px">No participants yet.</p>')
@@ -506,14 +604,19 @@ function rBracket() {
   let out = '';
   b.rounds.forEach((round, ri) => {
     const isRd = round.phase === 'redemption';
+    const col = roundColour(round.label, round.phase);
+    const revivedNames = b.revivedNames || [];
     out += '<div class="bracket-section">'
-      + '<div class="section-title">'+(isRd?'🔄 ':'⚔️ ')+round.label+(isRd?' <span class="badge badge-pu" style="font-size:9px">Redemption</span>':'')+'</div>'
+      + '<div class="section-title" style="color:'+col.fg+';border-left:3px solid '+col.fg+';padding-left:8px">'+(isRd?'🔄 ':'⚔️ ')+round.label+(isRd?' <span class="badge badge-pu" style="font-size:9px">Redemption</span>':'')+'</div>'
       + round.pairs.map(pair => {
           const isCurrent = ri === b.rounds.length - 1 && !isRoundComplete(round);
           const isDone = pair.winner !== null;
           const hasBoth = pair.t1 && pair.t2 && !pair.bye;
           const cls = pair.bye ? '' : isDone ? ' done' : hasBoth && isCurrent ? ' active' : '';
           const rdCls = isRd ? ' redemption' : '';
+          const t1revived = revivedNames.includes(pair.t1);
+          const t2revived = pair.t2 && revivedNames.includes(pair.t2);
+          const revivedBadge = '<span style="display:inline-flex;align-items:center;gap:2px;font-size:9px;font-weight:700;color:var(--pu);background:var(--pu-bg);border:1px solid var(--pu-bd);border-radius:3px;padding:1px 5px;margin-left:5px;vertical-align:middle">⬆ R</span>';
 
           let footer = '';
           if (pair.bye) {
@@ -529,11 +632,11 @@ function rBracket() {
           const t1cls = isDone ? (pair.t1===pair.winner?' winner':' loser') : '';
           const t2cls = isDone ? (pair.t2===pair.winner?' winner':' loser') : '';
 
-          return '<div class="bslot'+cls+rdCls+'">'
-            + '<div class="bslot-hdr"><span>Match</span>'+(pair.votes1||pair.votes2?'<span style="font-size:10px">'+pair.votes1+' – '+pair.votes2+'</span>':'')+'</div>'
+          return '<div class="bslot'+cls+rdCls+'" style="border-top-color:'+col.fg+'">'
+            + '<div class="bslot-hdr" style="background:'+col.bg+';color:'+col.fg+'"><span>'+round.label+'</span>'+(pair.votes1||pair.votes2?'<span style="font-size:10px">'+pair.votes1+' – '+pair.votes2+'</span>':'')+'</div>'
             + '<div class="bslot-teams">'
-            + '<div class="bslot-team'+(pair.t1===pair.winner?' winner-row':'')+'"><span class="bslot-name'+(pair.t1?t1cls:' tbd')+'">'+(pair.t1||'TBD')+'</span>'+(pair.votes1>0?'<span class="bslot-votes">'+pair.votes1+'</span>':'')+'</div>'
-            + (pair.bye ? '' : '<div class="bslot-divider"></div><div class="bslot-team'+(pair.t2===pair.winner?' winner-row':'')+'"><span class="bslot-name'+(pair.t2?t2cls:' tbd')+'">'+(pair.t2||'TBD')+'</span>'+(pair.votes2>0?'<span class="bslot-votes">'+pair.votes2+'</span>':'')+'</div>')
+            + '<div class="bslot-team'+(pair.t1===pair.winner?' winner-row':'')+'"><span class="bslot-name'+(pair.t1?t1cls:' tbd')+'">'+(pair.t1||'TBD')+(t1revived?revivedBadge:'')+'</span>'+(pair.votes1>0?'<span class="bslot-votes">'+pair.votes1+'</span>':'')+'</div>'
+            + (pair.bye ? '' : '<div class="bslot-divider"></div><div class="bslot-team'+(pair.t2===pair.winner?' winner-row':'')+'"><span class="bslot-name'+(pair.t2?t2cls:' tbd')+'">'+(pair.t2||'TBD')+(t2revived?revivedBadge:'')+'</span>'+(pair.votes2>0?'<span class="bslot-votes">'+pair.votes2+'</span>':'')+'</div>')
             + '</div>'+footer+'</div>';
         }).join('')
       + '</div>';
@@ -563,7 +666,8 @@ function rBracket() {
         out = '<div style="padding:1.25rem;background:var(--pu-bg);border:2px solid var(--pu-bd);border-radius:var(--rad);margin-bottom:1rem;text-align:center">'
           + '<div style="font-size:11px;font-weight:700;color:var(--pu);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px">🃏 Wild Card Drawn!</div>'
           + '<div style="font-size:22px;font-weight:700;color:var(--pu);margin-bottom:4px">'+drawnName+'</div>'
-          + '<p style="font-size:12px;color:var(--txt3)">Revived and entering the next round</p>'
+          + '<p style="font-size:12px;color:var(--txt3);margin-bottom:12px">Revived and entering the next round</p>'
+          + '<button class="btn-p" id="wc-continue" data-round="'+drawnRound+'" style="background:var(--pu);border-color:var(--pu)">Continue → Next Round</button>'
           + '</div>' + out;
       }
     }
@@ -584,45 +688,87 @@ function rBracket() {
 
 function rHistory() {
   if (!S.bracket) return '<div class="empty">No bracket generated yet.</div>';
-  const done = S.bracket.rounds.flatMap(r => r.pairs.filter(p => p.winner && !p.bye).map(p => ({...p, roundLabel: r.label, isRd: r.phase==='redemption'})));
+  const revivedNames = S.bracket.revivedNames || [];
+  const done = S.bracket.rounds.flatMap(r => r.pairs.filter(p => p.winner && !p.bye).map(p => ({...p, roundLabel: r.label, phase: r.phase})));
   if (!done.length) return '<div class="empty">No matches completed yet.</div>';
   return '<div style="display:flex;flex-direction:column;gap:7px">'
-    + done.map(p => '<div class="hr-row">'
-      + '<div class="hr-rb'+(p.isRd?' rd':'')+'">'+p.roundLabel+'</div>'
-      + '<div class="hr-t'+(p.winner===p.t1?' w':'')+'">'+p.t1+'</div>'
-      + '<div class="hr-v" style="color:'+(p.winner===p.t1?'var(--am)':'var(--txt3)')+'">'+p.votes1+'</div>'
-      + '<div class="hvs">vs</div>'
-      + '<div class="hr-v" style="color:'+(p.winner===p.t2?'var(--am)':'var(--txt3)')+'">'+p.votes2+'</div>'
-      + '<div class="hr-t'+(p.winner===p.t2?' w':'')+'" style="text-align:right">'+p.t2+'</div>'
-      + '</div>').join('')
+    + done.map(p => {
+        const col = roundColour(p.roundLabel, p.phase);
+        const revBadge = name => revivedNames.includes(name)
+          ? ' <span style="font-size:9px;font-weight:700;color:var(--pu);background:var(--pu-bg);border:1px solid var(--pu-bd);border-radius:3px;padding:1px 4px">⬆ R</span>'
+          : '';
+        return '<div class="hr-row" style="border-left:3px solid '+col.fg+'">'
+          + '<div class="hr-rb" style="background:'+col.bg+';border-color:'+col.bd+';color:'+col.fg+'">'+p.roundLabel+'</div>'
+          + '<div class="hr-t'+(p.winner===p.t1?' w':'')+'">'+p.t1+revBadge(p.t1)+'</div>'
+          + '<div class="hr-v" style="color:'+(p.winner===p.t1?'var(--am)':'var(--txt3)')+'">'+p.votes1+'</div>'
+          + '<div class="hvs">vs</div>'
+          + '<div class="hr-v" style="color:'+(p.winner===p.t2?'var(--am)':'var(--txt3)')+'">'+p.votes2+'</div>'
+          + '<div class="hr-t'+(p.winner===p.t2?' w':'')+'" style="text-align:right">'+p.t2+revBadge(p.t2)+'</div>'
+          + '</div>';
+      }).join('')
     + '</div>';
 }
 
-function rStandings() {
-  const st = calcStandings();
-  if (!st.length) return '<div class="empty">Add participants in Setup.</div>';
-  return '<div style="font-size:15px;font-weight:700;margin-bottom:.85rem">Standings</div>'
-    + '<div style="display:flex;flex-direction:column;gap:7px">'
-    + st.map((s,i) => '<div class="lb-row">'
-      + '<div class="rnk '+(i===0?'r1':i===1?'r2':i===2?'r3':'ro')+'">'+(i+1)+'</div>'
-      + '<div class="lb-name">'+s.name+'</div>'
-      + '<div style="text-align:center;font-size:12px;font-weight:600;color:var(--txt2);flex-shrink:0">'+s.wins+'W / '+s.losses+'L<div style="font-size:10px;color:var(--txt3)">'+s.played+' played</div></div>'
-      + '</div>').join('')
-    + '</div>';
+/* ── Round colour helper ── */
+function roundColour(label, phase) {
+  if (phase === 'redemption') return { bg: 'var(--pu-bg)', bd: 'var(--pu-bd)', fg: 'var(--pu)' };
+  const l = label.toLowerCase();
+  if (l === 'final')         return { bg: 'var(--gn-bg)', bd: 'var(--gn-bd)', fg: 'var(--gn)' };
+  if (l.includes('semi'))    return { bg: 'var(--am-bg)', bd: 'var(--am-bd)', fg: 'var(--am)' };
+  if (l.includes('quarter')) return { bg: 'var(--bl-bg)', bd: 'var(--bl-bd)', fg: 'var(--bl)' };
+  if (l.includes('round 1')) return { bg: 'var(--bg)',    bd: 'var(--border)', fg: 'var(--txt3)' };
+  // Round 2, 3, etc.
+  return { bg: 'var(--bl-bg)', bd: 'var(--bl-bd)', fg: 'var(--bl)' };
 }
 
 /* ── Audience ── */
 function showAudience() {
-  const st = calcStandings();
-  const rnkSt = i => i===0?'background:#D97706;color:#fff':i===1?'background:#9CA3AF;color:#fff':i===2?'background:#92400E;color:#fff':'background:#F3F4F6;color:#6B7280;border:1.5px solid #E5E7EB';
-  const lbHTML = st.length ? st.map((s,i)=>'<div class="aud-lb-row"><div class="aud-rnk" style="'+rnkSt(i)+'">'+(i+1)+'</div><div class="aud-name">'+s.name+'</div><div class="aud-rec">'+s.wins+'W/'+s.losses+'L<br><span style="font-size:10px">'+s.played+' played</span></div></div>').join('') : '<div style="text-align:center;padding:2.5rem;color:#9CA3AF">No data yet.</div>';
-  const done = S.bracket ? S.bracket.rounds.flatMap(r => r.pairs.filter(p=>p.winner&&!p.bye).map(p=>({...p,roundLabel:r.label,isRd:r.phase==='redemption'}))).reverse() : [];
-  const histHTML = done.length ? done.map(p=>'<div class="aud-h-row"><div class="aud-h-rb">'+p.roundLabel+'</div><div style="flex:1;font-size:14px;font-weight:'+(p.winner===p.t1?700:500)+';color:'+(p.winner===p.t1?'#B45309':'#374151')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.t1+'</div><div style="font-size:22px;font-weight:700;color:'+(p.winner===p.t1?'#B45309':'#6B7280')+';flex-shrink:0">'+p.votes1+'</div><div style="font-size:11px;color:#9CA3AF;padding:0 4px;flex-shrink:0">vs</div><div style="font-size:22px;font-weight:700;color:'+(p.winner===p.t2?'#B45309':'#6B7280')+';flex-shrink:0">'+p.votes2+'</div><div style="flex:1;font-size:14px;font-weight:'+(p.winner===p.t2?700:500)+';color:'+(p.winner===p.t2?'#B45309':'#374151')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">'+p.t2+'</div></div>').join('') : '<div style="text-align:center;padding:2.5rem;color:#9CA3AF">No results yet.</div>';
-  const now = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  document.getElementById('aud-ts').innerHTML = (S.eventName||'Throwdown 1v1')+'<br>'+now;
-  document.getElementById('aud-lb').innerHTML = lbHTML;
-  document.getElementById('aud-hist').innerHTML = histHTML;
-  document.getElementById('aud-overlay').classList.add('show');
+  const revivedNames = S.bracket ? (S.bracket.revivedNames || []) : [];
+
+  // Colour map — hardcoded hex per CONVENTIONS (CSS vars don't cascade into audience overlay)
+  function audCol(label, phase) {
+    if (phase === 'redemption') return { bg:'#EDE9FE', bd:'#C4B5FD', fg:'#6D28D9' };
+    const l = label.toLowerCase();
+    if (l === 'final')         return { bg:'#D1FAE5', bd:'#6EE7B7', fg:'#065F46' };
+    if (l.includes('semi'))    return { bg:'#FEF3C7', bd:'#FCD34D', fg:'#92400E' };
+    if (l.includes('quarter')) return { bg:'#DBEAFE', bd:'#93C5FD', fg:'#1E40AF' };
+    if (l.includes('round 1')) return { bg:'#F3F4F6', bd:'#D1D5DB', fg:'#6B7280' };
+    return { bg:'#DBEAFE', bd:'#93C5FD', fg:'#1E40AF' };
+  }
+
+  const revBadge = '<span style="font-size:10px;font-weight:700;color:#6D28D9;background:#EDE9FE;border:1px solid #C4B5FD;border-radius:3px;padding:1px 5px;margin-left:6px;vertical-align:middle;flex-shrink:0">⬆ R</span>';
+
+  const done = S.bracket
+    ? S.bracket.rounds.flatMap(r => r.pairs.filter(p => p.winner && !p.bye).map(p => ({...p, roundLabel: r.label, phase: r.phase}))).reverse()
+    : [];
+
+  const histHTML = done.length ? done.map(p => {
+    const col = audCol(p.roundLabel, p.phase);
+    const t1win = p.winner === p.t1;
+    const t2win = p.winner === p.t2;
+    const t1rev = revivedNames.includes(p.t1);
+    const t2rev = p.t2 && revivedNames.includes(p.t2);
+    return '<div style="display:flex;align-items:center;gap:10px;padding:.65rem 1rem;background:#fff;border-radius:8px;margin-bottom:6px;border-left:4px solid '+col.fg+';box-shadow:0 1px 3px rgba(0,0,0,.07)">'
+      + '<div style="font-size:10px;font-weight:700;color:'+col.fg+';background:'+col.bg+';border:1.5px solid '+col.bd+';border-radius:4px;padding:2px 7px;white-space:nowrap;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em">'+p.roundLabel+'</div>'
+      + '<div style="flex:1;display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0">'
+      + '<span style="font-size:16px;font-weight:'+(t1win?800:500)+';color:'+(t1win?'#B45309':'#9CA3AF')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.t1+'</span>'
+      + (t1rev ? revBadge : '')
+      + '</div>'
+      + '<div style="font-size:26px;font-weight:800;color:'+(t1win?'#B45309':'#9CA3AF')+';flex-shrink:0;min-width:32px;text-align:center">'+p.votes1+'</div>'
+      + '<div style="font-size:11px;font-weight:700;color:#D1D5DB;flex-shrink:0;padding:0 2px">vs</div>'
+      + '<div style="font-size:26px;font-weight:800;color:'+(t2win?'#B45309':'#9CA3AF')+';flex-shrink:0;min-width:32px;text-align:center">'+p.votes2+'</div>'
+      + '<div style="flex:1;display:flex;align-items:center;gap:6px;min-width:0">'
+      + (t2rev ? revBadge : '')
+      + '<span style="font-size:16px;font-weight:'+(t2win?800:500)+';color:'+(t2win?'#B45309':'#9CA3AF')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.t2+'</span>'
+      + '</div>'
+      + '</div>';
+  }).join('') : '';
+
+  Audience.show({
+    title: S.eventName || 'Throwdown 1v1',
+    moduleTag: S.bracket ? (S.bracket.phase === 'done' ? '🏆 Final' : 'Live') : '',
+    histHTML,
+  });
 }
 
 /* ── Bind ── */
@@ -631,8 +777,10 @@ function bind() {
   const on = (id,ev,fn) => { const el=$(id); if(el) el.addEventListener(ev,fn); };
 
   Timer.init();
+  Audience.init();
   on('tmrbtn','click',() => Timer.open());
-  on('aud-close','click',() => document.getElementById('aud-overlay').classList.remove('show'));
+  on('savejsonbtn','click',() => exportJSON());
+  on('loadjsonbtn','click',() => importJSON());
   on('audbtn','click',() => showAudience());
 
   // Tabs
@@ -672,8 +820,24 @@ function bind() {
 
   // Wild card
   on('wc-enable','change',() => { S.wildCard = $('wc-enable').checked; save(); });
-  on('do-draw-wc','click',() => { drawWildCard(); advanceBracket(); render(); });
+  on('do-draw-wc','click',() => { drawWildCard(); });
+  on('wc-continue','click',() => { const btn = $('wc-continue'); continueAfterWildCard(+(btn?.dataset.round||0)); });
   on('skip-wc','click',() => { skipWildCard(); });
+
+  // Judges list
+  const addJ = () => {
+    const inp = $('j-inp'); if (!inp) return;
+    const name = inp.value.trim();
+    if (name && !S.judgeList.some(j => j.name.toLowerCase()===name.toLowerCase())) {
+      S.judgeList.push({ name });
+      inp.value=''; render();
+    } else inp.value='';
+  };
+  on('j-add','click', addJ);
+  on('j-inp','keydown', e => e.key==='Enter' && addJ());
+  document.querySelectorAll('[data-jrm]').forEach(b => b.addEventListener('click',()=>{
+    S.judgeList = S.judgeList.filter(j=>j.name!==b.dataset.jrm); render();
+  }));
 
   // Participants
   const addP = () => {
@@ -759,10 +923,11 @@ function buildThrowdownDemo(){
     ],
     mainPool:[],redemptionPool:[],phase:'main',currentRound:0,mainRoundsDone:1,
     wildCards:{},pendingWildCard:null,pendingWildCardLosers:[],
+    revivedNames:['Husna Azlan','Fatin Najwa','Norafiza'],
   };
   return{
     eventName:'Girls Got Drip Vol. 0',eventDate:'16 June 2025',eventVenue:'&Coffee Bandar',
-    judges:3,redemption:true,redemptionRounds:{r1:true,r2:false},redemptionCap:4,wildCard:false,
+    judges:3,judgeList:[],redemption:true,redemptionRounds:{r1:true,r2:false},redemptionCap:4,wildCard:false,
     participants,bracket,matches:[],tab:'bracket',scoringMatchId:null,
   };
 }
