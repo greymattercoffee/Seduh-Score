@@ -150,7 +150,9 @@ const DEFAULT_STATE = () => ({
   redemptionRounds: { r1: true, r2: false },
   redemptionCap: 0,
   wildCard: false,
-  thirdPlace: false,    // enable 3rd place match before Final
+  thirdPlace: false,
+  manualBracket: false,  // organiser assigns names to slots manually
+  manualSlots: 0,        // number of slots (set independently of participant count)
   participants: [],
   bracket: null,
   matches: [],
@@ -240,22 +242,48 @@ function buildPairs(names) {
 function generateBracket() {
   const names = shuffle(S.participants.map(p => p.name));
   const b = {
-    rounds: [],           // [{label, phase:'main'|'redemption', pairs:[]}]
-    mainPool: [],         // names in main bracket
-    redemptionPool: [],   // names awaiting redemption
-    mergedPool: [],       // after redemption merge
-    phase: 'main',        // 'main' | 'redemption' | 'elimination' | 'done'
-    currentRound: 0,
-    mainRoundsDone: 0,
+    rounds: [],
+    mainPool: [], redemptionPool: [], mergedPool: [],
+    phase: 'main', currentRound: 0, mainRoundsDone: 0,
   };
-
-  // Round 1
   const r1pairs = buildPairs(names);
   b.rounds.push({ label: 'Round 1', phase: 'main', roundNum: 1, pairs: r1pairs });
-  b.mainPool = [];
-  b.redemptionPool = [];
+  b.mainPool = []; b.redemptionPool = [];
   S.bracket = b;
   save();
+}
+
+function generateManualBracket() {
+  const slots = Math.max(2, S.manualSlots);
+  const pairs = [];
+  for (let i = 0; i < Math.ceil(slots / 2); i++) {
+    pairs.push({ id: String(mid++), t1: null, t2: null, bye: false, matchId: null, winner: null, loser: null, votes1: 0, votes2: 0 });
+  }
+  const b = {
+    rounds: [{ label: 'Round 1', phase: 'main', roundNum: 1, pairs }],
+    mainPool: [], redemptionPool: [], mergedPool: [],
+    phase: 'manual-setup', currentRound: 0, mainRoundsDone: 0,
+  };
+  S.bracket = b;
+  save();
+}
+
+function startManualBracket() {
+  const b = S.bracket;
+  const round = b.rounds[0];
+  // Resolve nulls: one name + null → bye; both null → drop
+  round.pairs = round.pairs
+    .filter(p => p.t1 || p.t2)
+    .map(p => {
+      if (p.t1 && !p.t2) return { ...p, bye: true, winner: p.t1 };
+      if (p.t2 && !p.t1) return { ...p, t1: p.t2, t2: null, bye: true, winner: p.t2 };
+      return p;
+    });
+  if (round.pairs.length < 1) return;
+  b.phase = 'main';
+  save();
+  S.tab = 'bracket';
+  render();
 }
 
 function getActiveRound() {
@@ -676,9 +704,27 @@ function rSetup() {
     + '</div></div>'
 
     +'<div style="margin-top:.25rem;padding:.9rem 1rem;background:#F5F3FF;border:2px dashed #C4B5FD;border-radius:var(--rad);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">'+'<div><div style="font-size:13px;font-weight:700;color:#6D28D9;margin-bottom:2px">🎮 Demo mode</div>'+'<p class="hint">12 participants · Redemption active · Round 3 in progress. Girls Got Drip format.</p></div>'+'<button style="padding:7px 16px;border-radius:var(--rad-s);border:1.5px solid #C4B5FD;background:#6D28D9;color:#fff;font-size:12px;font-weight:700;cursor:pointer" id="load-demo">Load Demo</button></div>'
+
+    + '<div class="card"><div class="card-hdr">Bracket mode</div><div class="card-body">'
+    + '<div class="redemption-row"><input type="checkbox" class="big-check" id="mb-enable"'+(S.manualBracket?' checked':'')+'>'
+    + '<div><div style="font-size:13px;font-weight:700;margin-bottom:4px">Manual bracket assignment</div>'
+    + '<p class="hint">Contestants draw a number and are assigned to slots manually. Leave slots empty to auto-bye.</p>'
+    + '</div></div>'
+    + (S.manualBracket
+      ? '<div class="ir" style="margin-top:12px"><label class="field-lbl" style="white-space:nowrap">Number of slots</label>'
+        + '<input id="mb-slots" type="number" min="2" max="64" value="'+(S.manualSlots||S.participants.length||2)+'" style="width:72px"/>'
+        + '<span class="hint">'+(S.manualSlots > 0 ? Math.ceil(S.manualSlots/2)+' matches'+(S.manualSlots%2?' + 1 bye':'') : '')+'</span>'
+        + '</div>'
+      : '')
+    + '</div></div>'
+
     + '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
-    + '<button class="btn-p" id="gen-bracket"'+(canGen?'':' disabled')+'>▶ Generate bracket &amp; start</button>'
-    + (canGen ? '<span class="hint">'+S.participants.length+' participants · '+Math.ceil(S.participants.length/2)+' matches in round 1'+(S.participants.length%2?' + 1 bye':'')+'</span>' : '<span class="hint">Add at least 2 participants.</span>')
+    + (S.manualBracket
+      ? '<button class="btn-p" id="gen-bracket"'+(S.manualSlots >= 2 || S.participants.length >= 2 ? '' : ' disabled')+'>▶ Set up manual bracket</button>'
+        + '<span class="hint">'+(S.manualSlots >= 2 ? S.manualSlots+' slots · '+Math.ceil(S.manualSlots/2)+' matches' : 'Set slot count above.')+'</span>'
+      : '<button class="btn-p" id="gen-bracket"'+(canGen?'':' disabled')+'>▶ Generate bracket &amp; start</button>'
+        + (canGen ? '<span class="hint">'+S.participants.length+' participants · '+Math.ceil(S.participants.length/2)+' matches in round 1'+(S.participants.length%2?' + 1 bye':'')+'</span>' : '<span class="hint">Add at least 2 participants.</span>')
+    )
     + '</div>';
 }
 
@@ -686,6 +732,34 @@ function rBracket() {
   if (!S.bracket) return '<div class="empty">No bracket yet. Go to Setup and generate one.</div>';
   const b = S.bracket;
   let out = '';
+
+  // Manual bracket assignment mode
+  if (b.phase === 'manual-setup') {
+    const names = S.participants.map(p => p.name);
+    const round = b.rounds[0];
+    const usedNames = round.pairs.flatMap(p => [p.t1, p.t2]).filter(Boolean);
+    const opts = (selected, pairId, pos) =>
+      '<option value="">— empty (bye) —</option>'
+      + names.map(n => {
+          const taken = usedNames.includes(n) && n !== selected;
+          return '<option value="'+n+'"'+(n===selected?' selected':'')+(taken?' disabled':'')+'>'+n+'</option>';
+        }).join('');
+
+    out += '<div style="margin-bottom:1rem">'
+      + '<div style="font-size:13px;font-weight:700;color:var(--txt2);margin-bottom:.5rem">Assign participants to bracket slots. Empty slots become byes on start.</div>'
+      + round.pairs.map((p, i) => {
+          const slotNum = i * 2;
+          return '<div style="display:flex;align-items:center;gap:10px;padding:.6rem .9rem;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rad);margin-bottom:6px">'
+            + '<span style="font-size:11px;font-weight:700;color:var(--txt3);min-width:52px">Match '+(i+1)+'</span>'
+            + '<select class="ms-sel" data-pair="'+p.id+'" data-pos="t1" style="flex:1">'+opts(p.t1, p.id, 't1')+'</select>'
+            + '<span style="font-size:11px;color:var(--txt3);flex-shrink:0">vs</span>'
+            + '<select class="ms-sel" data-pair="'+p.id+'" data-pos="t2" style="flex:1">'+opts(p.t2, p.id, 't2')+'</select>'
+            + '</div>';
+        }).join('')
+      + '</div>'
+      + '<button class="btn-p" id="start-manual">▶ Start bracket</button>';
+    return out;
+  }
   b.rounds.forEach((round, ri) => {
     const isRd = round.phase === 'redemption';
     const col = roundColour(round.label, round.phase);
@@ -975,7 +1049,35 @@ function bind() {
   }));
 
   // Generate bracket
-  on('gen-bracket','click',() => { mid=0; generateBracket(); S.tab='bracket'; render(); });
+  on('gen-bracket','click',() => {
+    mid = 0;
+    if (S.manualBracket) {
+      S.manualSlots = Math.max(2, +($('mb-slots')?.value) || S.participants.length || 2);
+      generateManualBracket();
+      S.tab = 'bracket';
+    } else {
+      generateBracket();
+      S.tab = 'bracket';
+    }
+    render();
+  });
+
+  // Manual bracket mode toggle
+  on('mb-enable','change',() => { S.manualBracket = $('mb-enable').checked; save(); render(); });
+  on('mb-slots','change',() => { S.manualSlots = Math.max(2, +$('mb-slots').value||2); save(); render(); });
+
+  // Manual slot selects — save state without full re-render to preserve focus
+  document.querySelectorAll('.ms-sel').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const pairId = sel.dataset.pair;
+      const pos = sel.dataset.pos;
+      const pair = S.bracket?.rounds[0]?.pairs.find(p => p.id === pairId);
+      if (pair) { pair[pos] = sel.value || null; save(); }
+    });
+  });
+
+  // Start manual bracket
+  on('start-manual','click',() => { startManualBracket(); });
 
   // Score buttons
   document.querySelectorAll('[data-score]').forEach(b => b.addEventListener('click',()=>{

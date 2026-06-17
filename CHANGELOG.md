@@ -2,6 +2,30 @@
 
 ---
 
+## [4.1.1] — Throwdown: manual bracket assignment · June 2026
+
+### throwdown/index.html
+
+- **New feature: Manual bracket assignment** — new "Bracket mode" toggle in
+  Setup. When enabled, organiser sets a slot count independently of participant
+  count and assigns names to slots via dropdowns before starting the bracket.
+  Designed for draw-a-number formats where seeding is physical.
+  - `generateManualBracket()` creates Round 1 with empty pairs and sets
+    `b.phase = 'manual-setup'`
+  - Bracket tab shows slot assignment grid: each pair has two dropdowns
+    pulling from `S.participants`. Already-selected names are disabled in
+    other slots to reduce duplicate assignment.
+  - `startManualBracket()` resolves nulls on Start: one name + empty → bye;
+    t2-only slots swap to t1 first; fully empty pairs are dropped. Guards
+    against starting with zero valid pairs.
+  - All downstream bracket logic (advancement, redemption, wild card, 3rd
+    place) is unchanged — manual mode only affects Round 1 seeding.
+- **Known limitation (POA-11):** Dropdowns do not re-render on change to
+  preserve focus — duplicate assignments are possible. `startManualBracket`
+  does not yet validate for duplicates. Both fixes deferred post-GGD.
+
+---
+
 ## [4.1.0] — Throwdown: 3rd place, lucky loser, wild card fixes · June 2026
 
 ### throwdown/index.html
