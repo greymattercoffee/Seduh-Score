@@ -233,7 +233,7 @@
 
 ---
 
-## [3.0.0] — Platform Launch
+## [3.0.0] Kiarong — Platform Launch
 
 - Project renamed from BBTC-Score to **Seduh Score**.
 - Multi-module architecture: dashboard `index.html` + `bbtc/` + `throwdown/` + `shared/`.
@@ -243,7 +243,7 @@
 
 ---
 
-## [2.0.0] — Bracket Engine & Design Overhaul (BBTC)
+## [2.0.0] Gadong — Bracket Engine & Design Overhaul (BBTC)
 
 - Colour system redesigned for WCAG AA contrast.
 - Standings tab — preliminary round only. Bracket seeding from preliminary points exclusively.
@@ -275,5 +275,5 @@
 ## [1.1.0]
 - Manual match creation with judge pool selection. History tab. QF cutline on leaderboard.
 
-## [1.0.0] — Initial Release (BBTC)
+## [1.0.0] Kiulap — Initial Release (BBTC)
 - Setup: teams, judges. Manual matches. Cup-by-cup scoring. Bonus points.
