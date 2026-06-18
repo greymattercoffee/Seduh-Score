@@ -2,6 +2,60 @@
 
 ---
 
+## [4.1.1] — Throwdown: manual bracket assignment · June 2026
+
+### throwdown/index.html
+
+- **New feature: Manual bracket assignment** — new "Bracket mode" toggle in
+  Setup. When enabled, organiser sets a slot count independently of participant
+  count and assigns names to slots via dropdowns before starting the bracket.
+  Designed for draw-a-number formats where seeding is physical.
+  - `generateManualBracket()` creates Round 1 with empty pairs and sets
+    `b.phase = 'manual-setup'`
+  - Bracket tab shows slot assignment grid: each pair has two dropdowns
+    pulling from `S.participants`. Already-selected names are disabled in
+    other slots to reduce duplicate assignment.
+  - `startManualBracket()` resolves nulls on Start: one name + empty → bye;
+    t2-only slots swap to t1 first; fully empty pairs are dropped. Guards
+    against starting with zero valid pairs.
+  - All downstream bracket logic (advancement, redemption, wild card, 3rd
+    place) is unchanged — manual mode only affects Round 1 seeding.
+- **Known limitation (POA-11):** Dropdowns do not re-render on change to
+  preserve focus — duplicate assignments are possible. `startManualBracket`
+  does not yet validate for duplicates. Both fixes deferred post-GGD.
+
+---
+
+## [4.1.0] — Throwdown: 3rd place, lucky loser, wild card fixes · June 2026
+
+### throwdown/index.html
+
+**New features**
+- **3rd place match** — new Setup toggle. When enabled, the two semi-final losers
+  play a 3rd place match immediately before the Final. Winner/loser shown in the
+  champion banner as 🥈/🥉. Bracket render uses blue 🥉 badge and `roundColour`
+  handles the `third` phase.
+- **Lucky loser draw** — when a redemption cap is set and the redemption round
+  yields fewer winners than the cap (e.g. odd-pool bye), the bracket pauses for a
+  manual draw from the remaining redemption losers. `drawLuckyLoser()` picks one
+  at random per tap; `continueAfterLuckyLoser()` merges the full revived pool and
+  advances. Draw and continue UI panels rendered inline in the bracket view.
+
+**Bug fixes**
+- **Fix: 3rd place silently dropped on wild card skip** — `skipWildCard()` did not
+  contain the 3rd place injection logic that exists in `advanceBracket()`. When
+  wild card fired at the semi-final stage and the organiser skipped it, the Final
+  was pushed directly with no 3rd place match even if the toggle was on. Fixed by
+  adding the equivalent `thirdPlace` guard block to `skipWildCard()`.
+- **Fix: Wild card reveal banner replaced bracket** — wild card drawn banner used
+  `out = … + out` which wiped completed bracket rounds. Changed to `out +=`.
+- **Fix: `isCurrent` was index-based** — active slot highlight used
+  `ri === b.rounds.length - 1` which broke when 3rd Place and Final are pushed
+  together (both need to be scoreable). Changed to `!isRoundComplete(round)` so
+  any incomplete round in any position renders as active.
+
+---
+
 ## [4.0.2] — CSS Audit & theme.css cleanup · June 2026
 
 ### shared/theme.css
