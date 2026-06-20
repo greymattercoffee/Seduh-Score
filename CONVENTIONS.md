@@ -473,16 +473,103 @@ Before any future Claude Design session touching `theme.css`, paste this file in
 
 ---
 
-## New chat session checklist
+## Session discipline — long-term project health
 
-Before starting work in a new session:
+Seduh Score is a 1+1 project (one developer, one AI collaborator) intended to run for multiple years. Context loss is the primary risk at this scale — not technical complexity. The habits below are the mitigation.
 
-1. Read `CHANGELOG.md` — know what version we're on and what's pending
-2. Read `CONVENTIONS.md` (this file) — know the patterns
+---
+
+### Before starting any session
+
+**The single non-negotiable rule across ALL session types — Strategy, Code, and Design:**
+
+> **Read `CHANGELOG.md` from the knowledge base first. Always. No exceptions.**
+>
+> Memory of a file is not the same as reading the current file. Working from memory risks hallucination, version drift, and duplicate or conflicting entries. If the KB version has not been read in this session, it has not been read.
+
+**Strategy / architecture sessions (this chat):**
+1. Read `CHANGELOG.md` from KB — know the current version and what's pending
+2. Read `CONVENTIONS.md` from KB — confirm patterns before any discussion
+3. Read `ROADMAP.md` or `PLAN_OF_ACTION.md` if the session touches planning
+4. State the specific question or decision to be made before exploring
+5. Never create a working CHANGELOG from scratch — always append to the KB version
+
+**Build sessions (Claude Code):**
+1. Read `CHANGELOG.md` from KB — know the current version and what's pending
+2. Read `CONVENTIONS.md` — know the patterns before touching any file
+3. Read the relevant module file — understand current state before changing it
+4. State the specific task clearly before writing any code
+5. Confirm working directory is the local repo (`cd` before launching Claude)
+6. Never access GitHub URLs directly — work from local files only
+
+**Design sessions (Claude Design):**
+1. Read `CHANGELOG.md` from KB — know the current version before any visual work
+2. Paste `CONVENTIONS.md` in full at the start — non-negotiable
+3. State the regression guard explicitly: contract tokens and overlay classes must never be renamed or removed
+4. Request files as output, not screenshots
+
+---
+
+### During any build session
+
+- One task at a time — fix, verify, then move to next
+- Show the change before applying it on anything non-trivial
+- Run a syntax check after every non-trivial edit
+- Never rename an existing token, class, or storage key without explicit confirmation
+- Never push directly to `main` — all changes go to `dev` first
+- If something feels wrong mid-session — stop, come back to the strategy chat
+
+---
+
+### Before closing any session
+
+**Non-negotiable after every build session that ships code:**
+- [ ] CHANGELOG.md updated — version number, what changed, what was deferred
+- [ ] Any new pattern or decision added to CONVENTIONS.md
+- [ ] Knowledge base snapshots replaced if CHANGELOG or CONVENTIONS changed
+- [ ] Changes committed to `dev` with a clear commit message
+
+**After any strategy session where a significant decision was made:**
+- [ ] Decision captured in ROADMAP.md, STRATEGY.md, or PLAN_OF_ACTION.md
+- [ ] Knowledge base updated if any of those documents changed
+
+**The single highest-leverage habit:**
+Never close a build session without a CHANGELOG entry. Everything else can slip occasionally. This one cannot.
+
+---
+
+### Before building any new module
+
+1. Write a spec document in the strategy chat first — not in Claude Code
+2. Review the spec against CONVENTIONS.md for pattern conflicts
+3. Create a build plan with Claude Code session prompts before starting
+4. Only then hand off to Claude Code with spec and build plan attached
+
+The spec gate is what keeps architectural consistency alive as the platform grows. Skipping it to "just quickly build it" is how drift starts.
+
+---
+
+### Periodic health check (every major version)
+
+- Read CONVENTIONS.md top to bottom — is it still accurate?
+- Read ROADMAP.md — does it reflect current reality?
+- Check all knowledge base snapshots match repo files
+- Review PLAN_OF_ACTION.md — are deferred items still correctly prioritised?
+
+---
+
+## New chat session checklist (quick reference)
+
+Before starting work in a new session — **all session types: Strategy, Code, Design:**
+
+1. Read `CHANGELOG.md` from KB — know what version we're on and what's pending
+2. Read `CONVENTIONS.md` from KB — know the patterns
 3. Read the relevant module's `index.html` — understand current state before touching it
 4. State the specific task clearly before writing any code
 5. Run a syntax check after every non-trivial edit
 
+**If any of steps 1–3 are skipped, stop and do them first. Memory is not a substitute.**
+
 ---
 
-*Last updated: June 2026 — v4.1 design system integration*
+*Last updated: 20 June 2026 — CHANGELOG-first rule enforced across Strategy, Code, and Design sessions*

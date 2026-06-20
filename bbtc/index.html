@@ -7,16 +7,6 @@
 <link rel="stylesheet" href="../shared/theme.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --am:#B45309;--am-h:#92400E;--am-bg:#FFFBEB;--am-bd:#F59E0B;
-  --bl:#1D4ED8;--bl-bg:#EFF6FF;--bl-bd:#93C5FD;
-  --gn:#065F46;--gn-bg:#ECFDF5;--gn-bd:#6EE7B7;
-  --rd:#991B1B;--rd-bg:#FEF2F2;--rd-bd:#FCA5A5;
-  --bg:#F3F4F6;--surface:#FFFFFF;--border:#D1D5DB;--border2:#E5E7EB;
-  --txt:#111827;--txt2:#374151;--txt3:#6B7280;
-  --rad:8px;--rad-s:5px;
-  font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-}
 body{background:var(--bg);color:var(--txt);min-height:100vh}
 input,select,button{font-family:inherit}
 .app{max-width:900px;margin:0 auto;padding:0 0 60px}
@@ -100,9 +90,9 @@ input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--
 .lb-row{display:flex;align-items:center;gap:10px;padding:.75rem 1rem;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rad);box-shadow:0 1px 2px rgba(0,0,0,.04)}
 .lb-row.qf{background:var(--gn-bg);border-color:var(--gn-bd);border-left:4px solid var(--gn)}
 .lb-row.qf .lb-name{color:var(--gn);font-weight:700}
-.lb-row.qf .lb-rec{color:#065F46}
+.lb-row.qf .lb-rec{color:var(--gn)}
 .rnk{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
-.r1{background:#D97706;color:#fff}.r2{background:#9CA3AF;color:#fff}.r3{background:#92400E;color:#fff}.ro{background:var(--bg);color:var(--txt3);border:1.5px solid var(--border)}
+.r1{background:var(--rank-1);color:#fff}.r2{background:var(--rank-2);color:#fff}.r3{background:var(--rank-3);color:#fff}.ro{background:var(--bg);color:var(--txt3);border:1.5px solid var(--border)}
 .lb-name{flex:1;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--txt)}
 .lb-rec{text-align:center;font-size:12px;flex-shrink:0;color:var(--txt2);font-weight:600}
 .lb-rec span{display:block;font-size:10px;color:var(--txt3);font-weight:500}
@@ -188,72 +178,72 @@ input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--
 .sc-tot-n.t1{color:var(--am)}.sc-tot-n.t2{color:var(--bl)}
 .sc-tot-sub{font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.1em;font-weight:600}
 /* Audience overlay */
-#aud-overlay{display:none;position:fixed;inset:0;z-index:998;background:#F9FAFB;overflow:hidden;flex-direction:column}
+#aud-overlay{display:none;position:fixed;inset:0;z-index:998;background:#faf7f1;overflow:hidden;flex-direction:column}
 #aud-overlay.show{display:flex}
-.aud-banner{display:flex;align-items:center;gap:14px;padding:.9rem 2rem;background:#fff;border-bottom:3px solid #D97706;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-.aud-ac{width:4px;height:42px;background:#D97706;border-radius:2px;flex-shrink:0}
-.aud-sub{font-size:10px;color:#D97706;letter-spacing:.25em;text-transform:uppercase;margin-bottom:3px;font-weight:700}
-.aud-title{font-size:20px;color:#111827;font-weight:700;letter-spacing:-.01em}
-.aud-ts{margin-left:auto;text-align:right;font-size:11px;color:#9CA3AF;line-height:1.7;font-weight:600}
-.aud-close{background:#F3F4F6;border:1.5px solid #D1D5DB;color:#374151;font-size:12px;font-weight:700;padding:7px 16px;border-radius:6px;cursor:pointer;flex-shrink:0;text-transform:uppercase;letter-spacing:.08em}
-.aud-close:hover{background:#B45309;color:#fff;border-color:#B45309}
+.aud-banner{display:flex;align-items:center;gap:14px;padding:.9rem 2rem;background:#fff;border-bottom:3px solid #b45309;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.aud-ac{width:4px;height:42px;background:#b45309;border-radius:2px;flex-shrink:0}
+.aud-sub{font-size:10px;color:#b45309;letter-spacing:.25em;text-transform:uppercase;margin-bottom:3px;font-weight:700}
+.aud-title{font-size:20px;color:#211a14;font-weight:700;letter-spacing:-.01em}
+.aud-ts{margin-left:auto;text-align:right;font-size:11px;color:#8a7f73;line-height:1.7;font-weight:600}
+.aud-close{background:#f3efe8;border:1.5px solid #e5ddd0;color:#4d443c;font-size:12px;font-weight:700;padding:7px 16px;border-radius:6px;cursor:pointer;flex-shrink:0;text-transform:uppercase;letter-spacing:.08em}
+.aud-close:hover{background:#b45309;color:#fff;border-color:#b45309}
 .aud-body{display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden}
-.aud-panel{overflow-y:auto;padding:1.5rem 1.75rem;background:#F9FAFB}
-.aud-panel:first-child{border-right:2px solid #E5E7EB}
+.aud-panel{overflow-y:auto;padding:1.5rem 1.75rem;background:#faf7f1}
+.aud-panel:first-child{border-right:2px solid #efe9de}
 .aud-panel::-webkit-scrollbar{width:3px}
-.aud-panel::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:2px}
-.aud-sec-title{font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:#B45309;margin-bottom:1rem;padding-bottom:.6rem;border-bottom:2px solid #B45309;font-weight:700}
-.aud-lb-row{display:flex;align-items:center;gap:12px;padding:.9rem 1.1rem;border-radius:8px;margin-bottom:8px;border:1.5px solid #E5E7EB;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.aud-lb-row.qf{background:#ECFDF5;border-color:#6EE7B7;border-left:4px solid #065F46}
+.aud-panel::-webkit-scrollbar-thumb{background:#e5ddd0;border-radius:2px}
+.aud-sec-title{font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:#b45309;margin-bottom:1rem;padding-bottom:.6rem;border-bottom:2px solid #b45309;font-weight:700}
+.aud-lb-row{display:flex;align-items:center;gap:12px;padding:.9rem 1.1rem;border-radius:8px;margin-bottom:8px;border:1.5px solid #efe9de;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.aud-lb-row.qf{background:#e6f6ee;border-color:#8fd9b8;border-left:4px solid #0b7a52}
 .aud-rnk{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
-.aud-name{flex:1;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#111827;font-weight:700}
-.aud-lb-row.qf .aud-name{color:#065F46}
-.aud-rec{text-align:center;font-size:12px;color:#6B7280;flex-shrink:0;line-height:1.5;font-weight:600}
+.aud-name{flex:1;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#211a14;font-weight:700}
+.aud-lb-row.qf .aud-name{color:#0b7a52}
+.aud-rec{text-align:center;font-size:12px;color:#8a7f73;flex-shrink:0;line-height:1.5;font-weight:600}
 .aud-pts-wrap{text-align:right;flex-shrink:0}
-.aud-pts{font-size:28px;color:#B45309;line-height:1;font-weight:700}
-.aud-ptsl{font-size:9px;color:#9CA3AF;text-transform:uppercase;letter-spacing:.12em;text-align:right;font-weight:700}
-.aud-qf-pill{font-size:10px;background:#ECFDF5;border:1.5px solid #6EE7B7;color:#065F46;border-radius:4px;padding:3px 9px;white-space:nowrap;flex-shrink:0;font-weight:700}
-.aud-cut{display:flex;align-items:center;gap:8px;padding:.35rem 0;margin:.25rem 0;font-size:9px;color:#9CA3AF;letter-spacing:.15em;text-transform:uppercase;font-weight:700}
-.aud-cut::before,.aud-cut::after{content:'';flex:1;height:2px;background:#E5E7EB}
-.aud-h-row{display:flex;align-items:center;gap:8px;padding:.75rem 1rem;background:#fff;border:1.5px solid #E5E7EB;border-radius:8px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.aud-h-rb{font-size:9px;background:#F3F4F6;border:1.5px solid #E5E7EB;color:#6B7280;border-radius:4px;padding:2px 8px;flex-shrink:0;white-space:nowrap;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
-.aud-h-time{font-size:10px;background:#F3F4F6;border:1.5px solid #E5E7EB;color:#6B7280;border-radius:4px;padding:2px 8px;flex-shrink:0;white-space:nowrap;font-weight:600}
+.aud-pts{font-size:28px;color:#b45309;line-height:1;font-weight:700}
+.aud-ptsl{font-size:9px;color:#8a7f73;text-transform:uppercase;letter-spacing:.12em;text-align:right;font-weight:700}
+.aud-qf-pill{font-size:10px;background:#e6f6ee;border:1.5px solid #8fd9b8;color:#0b7a52;border-radius:4px;padding:3px 9px;white-space:nowrap;flex-shrink:0;font-weight:700}
+.aud-cut{display:flex;align-items:center;gap:8px;padding:.35rem 0;margin:.25rem 0;font-size:9px;color:#8a7f73;letter-spacing:.15em;text-transform:uppercase;font-weight:700}
+.aud-cut::before,.aud-cut::after{content:'';flex:1;height:2px;background:#efe9de}
+.aud-h-row{display:flex;align-items:center;gap:8px;padding:.75rem 1rem;background:#fff;border:1.5px solid #efe9de;border-radius:8px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.aud-h-rb{font-size:9px;background:#f3efe8;border:1.5px solid #efe9de;color:#8a7f73;border-radius:4px;padding:2px 8px;flex-shrink:0;white-space:nowrap;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.aud-h-time{font-size:10px;background:#f3efe8;border:1.5px solid #efe9de;color:#8a7f73;border-radius:4px;padding:2px 8px;flex-shrink:0;white-space:nowrap;font-weight:600}
 /* PDF overlay */
-#pdf-overlay{display:none;position:fixed;inset:0;z-index:1000;background:#E5E7EB;overflow-y:auto;flex-direction:column}
+#pdf-overlay{display:none;position:fixed;inset:0;z-index:1000;background:#efe9de;overflow-y:auto;flex-direction:column}
 #pdf-overlay.show{display:flex}
-.pdf-toolbar{display:flex;align-items:center;gap:10px;padding:.85rem 2rem;background:#fff;border-bottom:2px solid #D97706;flex-shrink:0;position:sticky;top:0;z-index:10;flex-wrap:wrap}
-.pdf-toolbar-title{font-size:14px;font-weight:700;flex:1;color:#111827}
-.pdf-toolbar-hint{font-size:12px;color:#6B7280}
-.btn-print{background:#B45309;color:#fff;border:none;padding:9px 20px;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer}
-.btn-print:hover{background:#92400E}
-.pdf-page{width:210mm;min-height:297mm;background:#fff;margin:1.5rem auto;padding:16mm;box-shadow:0 2px 20px rgba(0,0,0,.12);font-family:system-ui,sans-serif;color:#111827;page-break-after:always}
+.pdf-toolbar{display:flex;align-items:center;gap:10px;padding:.85rem 2rem;background:#fff;border-bottom:2px solid #b45309;flex-shrink:0;position:sticky;top:0;z-index:10;flex-wrap:wrap}
+.pdf-toolbar-title{font-size:14px;font-weight:700;flex:1;color:#211a14}
+.pdf-toolbar-hint{font-size:12px;color:#8a7f73}
+.btn-print{background:#b45309;color:#fff;border:none;padding:9px 20px;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer}
+.btn-print:hover{background:#92400e}
+.pdf-page{width:210mm;min-height:297mm;background:#fff;margin:1.5rem auto;padding:16mm;box-shadow:0 2px 20px rgba(0,0,0,.12);font-family:system-ui,sans-serif;color:#211a14;page-break-after:always}
 .pdf-page:last-child{page-break-after:auto}
-.pdf-logo-row{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:3px solid #D97706;padding-bottom:10px;margin-bottom:18px}
+.pdf-logo-row{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:3px solid #b45309;padding-bottom:10px;margin-bottom:18px}
 .pdf-event-name{font-size:22px;font-weight:700;letter-spacing:-.01em}
-.pdf-event-sub{font-size:10px;color:#D97706;letter-spacing:.2em;text-transform:uppercase;margin-bottom:4px;font-weight:700}
-.pdf-meta{text-align:right;font-size:11px;color:#6B7280;line-height:1.8;font-weight:500}
-.pdf-section-title{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#D97706;border-bottom:1.5px solid #E5E7EB;padding-bottom:5px;margin:20px 0 12px;font-weight:700}
+.pdf-event-sub{font-size:10px;color:#b45309;letter-spacing:.2em;text-transform:uppercase;margin-bottom:4px;font-weight:700}
+.pdf-meta{text-align:right;font-size:11px;color:#8a7f73;line-height:1.8;font-weight:500}
+.pdf-section-title{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#b45309;border-bottom:1.5px solid #efe9de;padding-bottom:5px;margin:20px 0 12px;font-weight:700}
 .pdf-lb-table{width:100%;border-collapse:collapse;font-size:12px}
-.pdf-lb-table th{text-align:left;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#6B7280;padding:5px 8px;border-bottom:1.5px solid #E5E7EB;font-weight:700}
+.pdf-lb-table th{text-align:left;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#8a7f73;padding:5px 8px;border-bottom:1.5px solid #efe9de;font-weight:700}
 .pdf-lb-table th:last-child,.pdf-lb-table td:last-child{text-align:right}
-.pdf-lb-table td{padding:7px 8px;border-bottom:1px solid #F3F4F6;vertical-align:middle}
-.pdf-lb-table tr.qf td{background:#ECFDF5}
-.pdf-lb-table tr.cutrow td{border-bottom:2px dashed #6EE7B7}
-.pdf-lb-table tr.cutlabel td{font-size:9px;color:#065F46;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid #F3F4F6;font-weight:700}
+.pdf-lb-table td{padding:7px 8px;border-bottom:1px solid #f3efe8;vertical-align:middle}
+.pdf-lb-table tr.qf td{background:#e6f6ee}
+.pdf-lb-table tr.cutrow td{border-bottom:2px dashed #8fd9b8}
+.pdf-lb-table tr.cutlabel td{font-size:9px;color:#0b7a52;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid #f3efe8;font-weight:700}
 .pdf-rank{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
-.pdf-r1{background:#D97706;color:#fff}.pdf-r2{background:#9CA3AF;color:#fff}.pdf-r3{background:#92400E;color:#fff}.pdf-ro{background:#F3F4F6;color:#6B7280;border:1px solid #E5E7EB}
-.pdf-qf-pip{display:inline-block;font-size:9px;color:#065F46;background:#ECFDF5;border:1px solid #6EE7B7;border-radius:3px;padding:1px 6px;font-weight:700;margin-left:4px;vertical-align:middle}
-.pdf-pts{font-size:18px;font-weight:700;color:#D97706}
+.pdf-r1{background:#d97706;color:#fff}.pdf-r2{background:#9ca3af;color:#fff}.pdf-r3{background:#92400e;color:#fff}.pdf-ro{background:#f3efe8;color:#8a7f73;border:1px solid #efe9de}
+.pdf-qf-pip{display:inline-block;font-size:9px;color:#0b7a52;background:#e6f6ee;border:1px solid #8fd9b8;border-radius:3px;padding:1px 6px;font-weight:700;margin-left:4px;vertical-align:middle}
+.pdf-pts{font-size:18px;font-weight:700;color:#b45309}
 .pdf-res-table{width:100%;border-collapse:collapse;font-size:12px}
-.pdf-res-table th{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#6B7280;padding:5px 8px;border-bottom:1.5px solid #E5E7EB;font-weight:700}
-.pdf-res-table td{padding:8px;border-bottom:1px solid #F3F4F6;vertical-align:middle}
-.pdf-res-table tr:nth-child(odd) td{background:#F9FAFB}
-.pdf-rb{font-size:9px;color:#6B7280;background:#F3F4F6;border:1px solid #E5E7EB;border-radius:3px;padding:1px 6px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;font-weight:700}
-.pdf-win{font-weight:700;color:#D97706}
+.pdf-res-table th{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#8a7f73;padding:5px 8px;border-bottom:1.5px solid #efe9de;font-weight:700}
+.pdf-res-table td{padding:8px;border-bottom:1px solid #f3efe8;vertical-align:middle}
+.pdf-res-table tr:nth-child(odd) td{background:#faf7f1}
+.pdf-rb{font-size:9px;color:#8a7f73;background:#f3efe8;border:1px solid #efe9de;border-radius:3px;padding:1px 6px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;font-weight:700}
+.pdf-win{font-weight:700;color:#b45309}
 .pdf-score{font-size:16px;font-weight:700}
-.pdf-score.w{color:#D97706}
-.pdf-time-cell{font-size:10px;color:#6B7280;text-align:center}
-.pdf-footer{margin-top:24px;padding-top:10px;border-top:1.5px solid #E5E7EB;display:flex;justify-content:space-between;font-size:9px;color:#9CA3AF;letter-spacing:.06em}
+.pdf-score.w{color:#b45309}
+.pdf-time-cell{font-size:10px;color:#8a7f73;text-align:center}
+.pdf-footer{margin-top:24px;padding-top:10px;border-top:1.5px solid #efe9de;display:flex;justify-content:space-between;font-size:9px;color:#8a7f73;letter-spacing:.06em}
 .empty{text-align:center;padding:3rem 1rem;color:var(--txt3);font-size:13px}
 @media print{
   body>*{display:none!important}
@@ -550,23 +540,23 @@ function generatePDF(){
   const byRound={};
   done.forEach(m=>{(byRound[m.round]=byRound[m.round]||[]).push(m);});
   const roundMeta={
-    preliminary:   {label:'Preliminary',   color:'#6B7280',bg:'#F9FAFB'},
-    quarterfinals: {label:'Quarter Finals', color:'#1D4ED8',bg:'#EFF6FF'},
-    semifinals:    {label:'Semi Finals',    color:'#B45309',bg:'#FFFBEB'},
-    finals:        {label:'Finals',         color:'#065F46',bg:'#ECFDF5'},
+    preliminary:   {label:'Preliminary',   color:'#8a7f73',bg:'#faf7f1'},
+    quarterfinals: {label:'Quarter Finals', color:'#1D4ED8',bg:'#eaf1fe'},
+    semifinals:    {label:'Semi Finals',    color:'#b45309',bg:'#fbf0df'},
+    finals:        {label:'Finals',         color:'#0b7a52',bg:'#e6f6ee'},
   };
   const resultsHTML=roundOrder.filter(r=>byRound[r]).map(r=>{
     const rm=roundMeta[r]||roundMeta.preliminary;
     const header='<tr><td colspan="7" style="padding:10px 8px 4px;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:'+rm.color+';background:'+rm.bg+';border-top:2px solid '+rm.color+'20">'+rm.label+'</td></tr>';
     const rows=byRound[r].map(m=>{
       const v1=t1Tot(m),v2=t2Tot(m),w=v1>v2?1:v2>v1?2:0;
-      return '<tr style="background:'+rm.bg+'08"><td><span class="pdf-rb" style="color:'+rm.color+';background:'+rm.bg+';border-color:'+rm.color+'40">'+RC[r].label+'</span></td><td class="'+(w===1?'pdf-win':'')+'">'+m.t1+'</td><td style="text-align:center"><span class="pdf-score'+(w===1?' w':'')+'">'+v1+'</span></td><td style="text-align:center;color:#6B7280;font-size:11px">'+(w===0?'draw':'vs')+'</td><td style="text-align:center"><span class="pdf-score'+(w===2?' w':'')+'">'+v2+'</span></td><td class="'+(w===2?'pdf-win':'')+'" style="text-align:right">'+m.t2+'</td><td class="pdf-time-cell">'+((m.t1time||m.t2time)?m.t1time+' / '+m.t2time:'')+'</td></tr>';
+      return '<tr style="background:'+rm.bg+'08"><td><span class="pdf-rb" style="color:'+rm.color+';background:'+rm.bg+';border-color:'+rm.color+'40">'+RC[r].label+'</span></td><td class="'+(w===1?'pdf-win':'')+'">'+m.t1+'</td><td style="text-align:center"><span class="pdf-score'+(w===1?' w':'')+'">'+v1+'</span></td><td style="text-align:center;color:#8a7f73;font-size:11px">'+(w===0?'draw':'vs')+'</td><td style="text-align:center"><span class="pdf-score'+(w===2?' w':'')+'">'+v2+'</span></td><td class="'+(w===2?'pdf-win':'')+'" style="text-align:right">'+m.t2+'</td><td class="pdf-time-cell">'+((m.t1time||m.t2time)?m.t1time+' / '+m.t2time:'')+'</td></tr>';
     }).join('');
     return header+rows;
   }).join('');
   const footer='<div class="pdf-footer"><span>Brunei Barista Team Championship'+(S.eventVenue?' · '+S.eventVenue:'')+'</span><span>Exported '+dateStr+' at '+timeStr+'</span></div>';
-  const logoSub=eventMeta?'<div style="font-size:11px;color:#6B7280;margin-top:5px">'+eventMeta+'</div>':'';
-  document.getElementById('pdf-content').innerHTML='<div class="pdf-page"><div class="pdf-logo-row"><div><div class="pdf-event-sub">Brunei</div><div class="pdf-event-name">Barista Team Championship</div>'+logoSub+'</div><div class="pdf-meta"><div>Preliminary Standings</div><div>'+dateStr+'</div><div style="color:#D97706">QF Spots: Top '+S.qfSlots+'</div></div></div><div class="pdf-section-title">Preliminary Standings</div><table class="pdf-lb-table"><thead><tr><th>#</th><th>Team</th><th style="text-align:center">Record</th><th style="text-align:center">Played</th><th style="text-align:right">Points</th></tr></thead><tbody>'+(lbRows||'<tr><td colspan="5" style="text-align:center;color:#6B7280;padding:20px">No teams registered.</td></tr>')+'</tbody></table>'+footer+'</div><div class="pdf-page"><div class="pdf-logo-row"><div><div class="pdf-event-sub">Brunei</div><div class="pdf-event-name">Barista Team Championship</div>'+logoSub+'</div><div class="pdf-meta"><div>Match Results</div><div>'+dateStr+'</div><div>'+done.length+' matches completed</div></div></div><div class="pdf-section-title">Match Results</div><table class="pdf-res-table"><thead><tr><th>Round</th><th>Team 1</th><th style="text-align:center">Score</th><th style="text-align:center"></th><th style="text-align:center">Score</th><th style="text-align:right">Team 2</th><th style="text-align:center">Time</th></tr></thead><tbody>'+(resultsHTML||'<tr><td colspan="7" style="text-align:center;color:#6B7280;padding:20px">No completed matches yet.</td></tr>')+'</tbody></table>'+footer+'</div>';
+  const logoSub=eventMeta?'<div style="font-size:11px;color:#8a7f73;margin-top:5px">'+eventMeta+'</div>':'';
+  document.getElementById('pdf-content').innerHTML='<div class="pdf-page"><div class="pdf-logo-row"><div><div class="pdf-event-sub">Brunei</div><div class="pdf-event-name">Barista Team Championship</div>'+logoSub+'</div><div class="pdf-meta"><div>Preliminary Standings</div><div>'+dateStr+'</div><div style="color:#b45309">QF Spots: Top '+S.qfSlots+'</div></div></div><div class="pdf-section-title">Preliminary Standings</div><table class="pdf-lb-table"><thead><tr><th>#</th><th>Team</th><th style="text-align:center">Record</th><th style="text-align:center">Played</th><th style="text-align:right">Points</th></tr></thead><tbody>'+(lbRows||'<tr><td colspan="5" style="text-align:center;color:#8a7f73;padding:20px">No teams registered.</td></tr>')+'</tbody></table>'+footer+'</div><div class="pdf-page"><div class="pdf-logo-row"><div><div class="pdf-event-sub">Brunei</div><div class="pdf-event-name">Barista Team Championship</div>'+logoSub+'</div><div class="pdf-meta"><div>Match Results</div><div>'+dateStr+'</div><div>'+done.length+' matches completed</div></div></div><div class="pdf-section-title">Match Results</div><table class="pdf-res-table"><thead><tr><th>Round</th><th>Team 1</th><th style="text-align:center">Score</th><th style="text-align:center"></th><th style="text-align:center">Score</th><th style="text-align:right">Team 2</th><th style="text-align:center">Time</th></tr></thead><tbody>'+(resultsHTML||'<tr><td colspan="7" style="text-align:center;color:#8a7f73;padding:20px">No completed matches yet.</td></tr>')+'</tbody></table>'+footer+'</div>';
   document.getElementById('pdf-overlay').classList.add('show');
 }
 
@@ -610,23 +600,23 @@ function showAudience(){
   const done=[...S.matches.filter(m=>m.done)].reverse();
   const now=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   document.getElementById('aud-ts').innerHTML='Audience view<br>'+now;
-  const rnkSt=i=>i===0?'background:#D97706;color:#fff':i===1?'background:#9CA3AF;color:#fff':i===2?'background:#92400E;color:#fff':'background:#F3F4F6;color:#6B7280;border:1.5px solid #E5E7EB';
+  const rnkSt=i=>i===0?'background:#d97706;color:#fff':i===1?'background:#9ca3af;color:#fff':i===2?'background:#92400e;color:#fff':'background:#f3efe8;color:#8a7f73;border:1.5px solid #efe9de';
   document.getElementById('aud-lb').innerHTML=lb.length?lb.map((s,i)=>{
     const isQF=(i+1)<=S.qfSlots,showCut=i===S.qfSlots-1&&S.qfSlots<lb.length;
     return '<div class="aud-lb-row'+(isQF?' qf':'')+'"><div class="aud-rnk" style="'+rnkSt(i)+'">'+(i+1)+'</div><div class="aud-name">'+s.t+'</div>'+(s.played>0?'<div class="aud-rec">'+s.wins+'W/'+( s.played-s.wins)+'L<br><span style="font-size:10px">'+s.played+' played</span></div>':'')+'<div class="aud-pts-wrap"><div class="aud-pts">'+s.pts+'</div><div class="aud-ptsl">pts</div></div>'+(isQF?'<div class="aud-qf-pill">QF ✓</div>':'<div style="width:48px"></div>')+'</div>'+(showCut?'<div class="aud-cut">QF cut — top '+S.qfSlots+' advance</div>':'');
-  }).join(''):'<div style="text-align:center;padding:2.5rem;color:#9CA3AF">No teams yet.</div>';
+  }).join(''):'<div style="text-align:center;padding:2.5rem;color:#8a7f73">No teams yet.</div>';
   const roundStyle={
-    preliminary: {rb:'background:#F3F4F6;border-color:#E5E7EB;color:#6B7280', row:'background:#fff;border-color:#E5E7EB'},
-    quarterfinals:{rb:'background:#DBEAFE;border-color:#93C5FD;color:#1D4ED8', row:'background:#EFF6FF;border-color:#93C5FD'},
-    semifinals:   {rb:'background:#FEF3C7;border-color:#F59E0B;color:#B45309', row:'background:#FFFBEB;border-color:#FCD34D'},
-    finals:       {rb:'background:#D1FAE5;border-color:#6EE7B7;color:#065F46', row:'background:#ECFDF5;border-color:#6EE7B7'},
+    preliminary: {rb:'background:#f3efe8;border-color:#efe9de;color:#8a7f73', row:'background:#fff;border-color:#efe9de'},
+    quarterfinals:{rb:'background:#eaf1fe;border-color:#a9c6f7;color:#1d4ed8', row:'background:#eaf1fe;border-color:#a9c6f7'},
+    semifinals:   {rb:'background:#fbf0df;border-color:#e09a36;color:#b45309', row:'background:#fbf0df;border-color:#e09a36'},
+    finals:       {rb:'background:#e6f6ee;border-color:#8fd9b8;color:#0b7a52', row:'background:#e6f6ee;border-color:#8fd9b8'},
   };
   document.getElementById('aud-hist').innerHTML=done.length?done.map(m=>{
     const v1=t1Tot(m),v2=t2Tot(m),w=v1>v2?1:v2>v1?2:0;
-    const c1=w===1?'#B45309':'#374151',c2=w===2?'#B45309':'#374151';
+    const c1=w===1?'#b45309':'#4d443c',c2=w===2?'#b45309':'#4d443c';
     const rs=roundStyle[m.round]||roundStyle.preliminary;
-    return '<div class="aud-h-row" style="'+rs.row+';border:1.5px solid;border-radius:8px;margin-bottom:8px"><div class="aud-h-rb" style="'+rs.rb+';border:1.5px solid;border-radius:4px;font-size:9px;padding:2px 8px;white-space:nowrap;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:700">'+RC[m.round].label+'</div><div style="flex:1;font-size:14px;font-weight:'+(w===1?700:500)+';color:'+c1+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+m.t1+'</div><div style="font-size:23px;font-weight:700;color:'+c1+';flex-shrink:0">'+v1+'</div><div style="font-size:11px;color:#9CA3AF;padding:0 4px;flex-shrink:0">'+(w===0?'draw':'vs')+'</div><div style="font-size:23px;font-weight:700;color:'+c2+';flex-shrink:0">'+v2+'</div><div style="flex:1;font-size:14px;font-weight:'+(w===2?700:500)+';color:'+c2+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">'+m.t2+'</div>'+((m.t1time||m.t2time)?'<div class="aud-h-time">⏱ '+(m.t1time||'—')+' / '+(m.t2time||'—')+'</div>':'')+'</div>';
-  }).join(''):'<div style="text-align:center;padding:2.5rem;color:#9CA3AF">No results yet.</div>';
+    return '<div class="aud-h-row" style="'+rs.row+';border:1.5px solid;border-radius:8px;margin-bottom:8px"><div class="aud-h-rb" style="'+rs.rb+';border:1.5px solid;border-radius:4px;font-size:9px;padding:2px 8px;white-space:nowrap;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:700">'+RC[m.round].label+'</div><div style="flex:1;font-size:14px;font-weight:'+(w===1?700:500)+';color:'+c1+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+m.t1+'</div><div style="font-size:23px;font-weight:700;color:'+c1+';flex-shrink:0">'+v1+'</div><div style="font-size:11px;color:#8a7f73;padding:0 4px;flex-shrink:0">'+(w===0?'draw':'vs')+'</div><div style="font-size:23px;font-weight:700;color:'+c2+';flex-shrink:0">'+v2+'</div><div style="flex:1;font-size:14px;font-weight:'+(w===2?700:500)+';color:'+c2+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">'+m.t2+'</div>'+((m.t1time||m.t2time)?'<div class="aud-h-time">⏱ '+(m.t1time||'—')+' / '+(m.t2time||'—')+'</div>':'')+'</div>';
+  }).join(''):'<div style="text-align:center;padding:2.5rem;color:#8a7f73">No results yet.</div>';
   document.getElementById('aud-overlay').classList.add('show');
 }
 
@@ -639,7 +629,7 @@ function render(){
 
 function rMain(){
   const done=S.matches.filter(m=>m.done).length;
-  return '<div class="hdr"><div class="hdr-ac"></div><div><div class="hdr-s">Brunei</div><div class="hdr-t">Barista Team Championship</div></div><div class="hdr-btns"><button class="btn-hdr btn-o" id="homebtn">← Home</button><button class="btn-hdr btn-am" id="tmrbtn">⏱ Timer</button><button class="btn-hdr btn-am" id="pubview">📺 Audience</button><button class="btn-hdr btn-bl" id="exportbtn">📄 PDF</button><button class="btn-hdr btn-gn" id="csvbtn">📊 CSV</button><button class="btn-hdr btn-rd" id="resetbtn">↺ Reset</button><div class="badge">'+done+'/'+S.matches.length+' done</div></div></div>'
+  return '<div class="hdr"><div class="hdr-ac"></div><div><div class="hdr-s">Brunei</div><div class="hdr-t">Barista Team Championship</div></div><div class="hdr-btns"><button class="btn-hdr btn-o" id="homebtn">← Seduh Score</button><button class="btn-hdr btn-am" id="tmrbtn">⏱ Timer</button><button class="btn-hdr btn-am" id="pubview">📺 Audience</button><button class="btn-hdr btn-bl" id="exportbtn">📄 PDF</button><button class="btn-hdr btn-gn" id="csvbtn">📊 CSV</button><button class="btn-hdr btn-rd" id="resetbtn">↺ Reset</button><div class="badge">'+done+'/'+S.matches.length+' done</div></div></div>'
   +'<div class="tabs">'+[['setup','Setup'],['prelims','Prelims ('+S.matches.filter(m=>m.round==='preliminary').length+')'],['bracket','Bracket'],['history','History'],['standings','Standings']].map(([t,l])=>'<button class="tbtn'+(S.tab===t?' on':'')+'" data-tab="'+t+'">'+l+'</button>').join('')+'</div>'
   +'<div class="body">'+(S.tab==='setup'?rSetup():S.tab==='prelims'?rPrelims():S.tab==='bracket'?rBracket():S.tab==='history'?rHistory():rStandings())+'</div>';
 }

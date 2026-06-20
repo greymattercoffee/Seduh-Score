@@ -149,6 +149,7 @@ const DEFAULT_STATE = () => ({
   redemption: false,
   redemptionRounds: { r1: true, r2: false },
   redemptionCap: 0,
+  redemptionGroupSize: 3,
   wildCard: false,
   thirdPlace: false,
   manualBracket: false,  // organiser assigns names to slots manually
@@ -239,6 +240,15 @@ function buildPairs(names) {
   return pairs;
 }
 
+function buildRedemptionGroups(losers, groupSize) {
+  const shuffled = [...losers].sort(() => Math.random() - 0.5);
+  const groups = [];
+  for (let i = 0; i < shuffled.length; i += groupSize) {
+    groups.push(shuffled.slice(i, i + groupSize));
+  }
+  return groups;
+}
+
 function generateBracket() {
   const names = shuffle(S.participants.map(p => p.name));
   const b = {
@@ -271,6 +281,17 @@ function generateManualBracket() {
 function startManualBracket() {
   const b = S.bracket;
   const round = b.rounds[0];
+  const allNames = round.pairs
+    .flatMap(p => [p.t1, p.t2])
+    .filter(Boolean);
+  const dupes = allNames
+    .filter((n, i) => allNames.indexOf(n) !== i);
+  if (dupes.length) {
+    alert('Duplicate assignment: '
+      + [...new Set(dupes)].join(', ')
+      + '. Each participant can only appear once.');
+    return;
+  }
   // Resolve nulls: one name + null → bye; both null → drop
   round.pairs = round.pairs
     .filter(p => p.t1 || p.t2)
@@ -284,6 +305,18 @@ function startManualBracket() {
   save();
   S.tab = 'bracket';
   render();
+}
+
+function refreshManualSelects() {
+  const sels = document.querySelectorAll('.ms-sel');
+  const used = [...sels].map(s => s.value).filter(Boolean);
+  sels.forEach(sel => {
+    [...sel.options].forEach(opt => {
+      if (!opt.value) return;
+      opt.disabled = used.includes(opt.value)
+        && opt.value !== sel.value;
+    });
+  });
 }
 
 function getActiveRound() {
@@ -332,8 +365,15 @@ function advanceBracket() {
 
     // Fire redemption round if pool is ready
     if (S.redemption && b.redemptionPool.length >= 2 && S.redemptionRounds[rdKey]) {
-      const rdPairs = buildPairs(shuffle(b.redemptionPool));
-      b.rounds.push({ label: 'Redemption Round ' + roundNum, phase: 'redemption', roundNum, pairs: rdPairs });
+      const rdMatches = buildRedemptionGroups(b.redemptionPool, S.redemptionGroupSize || 3)
+        .map(group => ({
+          id: String(mid++),
+          brewers: group,
+          votes: Object.fromEntries(group.map(n => [n, 0])),
+          tiebreaker: null,
+          winner: null
+        }));
+      b.rounds.push({ label: 'Redemption Round ' + roundNum, phase: 'redemption', roundNum, pairs: rdMatches });
       b.redemptionPool = [];
       b.phase = 'redemption';
     } else if (advancingWinners.length >= 2) {
@@ -362,16 +402,15 @@ function advanceBracket() {
     // Lucky loser: if winners < cap, pause to randomly fill the gap from redemption losers
     const alreadyDrawn = (b.luckyLosers || []).length;
     if (rdWinners.length + alreadyDrawn < cap) {
-      const rdLosers = lastRound.pairs
-        .filter(p => !p.bye && p.loser)
-        .map(p => p.loser)
-        .filter(l => !rdWinners.includes(l) && !(b.luckyLosers || []).includes(l));
-      if (rdLosers.length > 0) {
+      const nonWinners = lastRound.pairs
+        .flatMap(m => m.brewers.filter(n => n !== m.winner))
+        .filter(n => !rdWinners.includes(n) && !(b.luckyLosers || []).includes(n));
+      if (nonWinners.length > 0) {
         if (!b.luckyLosers) b.luckyLosers = [];
         b.pendingLuckyLoser = {
           rdRound: lastRound.roundNum,
           slotsNeeded: cap - rdWinners.length - b.luckyLosers.length,
-          pool: rdLosers,
+          pool: nonWinners,
         };
         save(); return; // pause for draw
       }
@@ -441,8 +480,15 @@ function continueAfterWildCard(roundNum) {
 
   // Fire redemption round if pool ready, else push next main round
   if (S.redemption && b.redemptionPool.length >= 2 && S.redemptionRounds[rdKey]) {
-    const rdPairs = buildPairs(shuffle(b.redemptionPool));
-    b.rounds.push({ label: 'Redemption Round ' + roundNum, phase: 'redemption', roundNum, pairs: rdPairs });
+    const rdMatches = buildRedemptionGroups(b.redemptionPool, S.redemptionGroupSize || 3)
+      .map(group => ({
+        id: String(mid++),
+        brewers: group,
+        votes: Object.fromEntries(group.map(n => [n, 0])),
+        tiebreaker: null,
+        winner: null
+      }));
+    b.rounds.push({ label: 'Redemption Round ' + roundNum, phase: 'redemption', roundNum, pairs: rdMatches });
     b.redemptionPool = [];
     b.phase = 'redemption';
   } else if (advancingWinners.length >= 2) {
@@ -480,8 +526,15 @@ function skipWildCard() {
 
   // Fire redemption round if pool is ready
   if (S.redemption && b.redemptionPool.length >= 2 && S.redemptionRounds[rdKey]) {
-    const rdPairs = buildPairs(shuffle(b.redemptionPool));
-    b.rounds.push({ label: 'Redemption Round ' + roundNum, phase: 'redemption', roundNum, pairs: rdPairs });
+    const rdMatches = buildRedemptionGroups(b.redemptionPool, S.redemptionGroupSize || 3)
+      .map(group => ({
+        id: String(mid++),
+        brewers: group,
+        votes: Object.fromEntries(group.map(n => [n, 0])),
+        tiebreaker: null,
+        winner: null
+      }));
+    b.rounds.push({ label: 'Redemption Round ' + roundNum, phase: 'redemption', roundNum, pairs: rdMatches });
     b.redemptionPool = [];
     b.phase = 'redemption';
   } else if (winners.length >= 2) {
@@ -561,17 +614,24 @@ function closeScoring() {
 
 /* ── Score modal render ── */
 function renderScoreModal() {
-  const mid = S.scoringMatchId;
-  if (!mid) return;
+  const matchId = S.scoringMatchId;
+  if (!matchId) return;
 
-  // Find pair in bracket
-  let pair = null;
-  for (const round of S.bracket.rounds) {
-    const p = round.pairs.find(x => x.id === mid);
-    if (p) { pair = p; break; }
+  let pair = null, round = null;
+  for (const r of S.bracket.rounds) {
+    const p = r.pairs.find(x => x.id === matchId);
+    if (p) { pair = p; round = r; break; }
   }
   if (!pair) return;
 
+  if (round.phase === 'redemption') {
+    renderRedemptionScoreModal(pair, round);
+  } else {
+    render1v1ScoreModal(pair);
+  }
+}
+
+function render1v1ScoreModal(pair) {
   const judges = S.judges;
   const v1 = pair.votes1 || 0;
   const v2 = pair.votes2 || 0;
@@ -601,7 +661,6 @@ function renderScoreModal() {
     + '<div class="vote-summary">' + preview + '</div>'
     + '<button class="btn-p" id="sm-confirm" style="width:100%"'+(total!==judges||v1===v2?' disabled':'')+'>Confirm Result</button>';
 
-  // Bind vote buttons
   document.querySelectorAll('.vbtn').forEach(btn => btn.addEventListener('click', () => {
     const team = +btn.dataset.team, v = +btn.dataset.v;
     if (team === 1) pair.votes1 = v;
@@ -615,6 +674,82 @@ function renderScoreModal() {
     closeScoring();
     advanceBracket();
     render();
+  });
+
+  document.getElementById('sm-cancel')?.addEventListener('click', closeScoring);
+}
+
+function renderRedemptionScoreModal(match, round) {
+  const judges = S.judges;
+  const totalVotes = Object.values(match.votes).reduce((a, b) => a + b, 0);
+  const allVoted = totalVotes >= judges;
+
+  const max = allVoted ? Math.max(...Object.values(match.votes)) : 0;
+  const leaders = allVoted
+    ? Object.keys(match.votes).filter(k => match.votes[k] === max)
+    : [];
+  const tied = allVoted && leaders.length > 1;
+
+  document.getElementById('sm-title').textContent = 'Redemption — ' + round.label;
+
+  let html = match.brewers.map(name => {
+    const v = match.votes[name] || 0;
+    const lit = v > 0;
+    return '<button class="rdvbtn" data-brewer="'+name+'"'+(allVoted?' disabled':'')+' style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:.75rem 1rem;margin-bottom:8px;border-radius:var(--rad-s);border:1.5px solid '+(lit?'var(--pu)':'var(--border)')+';background:'+(lit?'var(--pu-bg)':'transparent')+';cursor:'+(allVoted?'default':'pointer')+'">'
+      + '<span style="font-size:14px;font-weight:700;color:var(--txt)">'+name+'</span>'
+      + '<span style="font-size:20px;font-weight:800;color:'+(lit?'var(--pu)':'var(--txt3)')+'">'+v+'</span>'
+      + '</button>';
+  }).join('');
+
+  html += '<div style="text-align:center;font-size:13px;font-weight:600;color:var(--txt2);margin:.5rem 0 1rem">'
+    + totalVotes+' of '+judges+' judges voted</div>';
+
+  if (!tied) {
+    html += '<button class="btn-p" id="sm-confirm" style="width:100%"'
+      +(allVoted?'':' disabled')+'>Confirm Result</button>';
+  }
+
+  if (tied) {
+    html += '<div style="padding:.75rem 1rem;background:var(--am-bg);border:2px solid var(--am-bd);border-radius:var(--rad-s);margin-top:1rem">'
+      + '<div style="font-size:12px;font-weight:700;color:var(--am);margin-bottom:6px">Tied — '+leaders.join(', ')+'</div>'
+      + '<div style="font-size:11px;color:var(--txt2);margin-bottom:10px;font-weight:600">Tiebreaker judge — tap to decide</div>'
+      + leaders.map(name =>
+          '<button class="rdtbtn" data-winner="'+name+'" style="display:block;width:100%;padding:.6rem 1rem;margin-bottom:6px;border-radius:var(--rad-s);border:1.5px solid var(--am-bd);background:var(--surface);cursor:pointer;font-size:14px;font-weight:700;color:var(--txt);text-align:left">'+name+'</button>'
+        ).join('')
+      + '</div>';
+  }
+
+  document.getElementById('sm-body').innerHTML = html;
+
+  // Vote buttons — one tap per judge, capped at judge count
+  document.querySelectorAll('.rdvbtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cur = Object.values(match.votes).reduce((a, b) => a + b, 0);
+      if (cur < judges) {
+        match.votes[btn.dataset.brewer] = (match.votes[btn.dataset.brewer] || 0) + 1;
+        renderScoreModal();
+      }
+    });
+  });
+
+  // Confirm — no-tie path
+  document.getElementById('sm-confirm')?.addEventListener('click', () => {
+    const mx = Math.max(...Object.values(match.votes));
+    match.winner = Object.keys(match.votes).filter(k => match.votes[k] === mx)[0];
+    closeScoring();
+    advanceBracket();
+    render();
+  });
+
+  // Tiebreaker — single tap resolves
+  document.querySelectorAll('.rdtbtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      match.tiebreaker = btn.dataset.winner;
+      match.winner = btn.dataset.winner;
+      closeScoring();
+      advanceBracket();
+      render();
+    });
   });
 
   document.getElementById('sm-cancel')?.addEventListener('click', closeScoring);
@@ -675,6 +810,11 @@ function rSetup() {
     + '<label class="field-lbl" style="margin-bottom:0;white-space:nowrap;font-size:11px">Max revived from redemption:</label>'
     + '<input type="number" id="rd-cap" min="0" max="50" value="'+S.redemptionCap+'" style="width:64px;text-align:center;font-size:15px;font-weight:700"/>'
     + '<span class="hint">(0 = no limit)</span>'
+    + '</div>'
+    + '<div id="rd-group-row" style="display:flex;align-items:center;gap:10px;margin-top:8px;'+(S.redemption?'':'opacity:.35;pointer-events:none')+'">'
+    + '<label class="field-lbl" style="margin-bottom:0;white-space:nowrap;font-size:11px">Brewers per group:</label>'
+    + '<input type="number" id="rd-group" min="2" max="4" value="'+(S.redemptionGroupSize||3)+'" style="width:64px;text-align:center;font-size:15px;font-weight:700"/>'
+    + '<span class="hint">(2–4, default 3)</span>'
     + '</div>'
     + '</div></div>'
     + '</div></div>'
@@ -916,42 +1056,61 @@ function roundColour(label, phase) {
 function showAudience() {
   const revivedNames = S.bracket ? (S.bracket.revivedNames || []) : [];
 
-  // Colour map — hardcoded hex per CONVENTIONS (CSS vars don't cascade into audience overlay)
+  // Saturated hex per CONVENTIONS — boosted for projector output
   function audCol(label, phase) {
-    if (phase === 'redemption') return { bg:'#EDE9FE', bd:'#C4B5FD', fg:'#6D28D9' };
+    if (phase === 'redemption') return { bg:'#DDD6FE', bd:'#7C3AED', fg:'#5B21B6', bar:'#7C3AED' };
+    if (phase === 'third')      return { bg:'#BFDBFE', bd:'#2563EB', fg:'#1D4ED8', bar:'#2563EB' };
     const l = label.toLowerCase();
-    if (l === 'final')         return { bg:'#D1FAE5', bd:'#6EE7B7', fg:'#065F46' };
-    if (l.includes('semi'))    return { bg:'#FEF3C7', bd:'#FCD34D', fg:'#92400E' };
-    if (l.includes('quarter')) return { bg:'#DBEAFE', bd:'#93C5FD', fg:'#1E40AF' };
-    if (l.includes('round 1')) return { bg:'#F3F4F6', bd:'#D1D5DB', fg:'#6B7280' };
-    return { bg:'#DBEAFE', bd:'#93C5FD', fg:'#1E40AF' };
+    if (l === 'final')         return { bg:'#A7F3D0', bd:'#059669', fg:'#065F46', bar:'#059669' };
+    if (l.includes('semi'))    return { bg:'#FDE68A', bd:'#D97706', fg:'#92400E', bar:'#D97706' };
+    if (l.includes('quarter')) return { bg:'#BFDBFE', bd:'#2563EB', fg:'#1D4ED8', bar:'#2563EB' };
+    if (l.includes('round 1')) return { bg:'#E5E7EB', bd:'#6B7280', fg:'#374151', bar:'#6B7280' };
+    return { bg:'#BFDBFE', bd:'#2563EB', fg:'#1D4ED8', bar:'#2563EB' };
   }
 
-  const revBadge = '<span style="font-size:10px;font-weight:700;color:#6D28D9;background:#EDE9FE;border:1px solid #C4B5FD;border-radius:3px;padding:1px 5px;margin-left:6px;vertical-align:middle;flex-shrink:0">⬆ R</span>';
+  const revBadge = '<span style="font-size:10px;font-weight:700;color:#5B21B6;background:#DDD6FE;border:1.5px solid #7C3AED;border-radius:3px;padding:1px 5px;margin-left:6px;vertical-align:middle;flex-shrink:0">⬆ R</span>';
 
   const done = S.bracket
     ? S.bracket.rounds.flatMap(r => r.pairs.filter(p => p.winner && !p.bye).map(p => ({...p, roundLabel: r.label, phase: r.phase}))).reverse()
     : [];
 
-  const histHTML = done.length ? done.map(p => {
-    const col = audCol(p.roundLabel, p.phase);
-    const t1win = p.winner === p.t1;
-    const t2win = p.winner === p.t2;
-    const t1rev = revivedNames.includes(p.t1);
-    const t2rev = p.t2 && revivedNames.includes(p.t2);
-    return '<div style="display:flex;align-items:center;gap:10px;padding:.65rem 1rem;background:#fff;border-radius:8px;margin-bottom:6px;border-left:4px solid '+col.fg+';box-shadow:0 1px 3px rgba(0,0,0,.07)">'
-      + '<div style="font-size:10px;font-weight:700;color:'+col.fg+';background:'+col.bg+';border:1.5px solid '+col.bd+';border-radius:4px;padding:2px 7px;white-space:nowrap;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em">'+p.roundLabel+'</div>'
-      + '<div style="flex:1;display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0">'
-      + '<span style="font-size:16px;font-weight:'+(t1win?800:500)+';color:'+(t1win?'#B45309':'#9CA3AF')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.t1+'</span>'
-      + (t1rev ? revBadge : '')
+  // Group by round label for section dividers
+  const grouped = [];
+  done.forEach(p => {
+    const last = grouped[grouped.length - 1];
+    if (last && last.label === p.roundLabel) { last.matches.push(p); }
+    else { grouped.push({ label: p.roundLabel, phase: p.phase, matches: [p] }); }
+  });
+
+  const histHTML = grouped.length ? grouped.map(group => {
+    const col = audCol(group.label, group.phase);
+    const matchRows = group.matches.map(p => {
+      const t1win = p.winner === p.t1;
+      const t2win = p.winner === p.t2;
+      const t1rev = revivedNames.includes(p.t1);
+      const t2rev = p.t2 && revivedNames.includes(p.t2);
+      return '<div style="display:flex;align-items:center;gap:10px;padding:.75rem 1rem;background:#fff;border-radius:8px;margin-bottom:6px;box-shadow:0 1px 4px rgba(0,0,0,.10)">'
+        + '<div style="flex:1;display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0">'
+        + '<span style="font-size:17px;font-weight:'+(t1win?800:500)+';color:'+(t1win?'#1C1917':'#9CA3AF')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.t1+'</span>'
+        + (t1rev ? revBadge : '')
+        + '</div>'
+        + '<div style="font-size:28px;font-weight:900;color:'+(t1win?col.bar:'#D1D5DB')+';flex-shrink:0;min-width:34px;text-align:center;line-height:1">'+p.votes1+'</div>'
+        + '<div style="font-size:11px;font-weight:700;color:#9CA3AF;flex-shrink:0;padding:0 2px">vs</div>'
+        + '<div style="font-size:28px;font-weight:900;color:'+(t2win?col.bar:'#D1D5DB')+';flex-shrink:0;min-width:34px;text-align:center;line-height:1">'+p.votes2+'</div>'
+        + '<div style="flex:1;display:flex;align-items:center;gap:6px;min-width:0">'
+        + (t2rev ? revBadge : '')
+        + '<span style="font-size:17px;font-weight:'+(t2win?800:500)+';color:'+(t2win?'#1C1917':'#9CA3AF')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.t2+'</span>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+
+    return '<div style="margin-bottom:20px">'
+      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
+      + '<div style="height:3px;flex:1;background:'+col.bar+';border-radius:2px;opacity:.35"></div>'
+      + '<div style="font-size:11px;font-weight:800;color:'+col.fg+';background:'+col.bg+';border:2px solid '+col.bd+';border-radius:5px;padding:3px 10px;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">'+group.label+'</div>'
+      + '<div style="height:3px;flex:1;background:'+col.bar+';border-radius:2px;opacity:.35"></div>'
       + '</div>'
-      + '<div style="font-size:26px;font-weight:800;color:'+(t1win?'#B45309':'#9CA3AF')+';flex-shrink:0;min-width:32px;text-align:center">'+p.votes1+'</div>'
-      + '<div style="font-size:11px;font-weight:700;color:#D1D5DB;flex-shrink:0;padding:0 2px">vs</div>'
-      + '<div style="font-size:26px;font-weight:800;color:'+(t2win?'#B45309':'#9CA3AF')+';flex-shrink:0;min-width:32px;text-align:center">'+p.votes2+'</div>'
-      + '<div style="flex:1;display:flex;align-items:center;gap:6px;min-width:0">'
-      + (t2rev ? revBadge : '')
-      + '<span style="font-size:16px;font-weight:'+(t2win?800:500)+';color:'+(t2win?'#B45309':'#9CA3AF')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.t2+'</span>'
-      + '</div>'
+      + matchRows
       + '</div>';
   }).join('') : '';
 
@@ -1003,11 +1162,13 @@ function bind() {
     const on2 = '';
     $('rd-rounds').style.cssText = S.redemption ? on2 : off;
     $('rd-cap-row').style.cssText = S.redemption ? on2 : off;
+    $('rd-group-row').style.cssText = S.redemption ? on2 : off;
     save();
   });
   on('rd-r1','change',() => { S.redemptionRounds.r1 = $('rd-r1').checked; save(); });
   on('rd-r2','change',() => { S.redemptionRounds.r2 = $('rd-r2').checked; save(); });
   on('rd-cap','change',() => { S.redemptionCap = Math.max(0, +$('rd-cap').value||0); save(); });
+  on('rd-group','change',() => { S.redemptionGroupSize = Math.min(4, Math.max(2, +$('rd-group').value||3)); save(); });
 
   // Wild card
   on('wc-enable','change',() => { S.wildCard = $('wc-enable').checked; save(); });
@@ -1073,6 +1234,7 @@ function bind() {
       const pos = sel.dataset.pos;
       const pair = S.bracket?.rounds[0]?.pairs.find(p => p.id === pairId);
       if (pair) { pair[pos] = sel.value || null; save(); }
+      refreshManualSelects();
     });
   });
 
@@ -1126,9 +1288,9 @@ function buildThrowdownDemo(){
       {
         label:'Redemption Round 1',phase:'redemption',roundNum:1,
         pairs:[
-          {id:'d6',t1:'Darwisyah',t2:'Husna Azlan',bye:false,winner:'Husna Azlan',loser:'Darwisyah',votes1:1,votes2:2},
-          {id:'d7',t1:'Fatin Najwa',t2:'Raihana Malik',bye:false,winner:'Fatin Najwa',loser:'Raihana Malik',votes1:2,votes2:1},
-          {id:'d8',t1:'Norafiza',t2:'Nur Haziqah',bye:false,winner:'Norafiza',loser:'Nur Haziqah',votes1:2,votes2:1},
+          {id:'d6',brewers:['Darwisyah','Husna Azlan'],votes:{'Darwisyah':1,'Husna Azlan':2},tiebreaker:null,winner:'Husna Azlan'},
+          {id:'d7',brewers:['Fatin Najwa','Raihana Malik'],votes:{'Fatin Najwa':2,'Raihana Malik':1},tiebreaker:null,winner:'Fatin Najwa'},
+          {id:'d8',brewers:['Norafiza','Nur Haziqah'],votes:{'Norafiza':2,'Nur Haziqah':1},tiebreaker:null,winner:'Norafiza'},
         ]
       },
       {
