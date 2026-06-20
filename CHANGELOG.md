@@ -2,6 +2,98 @@
 
 ---
 
+## [4.2.0] — Throwdown: redemption round rework · June 2026
+
+### throwdown/index.html
+- **Redemption round: 1v1v1 group model** — redemption
+  matches now support N brewers per group (organiser-set,
+  default 3, max 4). Match structure changed from
+  { t1, t2, votes1, votes2 } pairs to
+  { brewers[], votes{}, tiebreaker, winner } groups.
+- **New Setup field: Brewers per group** — number input
+  (2–4, default 3), visible when redemption is enabled.
+  Stored as S.redemptionGroupSize.
+- **New scoring modal: group vote** — N vote buttons per
+  match, one per brewer. Running tally visible. Confirm
+  active when all judges have voted.
+- **Tiebreaker panel** — fires inline when no brewer
+  holds a strict majority. Shows only tied brewers.
+  Single tiebreaker judge tap resolves. Sets
+  match.tiebreaker and match.winner.
+- **Lucky loser source updated** — non-winners now
+  sourced from match.brewers excluding match.winner
+  across all redemption groups. UI unchanged.
+- **Demo data updated** — Redemption Round 1 match
+  objects converted to new { brewers[], votes{},
+  tiebreaker, winner } structure.
+- **Unchanged:** main bracket rounds (1v1), wild card
+  revival, 3rd place match, cap logic,
+  phase: 'redemption' identifier.
+
+---
+
+## [4.1.4] — BBTC: palette alignment · June 2026
+
+### bbtc/index.html
+- **Local `:root` override removed** — BBTC now inherits all design tokens from
+  `shared/theme.css`. Removed overrides: `--am`, `--am-h`, `--am-bg`, `--am-bd`,
+  `--bl`, `--bl-bg`, `--bl-bd`, `--gn`, `--gn-bg`, `--gn-bd`, `--rd`, `--rd-bg`,
+  `--rd-bd`, `--bg`, `--surface`, `--border`, `--border2`, `--txt`, `--txt2`,
+  `--txt3`, `--rad`, `--rad-s` (22 properties + `font-family` declaration).
+- **Hardcoded hex values replaced** — 73 instances of cool-grey hex values replaced
+  with warm platform values across module CSS, audience overlay CSS, PDF overlay CSS,
+  and JavaScript inline styles. Key substitutions:
+  `#6B7280`/`#9CA3AF` → `#8a7f73` (--txt3),
+  `#E5E7EB` → `#efe9de` (--border2),
+  `#F3F4F6`/`#F9FAFB` → `#f3efe8`/`#faf7f1` (--bg / --surface2),
+  `#065F46` → `#0b7a52` (--gn),
+  `#6EE7B7` → `#8fd9b8` (--gn-bd),
+  `#ECFDF5`/`#D1FAE5` → `#e6f6ee` (--gn-bg),
+  `#D97706` → `#b45309` (--am, accent contexts),
+  `#111827` → `#211a14` (--txt),
+  `#374151` → `#4d443c` (--txt2).
+  Module CSS rank circles updated to `var(--rank-1/2/3)`.
+- **Visual result** — BBTC now uses the warm coffee palette consistent with
+  Throwdown, Liga Seduh, and the Dashboard. Cool-grey divergence (POA-05) resolved.
+
+---
+
+## [4.1.3] — Throwdown: manual bracket duplicate prevention · June 2026
+
+### throwdown/index.html
+- **Fix: Duplicate names possible in manual bracket slots** —
+  dropdowns now disable already-used names in other slots
+  immediately on selection, without re-rendering the grid
+  (preserves focus). `refreshManualSelects()` loops all
+  `.ms-sel` elements and toggles `option.disabled` based
+  on current selections.
+- **Fix: No duplicate validation on Start** —
+  `startManualBracket()` now checks for duplicate name
+  assignments before any state mutations. Alerts with the
+  conflicting names and returns without starting if
+  duplicates are found.
+
+---
+
+## [4.1.2] — Throwdown: audience view improvements · June 2026
+
+### throwdown/index.html
+
+- **Audience view: round section dividers** — match results are now grouped
+  by round label. Each group has a centred round badge flanked by two thin
+  coloured rule lines, with white space between groups. Improves readability
+  at projection size — rounds are immediately scannable without reading every
+  row.
+- **Audience view: colour saturation boosted** — `audCol()` hex values
+  increased across all round types for projector output. Winner score now
+  takes the round's saturated colour (grey/blue/amber/green/purple) rather
+  than flat amber; loser score renders in light grey. Winner name changed
+  to near-black `#1C1917` for maximum contrast on projected screens. Round
+  badge removed from individual match rows — appears once per group as the
+  section header only.
+
+---
+
 ## [4.1.1] — Throwdown: manual bracket assignment · June 2026
 
 ### throwdown/index.html
@@ -20,7 +112,7 @@
     against starting with zero valid pairs.
   - All downstream bracket logic (advancement, redemption, wild card, 3rd
     place) is unchanged — manual mode only affects Round 1 seeding.
-- **Known limitation (POA-11):** Dropdowns do not re-render on change to
+- **Known limitation (POA-12):** Dropdowns do not re-render on change to
   preserve focus — duplicate assignments are possible. `startManualBracket`
   does not yet validate for duplicates. Both fixes deferred post-GGD.
 
@@ -233,7 +325,7 @@
 
 ---
 
-## [3.0.0] Kiarong — Platform Launch
+## [3.0.0] — Platform Launch
 
 - Project renamed from BBTC-Score to **Seduh Score**.
 - Multi-module architecture: dashboard `index.html` + `bbtc/` + `throwdown/` + `shared/`.
@@ -243,7 +335,7 @@
 
 ---
 
-## [2.0.0] Gadong — Bracket Engine & Design Overhaul (BBTC)
+## [2.0.0] — Bracket Engine & Design Overhaul (BBTC)
 
 - Colour system redesigned for WCAG AA contrast.
 - Standings tab — preliminary round only. Bracket seeding from preliminary points exclusively.
@@ -275,5 +367,5 @@
 ## [1.1.0]
 - Manual match creation with judge pool selection. History tab. QF cutline on leaderboard.
 
-## [1.0.0] Kiulap — Initial Release (BBTC)
+## [1.0.0] — Initial Release (BBTC)
 - Setup: teams, judges. Manual matches. Cup-by-cup scoring. Bonus points.

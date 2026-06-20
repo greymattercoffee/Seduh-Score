@@ -211,7 +211,7 @@ button{cursor:pointer}
 .plat-hdr-name{font-family:var(--font-display);font-weight:800;font-size:18px;letter-spacing:-.02em;color:var(--ink);line-height:1;white-space:nowrap}
 .plat-hdr-sub{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-top:3px}
 .plat-hdr-actions{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.plat-back{font-size:12px;color:var(--ink3);text-decoration:none;padding:7px 13px;border:1.5px solid var(--border);border-radius:var(--rad-pill);font-weight:600}
+.plat-back{font-size:12px;color:var(--ink3);text-decoration:none;padding:7px 13px;border:1.5px solid var(--border);border-radius:var(--rad-pill);font-weight:600;white-space:nowrap}
 .plat-back:hover{color:var(--accent);border-color:var(--accent-bd)}
 
 /* ── Tabs ── */
