@@ -12,9 +12,9 @@ Built by [Firdaus Omar](https://github.com/mfosa7222) · [Grey Matter Coffee Wer
 
 | Module | Status | Format |
 |---|---|---|
-| **BBTC** | ✅ Live | Brunei Barista Team Championship — head-to-head team scoring with seeded knockout bracket |
-| **Throwdown 1v1** | ✅ Live | Individual knockout bracket with randomized seeding, redemption round, wild card revival |
-| **Liga Seduh** | 🔜 v4.0 | Round robin league — season standings and match scheduling |
+| **BBTC** | ✅ Live | Barista Team Championship — head-to-head team scoring with seeded knockout bracket |
+| **Throwdown 1v1** | ✅ Live | Individual knockout bracket with randomized seeding, redemption round, revival draw |
+| **Liga Seduh** | ✅ Live | Round robin league — season standings, match scheduling, judged Final |
 
 ---
 
@@ -61,8 +61,8 @@ Individual knockout bracket. Judges vote for a winner per match.
 
 **Scoring:** Variable judge count · majority vote per match  
 **Rounds:** Configurable · Round 1 → QF → SF → Final  
-**Redemption:** Optional pool — losers re-enter, capped per round  
-**Wild card:** Optional per-round random revival of one loser
+**Redemption:** Optional pool — losers re-enter in 1v1v1 groups, capped per round  
+**Revival draw:** Optional per-round random revival of one loser
 
 **Workflow:** Setup → Bracket → Score matches → Audience view → Export
 
@@ -70,9 +70,17 @@ Individual knockout bracket. Judges vote for a winner per match.
 
 ---
 
-## Liga Seduh *(Planned — v4.0)*
+## Liga Seduh
 
-Round robin league format. Every participant plays a defined number of matches. Live cumulative standings update after each result. Supports multi-session event days (season play across multiple dates).
+Round robin brewing league. Every brewer plays a defined number of matches in triads (1v1v1). Live cumulative standings update after each result. Top 3 advance to a judged Final.
+
+**Scoring:** Self-adjudicating — each brewer casts 1 vote per match; tiebreaker judge resolves deadlocks  
+**Rounds:** Configurable · automatic no-repeat schedule generation  
+**Final:** Top 3 brewers + 2 external judges · 5-vote pool
+
+**Workflow:** Setup → Schedule → Score matches → Standings → Final → Report
+
+**Features:** No-repeat schedule generator · Live league table · Device usage tracking · CSV export · Audience view · Demo mode · JSON save/load · Home navigation
 
 ---
 
@@ -80,10 +88,8 @@ Round robin league format. Every participant plays a defined number of matches. 
 
 | Phase | Versions | Focus |
 |---|---|---|
-| **Foundation** | Now → v4.0 | Three solid modules tested in real events |
-| **Brand & IP** | v4.1 → v4.5 | Grey Matter Coffee Werks branding, custom domain, licensing groundwork |
-
-See the Roadmap PDF for detailed version milestones.
+| **Foundation** | v1.0 → v4.0 | Three solid modules tested in real events ✅ |
+| **Brand & Commercial** | v4.1 → v4.5 | Grey Matter Coffee Werks branding, custom domain, Firebase, licensing |
 
 ---
 
@@ -113,4 +119,4 @@ Organizational licensing available for coffee associations, competition bodies, 
 - `CONVENTIONS.md` — code patterns, token names, git workflow
 - `CHANGELOG.md` — version history, what changed and when
 
-**Current version:** v3.6.0
+**Current version:** v4.2.5
