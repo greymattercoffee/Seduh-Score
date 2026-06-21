@@ -326,7 +326,7 @@ const tokUsed=m=>m.drinks.reduce((a,r)=>a+r[0]+r[1],0);
 const t1Tot=m=>{const p1=jPts1(m),p2=jPts2(m);return p1+(m.s1.fastest?2:0)+(p1>p2?5:0)+(!isPre(m.round)&&m.s1.sigBev?2:0);};
 const t2Tot=m=>{const p1=jPts1(m),p2=jPts2(m);return p2+(m.s2.fastest?2:0)+(p2>p1?5:0)+(!isPre(m.round)&&m.s2.sigBev?2:0);};
 
-const STORE_KEY='bbtc_v3';
+const STORE_KEY='seduh_bbtc_v3';
 let mid=0,jid=0;
 let S={
   judges:[],teams:[],matches:[],bracket:null,
@@ -354,6 +354,14 @@ function loadState(){
     mid=d.mid||0;jid=d.jid||0;
   }catch(e){}
 }
+// One-time storage key migration: bbtc_v3 → seduh_bbtc_v3
+(function migrateBbtcKey() {
+  const old = localStorage.getItem('bbtc_v3');
+  if (old) {
+    localStorage.setItem('seduh_bbtc_v3', old);
+    localStorage.removeItem('bbtc_v3');
+  }
+})();
 loadState();
 
 /* ── Demo data ── */

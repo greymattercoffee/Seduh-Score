@@ -2,6 +2,26 @@
 
 ---
 
+## [4.2.2] — BBTC: POA-19 audit — B2 storage key migration · June 2026
+
+### bbtc/index.html
+- **B2 storage key migration: `bbtc_v3` → `seduh_bbtc_v3`** —
+  `STORE_KEY` constant updated. One-time load-path shim IIFE placed
+  immediately before `loadState()`: reads `bbtc_v3` from localStorage,
+  copies to `seduh_bbtc_v3`, removes old key. Silent on all subsequent
+  loads. Aligns BBTC with the locked key format (`seduh_{module}_{vN}`)
+  from POA-23.
+
+### AUDIT.md
+- BBTC section populated (POA-19). Findings: 3 dead-code items
+  (D1 RC.time unused, D2 cfg unused in rCreateForm, D3 nm.round always
+  preliminary), 2 pattern violations (P1 system-ui in pdf-page, P7
+  demo card hex). All deferred items from POA-06/09/10 confirmed
+  present. POA-05 follow-up: all 73 hex replacements verified correct —
+  no var() tokens in overlay/PDF contexts.
+
+---
+
 ## [4.2.1] — Throwdown: POA-18 audit — B4 rename · June 2026
 
 ### throwdown/index.html
