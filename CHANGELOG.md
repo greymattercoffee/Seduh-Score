@@ -2,6 +2,24 @@
 
 ---
 
+## [4.2.1] — Throwdown: POA-18 audit — B4 rename · June 2026
+
+### throwdown/index.html
+- **B4 rename: "Wild card" → "Revival draw" in all display strings** —
+  Setup card header, checkbox label, hint text, bracket pending
+  banner, pending button, reveal banner, and adjacent code comments
+  updated. 8 strings changed total. JS identifiers (`wildCard`,
+  `b.wildCards`, `pendingWildCard`, `skipWildCard`, etc.) left
+  unchanged — flagged as tech debt in AUDIT.md.
+
+### AUDIT.md
+- Throwdown section populated (POA-18). Findings: 4 dead-code items
+  (D1–D4), 2 pattern violations (P3 modal listeners, P7 demo hex),
+  all deferred items from POA-12 and POA-15 confirmed present and
+  correct, storage key `seduh_throwdown_v1` confirmed.
+
+---
+
 ## [4.2.0] — Throwdown: redemption round rework · June 2026
 
 ### throwdown/index.html
@@ -112,9 +130,9 @@
     against starting with zero valid pairs.
   - All downstream bracket logic (advancement, redemption, wild card, 3rd
     place) is unchanged — manual mode only affects Round 1 seeding.
-- **Known limitation (POA-12):** Dropdowns do not re-render on change to
-  preserve focus — duplicate assignments are possible. `startManualBracket`
-  does not yet validate for duplicates. Both fixes deferred post-GGD.
+- **Known limitation at release (fixed in v4.1.3):** Dropdowns did not
+  re-render on change — duplicate assignments were possible and
+  `startManualBracket` did not validate for duplicates. Both fixed in v4.1.3.
 
 ---
 
