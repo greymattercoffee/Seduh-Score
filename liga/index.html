@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Liga Seduh Bawah Tanah — Seduh Score</title>
 <link rel="stylesheet" href="../shared/theme.css">
+<link rel="icon" href="../shared/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../shared/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="../shared/assets/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="../shared/assets/apple-touch-icon.png">
 <style>
 /* ── Liga-specific styles ── */
 .app{max-width:900px;margin:0 auto;padding:0 0 60px}
@@ -536,7 +540,7 @@ function rMain() {
   const tabs = [['setup','Setup'],['schedule','Schedule'],['standings','Standings'],['final','Final'],['report','Report']];
   return '<div class="plat-hdr">'
     + '<a href="../index.html" class="plat-back">← Seduh Score</a>'
-    + '<div class="liga-ac"></div>'
+    + '<span class="plat-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh"><circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"/><path d="M26 60 a24 24 0 0 1 48 0"/><path d="M35 60 a15 15 0 0 1 30 0"/><path d="M44 60 a6 6 0 0 1 12 0"/></svg></span>'
     + '<div><div class="plat-hdr-sub" style="font-size:10px;color:var(--liga-ac);font-weight:700;letter-spacing:.15em;text-transform:uppercase">Seduh Score</div>'
     + '<div class="plat-hdr-name">' + esc(S.eventName || 'Liga Seduh Bawah Tanah') + '</div></div>'
     + '<div class="hdr-btns">'

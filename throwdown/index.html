@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Throwdown 1v1 — Seduh Score</title>
 <link rel="stylesheet" href="../shared/theme.css">
+<link rel="icon" href="../shared/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../shared/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="../shared/assets/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="../shared/assets/apple-touch-icon.png">
 <style>
 /* ── Throwdown-specific styles ── */
 .app{max-width:900px;margin:0 auto;padding:0 0 60px}
@@ -97,8 +101,8 @@
       <button class="tmr-btn tmr-reset" id="tmr-reset">↺ Reset</button>
     </div>
     <div class="tmr-footer">
-      <button id="tmr-close">✕ Close</button>
-      <button id="tmr-fs">⛶ Fullscreen</button>
+      <button class="tmr-close" id="tmr-close">✕ Close</button>
+      <button class="tmr-fs-btn" id="tmr-fs">⛶ Fullscreen</button>
     </div>
   </div>
 </div>
@@ -765,7 +769,7 @@ function render() {
 function rMain() {
   return '<div class="plat-hdr">'
     + '<a href="../index.html" class="plat-back">← Seduh Score</a>'
-    + '<div class="plat-hdr-ac" style="width:4px;height:32px;background:var(--am);border-radius:2px;margin-left:4px"></div>'
+    + '<span class="plat-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh"><circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"/><path d="M26 60 a24 24 0 0 1 48 0"/><path d="M35 60 a15 15 0 0 1 30 0"/><path d="M44 60 a6 6 0 0 1 12 0"/></svg></span>'
     + '<div><div class="plat-hdr-sub" style="font-size:10px;color:var(--am);font-weight:700;letter-spacing:.15em;text-transform:uppercase">Seduh Score</div>'
     + '<div class="plat-hdr-name">Throwdown 1v1</div></div>'
     + '<div class="hdr-btns"><button class="hdr-btn btn-am" id="tmrbtn">⏱ Timer</button>'

@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Timer — Seduh Score</title>
 <link rel="stylesheet" href="../shared/theme.css">
+<link rel="icon" href="../shared/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../shared/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="../shared/assets/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="../shared/assets/apple-touch-icon.png">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{
@@ -13,7 +17,7 @@ body{
   min-height:100vh;
   display:flex;
   flex-direction:column;
-  font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  font-family:var(--font-body);
 }
 
 /* ── Header ── */
@@ -108,7 +112,7 @@ body:has(#tmr-overlay.fs) .fs-exit{display:flex}
 <!-- Header -->
 <header class="timer-hdr">
   <div class="timer-hdr-brand">
-    <div class="timer-hdr-ac"></div>
+    <span class="plat-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh"><circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"/><path d="M26 60 a24 24 0 0 1 48 0"/><path d="M35 60 a15 15 0 0 1 30 0"/><path d="M44 60 a6 6 0 0 1 12 0"/></svg></span>
     <div>
       <div class="timer-hdr-s">Seduh Score</div>
       <div class="timer-hdr-t">Competition Timer</div>
@@ -127,29 +131,33 @@ body:has(#tmr-overlay.fs) .fs-exit{display:flex}
 <main class="timer-stage">
 <div id="tmr-overlay">
 
-  <div class="tmr-presets">
-    <button class="tmr-preset" data-secs="300">5 min</button>
-    <button class="tmr-preset on" data-secs="420">7 min</button>
-    <button class="tmr-preset" data-secs="600">10 min</button>
-    <button class="tmr-preset" data-secs="900">15 min</button>
-  </div>
+  <div class="tmr-extras">
+    <div class="tmr-presets">
+      <button class="tmr-preset" data-secs="300">5 min</button>
+      <button class="tmr-preset on" data-secs="420">7 min</button>
+      <button class="tmr-preset" data-secs="600">10 min</button>
+      <button class="tmr-preset" data-secs="900">15 min</button>
+    </div>
 
-  <div class="tmr-custom">
-    <input class="tmr-custom-input" id="tmr-custom-input" type="number" min="1" max="99" placeholder="min">
-    <span class="tmr-custom-label">min</span>
-    <button class="tmr-custom-set" id="tmr-custom-set">Set</button>
+    <div class="tmr-custom">
+      <input class="tmr-custom-input" id="tmr-custom-input" type="number" min="1" max="99" placeholder="min">
+      <span class="tmr-custom-label">min</span>
+      <button class="tmr-custom-set" id="tmr-custom-set">Set</button>
+    </div>
   </div>
 
   <div class="tmr-display" id="tmr-display">07:00</div>
 
-  <div class="tmr-controls">
-    <button class="tmr-btn tmr-start" id="tmr-start">▶ Start</button>
-    <button class="tmr-btn tmr-pause" id="tmr-pause">⏸ Pause</button>
-    <button class="tmr-btn tmr-reset" id="tmr-reset">↺ Reset</button>
-  </div>
+  <div class="tmr-extras">
+    <div class="tmr-controls">
+      <button class="tmr-btn tmr-start" id="tmr-start">▶ Start</button>
+      <button class="tmr-btn tmr-pause" id="tmr-pause">⏸ Pause</button>
+      <button class="tmr-btn tmr-reset" id="tmr-reset">↺ Reset</button>
+    </div>
 
-  <div class="tmr-footer">
-    <button class="tmr-fs-btn" id="tmr-fs">⛶ Fullscreen</button>
+    <div class="tmr-footer">
+      <button class="tmr-fs-btn" id="tmr-fs">⛶ Fullscreen</button>
+    </div>
   </div>
 
 </div>
