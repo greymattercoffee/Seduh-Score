@@ -2,6 +2,110 @@
 
 ---
 
+## [4.2.5] — Dashboard + Timer: POA-22 audit · June 2026
+
+### timer/index.html
+- **Redundant local Escape handler removed** — the `document.addEventListener('keydown', ...)`
+  Escape handler (former lines 190–192) was made redundant by the Escape fix added to
+  `shared/timer.js init()` in v4.2.4. Removed to prevent double-firing on the standalone
+  timer page. The `fs-exit` button click handler remains (separate exit path). Comment
+  updated to note that Escape is now handled in `timer.js init()`.
+
+### AUDIT.md
+- Dashboard + Timer section populated (POA-22). Dashboard findings: no dead code; direct
+  localStorage at lines 149/152 in `load()`/`save()` helpers (only two calls, flagged pre-v5.0);
+  `seduh_event_v1` confirmed as sole storage key; no local `<style>` block (font-family N/A).
+  Timer findings: no dead code; `font-family:system-ui` on `body` flagged for POA-06;
+  dark-theme hex intentional (projection context); `Timer.init()` top-level confirmed as
+  intentional exception to bind() rule.
+- Stale CLAUDE.md entries identified for POA-24 removal: Throwdown POA-04 audience entry
+  (resolved in v3.x, confirmed clean POA-18) and Liga Timer.init() entry (fixed POA-20).
+- Cross-module summary populated — five audit sessions complete. Summary covers: P7 demo hex
+  (Throwdown + BBTC), system-ui font-family (BBTC + timer), bind() accumulation debt
+  (Throwdown modal + audience.js aud-close), direct localStorage (BBTC + dashboard);
+  four CONVENTIONS.md updates queued for POA-24; full tech-debt register compiled.
+
+---
+
+## [4.2.4] — Shared components: POA-21 audit — Escape key fix · June 2026
+
+### shared/timer.js
+- **Escape key to exit timer overlay fullscreen** — CHANGELOG v3.5.2 documented
+  this as "Added to shared/timer.js init()" but the handler was absent from the
+  file. `timer/index.html` had its own local Escape handler; BBTC covered it in
+  `initTimer()`. Throwdown and Liga had no keyboard exit path for timer overlay
+  fullscreen. Fixed by adding `document.addEventListener('keydown', e => { if
+  (e.key === 'Escape') ovl()?.classList.remove('fs'); })` inside `init()`,
+  covered by the `inited` guard. Optional chaining on `ovl()` is a no-op on the
+  standalone timer page.
+
+### AUDIT.md
+- Shared components section populated (POA-21). Findings: D1 Escape key absent
+  from timer.js (fixed); S1 audience.js aud-close listener accumulation (deferred
+  to POA-16); S2 null guard gaps on aud-hist and aud-ts (deferred to POA-16).
+  storage.js interface confirmed clean — load() sync is the one design decision
+  for v5.0 Firebase seam; BBTC and dashboard bypass Store() directly and must
+  migrate before Firebase adapter ships.
+
+---
+
+## [4.2.3] — Liga Seduh: POA-20 audit — Timer.init() fix · June 2026
+
+### liga/index.html
+- **Timer.init() placement fix** — `Timer.init()` was called at module
+  level (outside any function), violating CONVENTIONS.md which requires
+  it inside `bind()`. Moved to first line of `bind()`. Timer.init() is
+  idempotent (inited guard no-ops after first call) so this is safe.
+  Closes the known POA-07/CLAUDE.md quirk for Liga Seduh.
+
+### AUDIT.md
+- Liga section populated (POA-20). Findings: 1 dead-code item (D1
+  allVoters unused in rScoringBody), 0 pattern violations beyond
+  Timer.init(). Header already uses .plat-hdr (correct — unlike BBTC).
+  No font-family:system-ui found. No demo-card hex (P7) found.
+  Storage key seduh_liga_v1 confirmed. on() guard confirmed.
+  Audience overlay hex confirmed hardcoded (correct).
+
+---
+
+## [4.2.2] — BBTC: POA-19 audit — B2 storage key migration · June 2026
+
+### bbtc/index.html
+- **B2 storage key migration: `bbtc_v3` → `seduh_bbtc_v3`** —
+  `STORE_KEY` constant updated. One-time load-path shim IIFE placed
+  immediately before `loadState()`: reads `bbtc_v3` from localStorage,
+  copies to `seduh_bbtc_v3`, removes old key. Silent on all subsequent
+  loads. Aligns BBTC with the locked key format (`seduh_{module}_{vN}`)
+  from POA-23.
+
+### AUDIT.md
+- BBTC section populated (POA-19). Findings: 3 dead-code items
+  (D1 RC.time unused, D2 cfg unused in rCreateForm, D3 nm.round always
+  preliminary), 2 pattern violations (P1 system-ui in pdf-page, P7
+  demo card hex). All deferred items from POA-06/09/10 confirmed
+  present. POA-05 follow-up: all 73 hex replacements verified correct —
+  no var() tokens in overlay/PDF contexts.
+
+---
+
+## [4.2.1] — Throwdown: POA-18 audit — B4 rename · June 2026
+
+### throwdown/index.html
+- **B4 rename: "Wild card" → "Revival draw" in all display strings** —
+  Setup card header, checkbox label, hint text, bracket pending
+  banner, pending button, reveal banner, and adjacent code comments
+  updated. 8 strings changed total. JS identifiers (`wildCard`,
+  `b.wildCards`, `pendingWildCard`, `skipWildCard`, etc.) left
+  unchanged — flagged as tech debt in AUDIT.md.
+
+### AUDIT.md
+- Throwdown section populated (POA-18). Findings: 4 dead-code items
+  (D1–D4), 2 pattern violations (P3 modal listeners, P7 demo hex),
+  all deferred items from POA-12 and POA-15 confirmed present and
+  correct, storage key `seduh_throwdown_v1` confirmed.
+
+---
+
 ## [4.2.0] — Throwdown: redemption round rework · June 2026
 
 ### throwdown/index.html
@@ -112,9 +216,9 @@
     against starting with zero valid pairs.
   - All downstream bracket logic (advancement, redemption, wild card, 3rd
     place) is unchanged — manual mode only affects Round 1 seeding.
-- **Known limitation (POA-12):** Dropdowns do not re-render on change to
-  preserve focus — duplicate assignments are possible. `startManualBracket`
-  does not yet validate for duplicates. Both fixes deferred post-GGD.
+- **Known limitation at release (fixed in v4.1.3):** Dropdowns did not
+  re-render on change — duplicate assignments were possible and
+  `startManualBracket` did not validate for duplicates. Both fixed in v4.1.3.
 
 ---
 

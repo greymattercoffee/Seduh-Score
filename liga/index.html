@@ -1418,6 +1418,7 @@ function showAudience() {
 
 /* ── Bind ── */
 function bind() {
+  Timer.init();
   on('tmrbtn', 'click', () => Timer.open());
   Audience.init();
   on('audbtn', 'click', showAudience);
@@ -1653,7 +1654,6 @@ function bind() {
   });
 }
 
-Timer.init();
 render();
 </script>
 </body>

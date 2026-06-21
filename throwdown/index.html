@@ -819,10 +819,10 @@ function rSetup() {
     + '</div></div>'
     + '</div></div>'
 
-    + '<div class="card"><div class="card-hdr">Wild card revival</div><div class="card-body">'
+    + '<div class="card"><div class="card-hdr">Revival draw</div><div class="card-body">'
     + '<div class="redemption-row"><input type="checkbox" class="big-check" id="wc-enable"'+(S.wildCard?' checked':'')+'>'
-    + '<div><div style="font-size:13px;font-weight:700;margin-bottom:4px">Enable wild card round</div>'
-    + '<p class="hint">After each completed round a <strong>🃏 Draw Wild Card</strong> button appears. Tap it to randomly revive one loser from that round — they rejoin the next pool. Skip to continue without a revival. Can be skipped per round.</p>'
+    + '<div><div style="font-size:13px;font-weight:700;margin-bottom:4px">Enable revival draw</div>'
+    + '<p class="hint">After each completed round a <strong>🃏 Revival Draw</strong> button appears. Tap it to randomly revive one loser from that round — they rejoin the next pool. Skip to continue without a revival. Can be skipped per round.</p>'
     + '</div></div>'
     + '</div></div>'
 
@@ -945,19 +945,19 @@ function rBracket() {
       + '</div>';
   });
 
-  // Wild card pending — show draw interface
+  // Revival draw pending — show draw interface
   if (b.pendingWildCard) {
     const losers = b.pendingWildCardLosers || [];
     out += '<div style="padding:1.25rem;background:var(--pu-bg);border:2px solid var(--pu-bd);border-radius:var(--rad);margin-bottom:1rem">'
-      + '<div style="font-size:11px;font-weight:700;color:var(--pu);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px">🃏 Wild Card Round</div>'
-      + '<p style="font-size:13px;color:var(--txt2);margin-bottom:12px">Round complete. Draw a wild card to randomly revive one eliminated competitor, or skip to continue.</p>'
+      + '<div style="font-size:11px;font-weight:700;color:var(--pu);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px">🃏 Revival Draw</div>'
+      + '<p style="font-size:13px;color:var(--txt2);margin-bottom:12px">Round complete. Draw a revival to randomly revive one eliminated competitor, or skip to continue.</p>'
       + '<div style="display:flex;gap:10px;flex-wrap:wrap">'
-      + '<button class="btn-p" id="do-draw-wc" style="background:var(--pu);border-color:var(--pu)">🃏 Draw Wild Card ('+ losers.length +' in pool)</button>'
+      + '<button class="btn-p" id="do-draw-wc" style="background:var(--pu);border-color:var(--pu)">🃏 Revival Draw ('+ losers.length +' in pool)</button>'
       + '<button class="btn-o" id="skip-wc">Skip → Continue</button>'
       + '</div></div>';
   }
 
-  // Wild card just drawn — show reveal
+  // Revival draw just drawn — show reveal
   if (S.wildCard && b.wildCards) {
     const latest = Object.entries(b.wildCards).filter(([,v])=>v).slice(-1)[0];
     if (latest && b.rounds.length > 0) {
@@ -966,7 +966,7 @@ function rBracket() {
       const justDone = b.mainRoundsDone === drawnRound;
       if (justDone) {
         out += '<div style="padding:1.25rem;background:var(--pu-bg);border:2px solid var(--pu-bd);border-radius:var(--rad);margin-bottom:1rem;text-align:center">'
-          + '<div style="font-size:11px;font-weight:700;color:var(--pu);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px">🃏 Wild Card Drawn!</div>'
+          + '<div style="font-size:11px;font-weight:700;color:var(--pu);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px">🃏 Revival Draw!</div>'
           + '<div style="font-size:22px;font-weight:700;color:var(--pu);margin-bottom:4px">'+drawnName+'</div>'
           + '<p style="font-size:12px;color:var(--txt3);margin-bottom:12px">Revived and entering the next round</p>'
           + '<button class="btn-p" id="wc-continue" data-round="'+drawnRound+'" style="background:var(--pu);border-color:var(--pu)">Continue → Next Round</button>'
