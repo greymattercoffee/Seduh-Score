@@ -200,12 +200,72 @@ D1 `RC[*].time` property, D2 `cfg` in rCreateForm(), D3 `S.nm.round` always prel
 - "Brunei" display name → "Barista Team Championship" — POA-06/10
 
 ## Liga Seduh — POA-20
+*Audited 21 June 2026 — v4.2.2 → v4.2.3*
+
 ### Dead code
+
+**D1 — `allVoters` variable in `rScoringBody()` (line 1195): declared, never read.**
+`const allVoters = [...ids];` is declared and the isFinal branch pushes `'__ext_' + j`
+onto it (lines 1196–1200), but the voter loop at line 1202 iterates `ids` directly, not
+`allVoters`. The variable is never referenced after its declaration. Safe to remove in a
+dead-code sweep.
+
 ### Pattern violations
+
+None found beyond the Timer.init() placement issue (see below, fixed).
+
+### Pattern checks — PASS
+
+- **font-family:system-ui:** ✅ Not found anywhere in the local `<style>` block
+  (lines 8–53). Liga has no PDF functionality, so the `.pdf-page` case (present in BBTC)
+  does not apply. POA-06 font-family item is N/A for Liga.
+- **Audience/PDF overlay hex:** ✅ `rAudienceLbHTML()` (lines 924–954) and
+  `rAudienceHistHTML()` (lines 956–998) use hardcoded hex throughout. No `var()` calls
+  in overlay context. Correct per CONVENTIONS exception.
+- **`on()` guard:** ✅ Line 184 — `if (el)` present.
+- **P7 demo card:** ✅ Not found. Liga has no demo card rendered in `rSetup()`. The demo
+  button is in the header; `loadLigaDemo()` loads state directly. No inline purple hex
+  in main-app render output.
+- **Render/bind discipline:** ✅ No DOM manipulation outside render functions or bind().
+  `exportJSON()` and `exportReportCSV()` use ephemeral `<a>` click for file download —
+  conventional pattern, not state-affecting DOM manipulation.
+- **Storage key:** ✅ `seduh_liga_v1` at line 115. Conforms to locked format
+  `seduh_{module}_{vN}`. No migration shim needed.
+
 ### Deferred items confirmed
-### Timer.init() placement — confirmed / fixed
+
+**Header structure — POA-06:**
+Line 537 (`rMain()`): `'<div class="plat-hdr">'` — Liga uses `.plat-hdr`, **not** `.hdr`.
+Already correct class name (contrast with BBTC which uses `.hdr`). POA-06 work for Liga
+is minimal: `.plat-mark` brand markup integration only.
+
+**font-family:system-ui — POA-06:**
+Not present in Liga's local `<style>` block. This deferred v4.1 item does not apply to
+Liga. POA-06 can skip the font-family check for this module.
+
+### Timer.init() placement — FIXED
+
+Was: line 1656, module level (outside any function) — known violation from CLAUDE.md /
+POA-07.
+Fix applied:
+1. `Timer.init();` removed from module level.
+2. `Timer.init();` added as first line inside `bind()` (now line 1421).
+Syntax check: PASS.
+
 ### Fixes applied
+
+- **Timer.init() placement:** Moved from module level to first line of `bind()`.
+  Idempotent — Timer.init() uses an inited guard (no-ops after first call). Syntax: PASS.
+
 ### Still open / flagged as tech debt
+
+**Dead code not removed (report only — safe to sweep later):**
+D1 `allVoters` in `rScoringBody()` — declared but never read (line 1195)
+
+**Deferred items (confirmed present, not fixed):**
+- `.plat-mark` brand markup absent from header — POA-06 (minimal: class already
+  `.plat-hdr`, only SVG markup missing)
+- font-family:system-ui — N/A for Liga (not present, no PDF overlay)
 
 ## Shared components — POA-21
 ### timer.js

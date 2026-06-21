@@ -2,6 +2,25 @@
 
 ---
 
+## [4.2.3] — Liga Seduh: POA-20 audit — Timer.init() fix · June 2026
+
+### liga/index.html
+- **Timer.init() placement fix** — `Timer.init()` was called at module
+  level (outside any function), violating CONVENTIONS.md which requires
+  it inside `bind()`. Moved to first line of `bind()`. Timer.init() is
+  idempotent (inited guard no-ops after first call) so this is safe.
+  Closes the known POA-07/CLAUDE.md quirk for Liga Seduh.
+
+### AUDIT.md
+- Liga section populated (POA-20). Findings: 1 dead-code item (D1
+  allVoters unused in rScoringBody), 0 pattern violations beyond
+  Timer.init(). Header already uses .plat-hdr (correct — unlike BBTC).
+  No font-family:system-ui found. No demo-card hex (P7) found.
+  Storage key seduh_liga_v1 confirmed. on() guard confirmed.
+  Audience overlay hex confirmed hardcoded (correct).
+
+---
+
 ## [4.2.2] — BBTC: POA-19 audit — B2 storage key migration · June 2026
 
 ### bbtc/index.html
