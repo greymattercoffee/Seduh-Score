@@ -13,11 +13,14 @@ seduh-score/
 ├── index.html              ← dashboard launcher only
 ├── bbtc/index.html         ← fully self-contained module
 ├── throwdown/index.html    ← fully self-contained module
+├── liga/index.html         ← fully self-contained module
+├── timer/index.html        ← standalone timer page
 └── shared/                 ← loaded by every module
     ├── theme.css
     ├── timer.js
     ├── audience.js
-    └── storage.js
+    ├── storage.js
+    └── assets/             ← seduh-mark.svg + favicons
 ```
 
 Each module includes shared files like this:
@@ -29,6 +32,8 @@ Each module includes shared files like this:
 ```
 
 **Rule:** Never copy shared component code into a module file. Always reference from `../shared/`.
+
+**Rule (B1 — locked through v4.5):** Each module stays one self-contained `index.html`. The single-file pattern holds through v4.5. `shared/` expansion is the consistency mechanism. `gates.js` is the one new shared file mandated for the front door work (v4.3+). No other new shared files without explicit strategy-chat approval.
 
 ---
 
@@ -85,19 +90,23 @@ let jid = 0;  // judge ID counter (BBTC only)
 
 ```javascript
 // Usage
-Store('bbtc_v3').save({ ...S, _mid: mid, _jid: jid });
-const d = Store('bbtc_v3').load(); // returns null if empty
-Store('bbtc_v3').clear();
+Store('seduh_bbtc_v3').save({ ...S, _mid: mid, _jid: jid });
+const d = Store('seduh_bbtc_v3').load(); // returns null if empty
+Store('seduh_bbtc_v3').clear();
 ```
 
 ### Storage keys
 
+**Format (B2 — locked):** `seduh_{module}_{vN}` — `seduh_` prefix mandatory, no exceptions.
+
 | Module | Key |
 |---|---|
-| BBTC | `bbtc_v3` |
+| BBTC | `seduh_bbtc_v3` |
 | Throwdown | `seduh_throwdown_v1` |
+| Liga Seduh | `seduh_liga_v1` |
+| Dashboard | `seduh_event_v1` |
 
-**Rule:** Bump the key suffix when the state shape changes in a breaking way (e.g. `bbtc_v3` → `bbtc_v4`). This prevents old saved data from crashing the new version. Document the key change in CHANGELOG.
+**Rule:** Bump the key suffix when the state shape changes in a breaking way (e.g. `seduh_bbtc_v3` → `seduh_bbtc_v4`). This prevents old saved data from crashing the new version. Document the key change in CHANGELOG. When bumping a key, write a one-time load-path migration shim to copy data from the old key to the new one and delete the old key — run it before `loadState()` on the first boot after the key change.
 
 ### What not to persist
 
@@ -123,7 +132,7 @@ function render() {
 
 ### The `on()` helper
 
-Both modules use a convenience helper:
+All modules use a convenience helper:
 
 ```javascript
 const $ = id => document.getElementById(id);
@@ -211,7 +220,7 @@ The `if (el)` guard is important — many elements only exist in certain tab sta
 {
   label: 'Round 1',           // display label
   phase: 'main',              // 'main' | 'redemption'
-  roundNum: 1,                // which main round number (used for wild card tracking)
+  roundNum: 1,                // which main round number (used for revival draw tracking)
   pairs: [...],               // array of pair objects
 }
 ```
@@ -251,26 +260,58 @@ Timer.set(secs);     // set countdown (e.g. Timer.set(420) for 7 min)
 
 Timer overlay HTML must be present in the module's HTML (copy from existing module). `Timer.init()` finds elements by ID (`tmr-overlay`, `tmr-display`, `tmr-start`, etc.).
 
+**Timer.init() placement rule:** Call `Timer.init()` as the first line inside `bind()` — never at module level. Timer.init() uses an `inited` guard and no-ops safely on repeated calls, so calling it on every render cycle is safe.
+
+**Exception — standalone pages:** `timer/index.html` is a standalone page with no render/bind cycle. `Timer.init()` is called once at the top level immediately after the script loads. This is the only correct deviation from the bind() rule — it applies only to pages with no render/bind cycle.
+
 ### Audience (`shared/audience.js`)
 
 ```javascript
-Audience.init();     // call once — wires close button
+Audience.init();     // call once per bind() cycle — wires close button
 Audience.show({
   title: 'Throwdown 1v1',
   moduleTag: 'Round 3',  // optional badge label
-  lbHTML: '...',          // inner HTML for standings panel
+  lbHTML: '...',          // inner HTML for standings panel (omit if no standings panel)
   histHTML: '...',        // inner HTML for results panel
 });
 ```
 
+**Module usage:**
+
+| Module | Audience.init() | Audience.show() | Notes |
+|---|---|---|---|
+| Throwdown | ✅ in bind() | ✅ | lbHTML omitted — no standings panel in Throwdown |
+| Liga Seduh | ✅ in bind() | ✅ | all four params |
+| BBTC | ❌ | ❌ | self-contained audience — POA-09/16 deferred |
+
+**Known debt (POA-16):** `Audience.init()` is called every `bind()` cycle. `#aud-close` is a static element — each call stacks a new listener. Fix in POA-16 rebuild (add `audInited` guard).
+
 ### Storage (`shared/storage.js`)
 
 ```javascript
-const store = Store('my_key');
+const store = Store('seduh_throwdown_v1');
 store.save({ ...S, _mid: mid });  // always spread + add counters
 const d = store.load();           // returns null if nothing saved
 store.clear();                    // used by Reset
 ```
+
+**Firebase adapter seam (v5.0 pre-condition):** The `Store(key)` factory pattern is intentionally shaped for a drop-in Firebase adapter. `save()` is fire-and-forget (void) — compatible. `load()` is synchronous — Firestore cannot fulfil this natively. Before the Firebase adapter ships, either: (a) modules updated to `await store.load()` in a single pass, or (b) adapter uses localStorage as a sync read cache with Firestore syncing in the background. Option (b) is preferred for competition-day offline reliability. This design decision must be made before v5.0 Firebase work starts.
+
+### Gates (`shared/gates.js`) — v4.3+
+
+```javascript
+Gates.isPaid();        // returns true if org has an active paid subscription
+Gates.isCommunity();   // returns true if no active subscription
+```
+
+**Gate pattern (B3):**
+- Gate logic lives in `shared/gates.js` only — never inline tier checks in module files
+- Call `Gates.isPaid()` / `Gates.isCommunity()` at render time only
+- Gated elements are **hidden, not disabled** — use `display:none` or conditional render
+- Never call an internal `getTier()` directly from a module
+- Stub behaviour through v4.3: `getTier()` returns `'paid'` — all features unlocked; stub is replaced when Firebase auth lands in v4.4
+- **Throwdown is the reference implementation** for gate touch points
+- **BBTC gate is routing-layer only** — no gate touch points inside `bbtc/index.html`; access is controlled by whether the org account can reach the module URL
 
 ---
 
@@ -293,6 +334,10 @@ All colours are defined as CSS custom properties on `:root`. Never hardcode hex 
 | `--txt`, `--txt2`, `--txt3` | Text hierarchy (gray-900, 700, 500) |
 
 **Exception:** Audience view and PDF overlays use hardcoded hex inline styles because they render in contexts where CSS variables may not cascade correctly.
+
+### Display string naming (B4)
+
+The user-facing label for the optional per-round random revival mechanic is **"Revival draw"** — not "wild card". This applies to all display strings, UI labels, button text, banners, and copy. JS identifiers (`wildCard`, `b.wildCards`, `pendingWildCard`, `skipWildCard()`, etc.) retain the old naming and are intentionally left — renaming identifiers is a separate refactor tracked as tech debt in AUDIT.md.
 
 ### Button classes
 
@@ -330,8 +375,6 @@ function loadBBTCDemo() {
 }
 ```
 
-**v3.5 note:** These will be extracted to `/shared/demo.js` with `Demo.loadBBTC()` and `Demo.loadThrowdown()` as the public API.
-
 ---
 
 ## Bracket engine rules
@@ -348,8 +391,8 @@ function loadBBTCDemo() {
 ### Throwdown
 
 - `buildPairs(names)` — creates pairs, last gets bye if odd count.
-- `advanceBracket()` — called after every pair is scored. Handles: wild card pause, redemption pool collection, redemption round trigger, main pool advance, redemption cap application, merger of main + redemption winners.
-- Wild card tracked in `b.wildCards = { [roundNum]: name | null }`. `null` means skipped.
+- `advanceBracket()` — called after every pair is scored. Handles: revival draw pause, redemption pool collection, redemption round trigger, main pool advance, redemption cap application, merger of main + redemption winners.
+- Revival draw tracked in `b.wildCards = { [roundNum]: name | null }`. `null` means skipped.
 - `b.pendingWildCard = roundNum` pauses advancement until organizer draws or skips.
 
 ---
@@ -358,8 +401,8 @@ function loadBBTCDemo() {
 
 Single platform version number. All modules ship together.
 
-- **Patch** (3.1.x) — bug fixes only
-- **Minor** (3.x.0) — new features, new module capabilities
+- **Patch** (4.2.x) — bug fixes only
+- **Minor** (4.x.0) — new features, new module capabilities
 - **Major** (x.0.0) — new module, major architecture change
 
 Update CHANGELOG.md before committing any release. The CHANGELOG is the handoff document for new chat sessions.
@@ -413,13 +456,13 @@ GitHub Pages: deploys from `main` branch root only.
 
 ---
 
-## Firebase (future — v4.2+)
+## Firebase (future — v4.4+)
 
 Firebase project `seduh-score` is registered at console.firebase.google.com.  
 Email/Password authentication provider is enabled.  
-No services actively used until v4.2 (hosting) and v5.0 (Firestore + Auth).
+No services actively used until v4.4 (Auth + Firestore) and v4.3 (Hosting).
 
-**Architecture intention for v5.0+:** `shared/storage.js` will gain a Firebase adapter behind the same `Store(key).save()/.load()/.clear()` interface. Modules will not need to change — only the adapter switches. This is why `storage.js` exists as an abstraction layer rather than direct `localStorage` calls in module code.
+**Architecture intention for v5.0+:** `shared/storage.js` will gain a Firebase adapter behind the same `Store(key).save()/.load()/.clear()` interface. Modules will not need to change — only the adapter switches. This is why `storage.js` exists as an abstraction layer rather than direct `localStorage` calls in module code. See the Firebase adapter seam note in the Storage API section above.
 
 ---
 
@@ -466,10 +509,10 @@ Before any future Claude Design session touching `theme.css`, paste this file in
 ### Known follow-ups from the v4.1 integration
 
 1. Self-host the three Google Fonts as `.woff2` (currently CDN `@import`) — required for true offline competition-day reliability.
-2. Throwdown module-local styles (`.bslot*`, `.score-modal*`, `.vbtn`, `.hr-row*`) remain module-local — promote to shared theme only if Liga Seduh needs them.
+2. Throwdown module-local styles (`.bslot*`, `.score-modal*`, `.vbtn`, `.hr-row*`) remain module-local — promote to shared theme only if needed by another module.
 3. Accent-override swatch palette lives in dashboard JS — lift to tokens if preset accents are wanted centrally.
 4. Optional `[data-theme="stage"]` scope to formalise the dark projector values currently hardcoded in `#tmr-overlay`.
-5. Module inner `font-family:system-ui` → platform type system (carried over from v4.0 HANDOFF).
+5. Module inner `font-family:system-ui` → platform type system — POA-06 (BBTC `.pdf-page` and `timer/index.html` body; Throwdown and Liga are clean).
 
 ---
 
@@ -572,4 +615,4 @@ Before starting work in a new session — **all session types: Strategy, Code, D
 
 ---
 
-*Last updated: 20 June 2026 — CHANGELOG-first rule enforced across Strategy, Code, and Design sessions*
+*Last updated: June 2026 — POA-24 additions: B1 single-file rule, B2 storage key format, B3 gates.js API, B4 revival draw naming, Timer.init() standalone exception*

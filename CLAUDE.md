@@ -68,25 +68,15 @@ Each module loads shared files via relative paths:
 
 ---
 
-## Known quirks (temporary — resolve in v4.1 completion pass)
+## Known quirks (temporary — resolve in listed POA)
 
 **BBTC (`bbtc/index.html`):**
-- Has a local `:root` block overriding platform tokens with
-  a divergent cool-grey palette — deferred fix in POA-05
 - Uses `.hdr` header class instead of `.plat-hdr` — deferred
   fix in POA-06
 - Audience overlay is self-contained, does not use shared
-  audience.js contract — deferred fix in POA-09
+  audience.js contract — deferred fix in POA-09/16
 - Display name still says "Brunei Barista Team Championship"
   — rename to "Barista Team Championship" in POA-06/POA-10
-
-**Throwdown (`throwdown/index.html`):**
-- Loads audience.js but bypasses Audience.init() and
-  Audience.show() — fix in POA-04
-
-**Liga (`liga/index.html`):**
-- Calls Timer.init() at module level instead of inside
-  bind() — fix in POA-07
 
 These are known and documented. Do not attempt to fix them
 unless the session is specifically scoped to the relevant POA.
