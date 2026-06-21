@@ -385,13 +385,139 @@ universally. This is a v5.0 pre-condition, not in scope for the current audit ph
    self-contained audience (POA-09); extending the shared module alone is not enough.
 
 ## Dashboard + Timer — POA-22
+*Audited 21 June 2026 — v4.2.4 → v4.2.5*
+
 ### Dead code
+
+#### index.html (dashboard)
+
+**None found.**
+All functions, variables, and constants within the IIFE are reachable and referenced. `IC`, `ACCENTS`, `MODULES`, `TOOLS`, `DEFAULT_EVENT`, and `LS` are all consumed. Every helper function (`load`, `save`, `fmtDate`, `esc`, `applyAccent`, `logoSlot`, `metaRow`, `renderHero`, `renderModules`, `renderTools`, `renderSwatches`, `layoutMini`, `renderLayoutPick`, `bindLogo`, `fillForm`, `updateSubCount`, `field`, `openSheet`, `closeSheet`, `init`) is either called in the module body or wired as a listener. No orphaned comment blocks.
+
+#### timer/index.html
+
+**None found** (post-fix).
+Before fix: the `keydown` Escape listener (lines 190–192) was made redundant by the timer.js fix applied in POA-21 — removed in this session (see Fixes applied). After removal, all remaining code is active: `ovl` is used by the `fsExit` click handler; `fsExit` is used directly. No other dead code.
+
 ### Pattern violations
+
+#### index.html (dashboard)
+
+**P1 — Direct localStorage bypassing Store() — FLAG for v5.0.**
+The dashboard uses its own `load()`/`save()` wrapper functions that call `localStorage` directly:
+- Line 149: `localStorage.getItem(LS)` inside `load()`
+- Line 152: `localStorage.setItem(LS, ...)` inside `save()`
+
+These are the **only two** direct localStorage calls in the file — no `removeItem`. No Store() usage anywhere. The `seduh_event_v1` key is isolated from module keys and the two calls are contained within helper functions (cleaner pattern than BBTC's scattered calls), but the bypass is the same pre-condition: dashboard must migrate to `Store('seduh_event_v1')` before the Firebase adapter can work universally. Flag for v5.0; do not fix here.
+
+**font-family:system-ui — N/A.**
+Dashboard has no local `<style>` block at all. Deferred v4.1 font-family item does not apply.
+
+**Storage key — CONFIRMED: `seduh_event_v1` only.**
+`var LS = "seduh_event_v1"` at line 145 — single constant, used in both `load()` and `save()`. No secondary keys anywhere in the file. Conforms to locked format `seduh_{scope}_{vN}`.
+
+**Soft flag — Module identity hex in MODULES array.**
+`MODULES[*].m`, `.bg`, `.bd` (lines 122–128) are hardcoded hex values passed as inline CSS custom properties (`--m`, `--m-bg`, `--m-bd`) on each module card. These are per-module branding identity values (amber/blue/green), not design tokens with CSS variable equivalents. Not the same violation as P7 (demo card), but worth noting: if a central module colour registry is formalised in v5.0, these are the values to lift.
+
+#### timer/index.html
+
+**font-family:system-ui at line 16 — FLAG (deferred v4.1 item, same as BBTC P1).**
+`font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif` on `body`. Same deferred item as POA-06. The dark court-display context makes this slightly different from BBTC's PDF case — the full platform type system would apply here. POA-06 to resolve.
+
+**Hardcoded dark-theme hex throughout local style block — intentional.**
+All hex values (`#111827`, `#1F2937`, `#D97706`, `#6B7280`, `#9CA3AF`, `#374151`, `#4B5563`, `#F9FAFB`) are part of the page's dark court-display skin. This is a standalone projection page — the dark palette is intentional design, not a token-bypass violation. Not flagged as P7 (no main-app render with available CSS vars).
+
+**Other pattern checks — PASS.**
+No `bind()` cycle — listener accumulation N/A. No Store() usage — N/A. No audience or PDF overlay — N/A.
+
+### Stale CLAUDE.md entries
+
+**REMOVE — Throwdown POA-04 entry:**
+> "Loads audience.js but bypasses Audience.init() and Audience.show() — fix in POA-04"
+
+POA-04 is confirmed ✅ Done in PLAN_OF_ACTION.md. AUDIT.md POA-18 confirms Throwdown passes all audience overlay pattern checks. Entry is stale — remove in POA-24.
+
+**REMOVE — Liga Timer.init() entry:**
+> "Calls Timer.init() at module level instead of inside bind() — fix in POA-07"
+
+Fixed in POA-20 / v4.2.3. AUDIT.md POA-20 confirms "Timer.init() placement — FIXED". Entry is stale — remove in POA-24.
+
+**KEEP — BBTC: `.hdr` header class (POA-06)** — confirmed present, AUDIT.md POA-19.
+**KEEP — BBTC: Audience overlay self-contained (POA-09/16)** — confirmed present, AUDIT.md POA-19.
+**KEEP — BBTC: Display name "Brunei" (POA-06/10)** — confirmed present in 5 locations, AUDIT.md POA-19.
+
+### Timer.init() top-level — intentional exception
+
+**Confirmed.** `Timer.init()` is called at line 178, outside any function, immediately after the script tag loads. The standalone timer page has no render/bind cycle — there is no `bind()` function to place it in. The page is fully static after load; `Timer.init()` is called once and never again. This is a **correct and intentional** deviation from the `Timer.init() inside bind()` rule, which applies only to modules with a render/bind cycle. Document in CONVENTIONS.md during POA-24 as the rule's stated exception.
+
 ### Fixes applied
+
+**Redundant Escape handler removed from timer/index.html.**
+The local `document.addEventListener('keydown', ...)` Escape handler (original lines 190–192) was made redundant by the Escape fix applied to `shared/timer.js` in POA-21 (v4.2.4). Removed to prevent double-firing. Comment on lines 183–184 updated to reflect that Escape is now handled in `timer.js init()`. The `fs-exit` button click handler (`fsExit.addEventListener`) is a separate path and remains intact. Syntax: PASS.
+
 ### Still open
 
+**Deferred items carried forward:**
+- font-family:system-ui in timer/index.html body — POA-06
+- Dashboard direct localStorage (`load()`/`save()` wrappers) — pre-v5.0
+
 ## Cross-module summary
-*Populated after POA-22*
+*Compiled after POA-22 — five audit sessions complete*
+
 ### Patterns appearing in multiple modules
-### Decisions needing CONVENTIONS.md update
+
+**P7 — Demo card hardcoded hex: Throwdown + BBTC.**
+`rSetup()` in Throwdown (line 846) and BBTC (line 640) both render a demo mode card with `#F5F3FF`, `#C4B5FD`, `#6D28D9` inline — should be `var(--pu-bg)`, `var(--pu-bd)`, `var(--pu)`. Liga has no demo card in rSetup (demo is header-button only). Dashboard: no demo card. One QOL pass can fix both affected modules.
+
+**font-family:system-ui across files:**
+- BBTC: `.pdf-page` class in local style block (P1) — print compat TBD by POA-06
+- timer/index.html: `body` rule in local style block — same deferred v4.1 item
+- Throwdown, Liga: not found (clean)
+- Dashboard: no local style block (N/A)
+POA-06 owns all remaining system-ui replacements.
+
+**bind() listener accumulation on static elements — systemic hygiene debt:**
+- Throwdown P3: `render1v1ScoreModal()` and `renderRedemptionScoreModal()` attach listeners outside `bind()`. `sm-cancel` in `bind()` accumulates on every render cycle.
+- audience.js S1: `Audience.init()` called every `bind()` cycle stacks a new listener on static `#aud-close` after each render. No `audInited` guard.
+Root cause in both cases: static elements that persist across renders receiving re-registration on every render cycle. POA-16 resolves both (modal architecture pass + `audInited` guard in audience.js).
+
+**Direct localStorage bypassing Store():**
+- BBTC: `setItem`/`getItem`/`removeItem` — lines 341, 348, 771 (+ migration shim 359–362 in post-POA-19 state). `STORE_KEY` constant partially centralises, but calls are still direct.
+- Dashboard: `getItem`/`setItem` — lines 149, 152. Contained in `load()`/`save()` helpers.
+Both are v5.0 pre-conditions. Firebase adapter cannot work universally until both migrate to `Store()`.
+
+### Decisions needing CONVENTIONS.md update (POA-24)
+
+- **gates.js API (B3)** — gate pattern (shared/gates.js, render-time touch points, hidden not disabled, stub returns 'paid') agreed in POA-23 but not yet in CONVENTIONS.md. Add gates.js to shared component API section with Throwdown as reference implementation.
+- **Storage key format (B2)** — `seduh_{module}_{vN}` format locked in POA-23, enforced via BBTC migration shim in POA-19, but not formally documented in CONVENTIONS.md. Update storage key table.
+- **Revival draw label (B4)** — "Wild card" → "Revival draw" in display strings, JS identifiers intentionally left, documented in AUDIT.md but not in CONVENTIONS.md. Add a display-string naming note.
+- **Firebase load() sync constraint** — `load()` is synchronous; Firestore cannot fulfil this natively. Design decision (localStorage cache + background sync OR module-level await migration) must be documented before v4.4 Firebase work starts. Add to Persistence section of CONVENTIONS.md.
+- **Timer.init() standalone exception** — top-level call is correct for pages with no render/bind cycle. Document explicitly so the rule and its exception are both clear.
+
 ### Tech debt flagged across sessions
+
+**Dead code (report-only — safe to sweep in a single pass):**
+- D1 Throwdown: `getActiveRound()` — defined, never called (line 322)
+- D2 Throwdown: `openScoring()` — defined, never called (line 604)
+- D3 Throwdown: `S.bracket.mainPool`, `mergedPool`, `currentRound` — initialised, never used
+- D4 Throwdown: `S.matches` — initialised to `[]`, never read or written
+- D1 BBTC: `RC[*].time` property — defined on all RC entries, never read
+- D2 BBTC: `cfg` variable in `rCreateForm()` — declared, never used
+- D3 BBTC: `S.nm.round` — always `'preliminary'`, never mutated
+- D1 Liga: `allVoters` in `rScoringBody()` — declared, never read
+
+**Intentional tech debt (B4 scope exclusion):**
+- Throwdown JS identifiers (`wildCard`, `b.wildCards`, `pendingWildCard`, etc.) intentionally left with old naming — display strings renamed to "Revival draw", identifiers kept for code clarity. Flagged in AUDIT.md.
+
+**Deferred pattern violations:**
+- P3 Throwdown: modal listeners outside `bind()` — defer to POA-16 modal architecture pass
+- S1 audience.js: `#aud-close` listener accumulation — defer to POA-16 (`audInited` guard)
+- S2 audience.js: `aud-hist` and `aud-ts` missing null guards — defer to POA-16
+- P1 BBTC: `font-family:system-ui` in `.pdf-page` — POA-06 (print compat decision)
+- P1 timer: `font-family:system-ui` in body — POA-06
+- P7 Throwdown + BBTC: demo card hardcoded hex — QOL pass
+
+**v5.0 pre-conditions:**
+- BBTC direct localStorage — migrate to `Store()` before Firebase adapter
+- Dashboard direct localStorage — migrate to `Store()` before Firebase adapter
+- `Store().load()` sync constraint — design decision required before Firebase seam opens

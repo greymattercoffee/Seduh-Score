@@ -2,6 +2,31 @@
 
 ---
 
+## [4.2.5] — Dashboard + Timer: POA-22 audit · June 2026
+
+### timer/index.html
+- **Redundant local Escape handler removed** — the `document.addEventListener('keydown', ...)`
+  Escape handler (former lines 190–192) was made redundant by the Escape fix added to
+  `shared/timer.js init()` in v4.2.4. Removed to prevent double-firing on the standalone
+  timer page. The `fs-exit` button click handler remains (separate exit path). Comment
+  updated to note that Escape is now handled in `timer.js init()`.
+
+### AUDIT.md
+- Dashboard + Timer section populated (POA-22). Dashboard findings: no dead code; direct
+  localStorage at lines 149/152 in `load()`/`save()` helpers (only two calls, flagged pre-v5.0);
+  `seduh_event_v1` confirmed as sole storage key; no local `<style>` block (font-family N/A).
+  Timer findings: no dead code; `font-family:system-ui` on `body` flagged for POA-06;
+  dark-theme hex intentional (projection context); `Timer.init()` top-level confirmed as
+  intentional exception to bind() rule.
+- Stale CLAUDE.md entries identified for POA-24 removal: Throwdown POA-04 audience entry
+  (resolved in v3.x, confirmed clean POA-18) and Liga Timer.init() entry (fixed POA-20).
+- Cross-module summary populated — five audit sessions complete. Summary covers: P7 demo hex
+  (Throwdown + BBTC), system-ui font-family (BBTC + timer), bind() accumulation debt
+  (Throwdown modal + audience.js aud-close), direct localStorage (BBTC + dashboard);
+  four CONVENTIONS.md updates queued for POA-24; full tech-debt register compiled.
+
+---
+
 ## [4.2.4] — Shared components: POA-21 audit — Escape key fix · June 2026
 
 ### shared/timer.js

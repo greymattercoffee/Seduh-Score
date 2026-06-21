@@ -181,15 +181,11 @@ Timer.init();
 Timer.set(420);
 
 // Fullscreen is toggled by timer.js via #tmr-overlay.fs
-// fs-exit button and Escape provide additional exit paths
+// fs-exit button provides an additional exit path; Escape is handled in timer.js init()
 const ovl    = document.getElementById('tmr-overlay');
 const fsExit = document.getElementById('fs-exit');
 
 fsExit.addEventListener('click', () => ovl.classList.remove('fs'));
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') ovl.classList.remove('fs');
-});
 </script>
 </body>
 </html>
