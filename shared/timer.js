@@ -104,6 +104,11 @@ const Timer = (() => {
       if (ovl()?.classList.contains('fs')) ovl().classList.remove('fs');
     });
 
+    // Escape exits fullscreen — optional chaining guards standalone page (no overlay)
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') ovl()?.classList.remove('fs');
+    });
+
     dsp().textContent = fmt(ms);
   }
 

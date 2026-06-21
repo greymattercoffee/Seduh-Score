@@ -2,6 +2,28 @@
 
 ---
 
+## [4.2.4] — Shared components: POA-21 audit — Escape key fix · June 2026
+
+### shared/timer.js
+- **Escape key to exit timer overlay fullscreen** — CHANGELOG v3.5.2 documented
+  this as "Added to shared/timer.js init()" but the handler was absent from the
+  file. `timer/index.html` had its own local Escape handler; BBTC covered it in
+  `initTimer()`. Throwdown and Liga had no keyboard exit path for timer overlay
+  fullscreen. Fixed by adding `document.addEventListener('keydown', e => { if
+  (e.key === 'Escape') ovl()?.classList.remove('fs'); })` inside `init()`,
+  covered by the `inited` guard. Optional chaining on `ovl()` is a no-op on the
+  standalone timer page.
+
+### AUDIT.md
+- Shared components section populated (POA-21). Findings: D1 Escape key absent
+  from timer.js (fixed); S1 audience.js aud-close listener accumulation (deferred
+  to POA-16); S2 null guard gaps on aud-hist and aud-ts (deferred to POA-16).
+  storage.js interface confirmed clean — load() sync is the one design decision
+  for v5.0 Firebase seam; BBTC and dashboard bypass Store() directly and must
+  migrate before Firebase adapter ships.
+
+---
+
 ## [4.2.3] — Liga Seduh: POA-20 audit — Timer.init() fix · June 2026
 
 ### liga/index.html

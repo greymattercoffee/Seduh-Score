@@ -268,11 +268,121 @@ D1 `allVoters` in `rScoringBody()` — declared but never read (line 1195)
 - font-family:system-ui — N/A for Liga (not present, no PDF overlay)
 
 ## Shared components — POA-21
+*Audited 21 June 2026 — v4.2.3 → v4.2.4*
+
 ### timer.js
+
+**API conformance — PASS** ✅
+All four documented methods exist and are exported: `init`, `open`, `close`, `set`.
+
+Module calls:
+
+| Module | `Timer.init()` | `Timer.open()` | `Timer.close()` | `Timer.set()` |
+|---|---|---|---|---|
+| throwdown | ✅ bind() line 1129 | ✅ line 1131 | not called | not called |
+| bbtc | ✅ bind() line 767 | ✅ line 768 | not called | not called |
+| liga | ✅ bind() line 1421 | ✅ line 1422 | not called | not called |
+| timer/index.html | ✅ line 178 (top-level, intentional) | not called (intentional) | not called | ✅ line 181 |
+
+`Timer.close()` — exported, never called by any module. Valid public API; no violation.
+
+**Dead code — NONE** ✅
+All internal symbols (`tick`, `setPreset`, `fmt`, `el`, `ovl`, `dsp`) are referenced within the module.
+
+**inited guard — PASS** ✅
+Lines 57–59: `if (inited) return;` — no-ops safely on repeated calls.
+Liga's every-render `Timer.init()` pattern is safe because of this guard.
+
+**D1 — Escape key to exit fullscreen — FIXED**
+CHANGELOG v3.5.2 stated Escape-to-exit-fullscreen was "Added to shared/timer.js init()" but
+the handler was absent from the file. `timer/index.html` had its own local handler (lines
+190–192); BBTC covered it in `initTimer()`. Throwdown and Liga had no Escape exit path for
+the timer overlay fullscreen.
+Fix applied: `document.addEventListener('keydown', e => { if (e.key === 'Escape') ovl()?.classList.remove('fs'); })`
+added inside `init()`, covered by the inited guard. Optional chaining on `ovl()` is a no-op on
+the standalone timer page where `#tmr-overlay` is never a popup overlay.
+
 ### audience.js
+
+**API conformance — PASS** ✅
+Both documented methods exist and are exported: `init`, `show`.
+`show()` signature: `{ title, moduleTag, lbHTML, histHTML }` — all four params present with defaults.
+
+Module calls:
+
+| Module | `Audience.init()` | `Audience.show()` | params passed |
+|---|---|---|---|
+| throwdown | ✅ bind() line 1130 | ✅ line 1117 | `title`, `moduleTag`, `histHTML` — `lbHTML` omitted intentionally (no standings panel in Throwdown) |
+| bbtc | not called — self-contained | not called — self-contained | POA-09/16 deferred ✅ |
+| liga | ✅ bind() line 1423 | ✅ line 1411 via `showAudience()` | all four params ✅ |
+
+**aud-lb guard — PASS** ✅
+Lines 28–29: `const lbEl = el('aud-lb'); if (lbEl) lbEl.innerHTML = ...` — silently skips if element absent.
+
+**title param — PASS** ✅
+Line 16: wired to `aud-ts`. Lines 19–22: wired to `aud-title-block` (guarded).
+
+**S1 — aud-close listener accumulation — FLAG**
+`Audience.init()` is called every `bind()` cycle. `#aud-close` is a static element that persists
+across renders — each call stacks a new listener on the same button. After N renders, one click
+fires N handlers. Unlike `timer.js` (which has an `inited` guard), `audience.js` has no equivalent.
+Defer fix to POA-16 — add `audInited` guard or use event delegation.
+
+**S2 — aud-hist and aud-ts have no null guard — FLAG**
+`el('aud-ts').innerHTML` (line 16) and `el('aud-hist').innerHTML` (line 30) lack optional
+chaining. Both throw if their elements are absent from overlay markup. `aud-lb` is guarded;
+these two are not.
+
 ### storage.js
+
+**Interface check — PASS** ✅
+`save(obj)`, `load()`, `clear()` — all three methods present.
+`load()` returns `null` (not `undefined`) on missing key; returns `null` on JSON parse failure
+via catch. Contract met.
+
+**Firebase adapter seam assessment:**
+Interface shape is correct for a drop-in adapter. Factory pattern `Store(key) → object` maps
+cleanly to a Firestore document path.
+
+- `save()` — fire-and-forget (void). Firestore adapter can handle async internally without
+  module changes. ✅ Compatible.
+- `load()` — synchronous; returns a value directly. Every module calls
+  `const d = STORE.load(); if (d) { ... }`. A Firestore adapter cannot fulfil this natively.
+  Before v5.0, either: (a) modules updated to `await STORE.load()` in a single pass, or
+  (b) adapter uses localStorage as a sync read cache with Firestore syncing in the background.
+  This is the one seam that requires a design decision before v5.0.
+
+**Modules bypassing Store() — Firebase pre-condition inventory:**
+
+| Module | Uses Store()? | Direct localStorage calls |
+|---|---|---|
+| throwdown/index.html | ✅ | none |
+| liga/index.html | ✅ | none |
+| bbtc/index.html | ❌ | `setItem`/`getItem`/`removeItem` — lines 341, 348, 771 + migration shim lines 359–362 |
+| index.html (dashboard) | ❌ | `getItem`/`setItem` — lines 149, 152 |
+
+BBTC and the dashboard must be migrated to `Store()` before the Firebase adapter can work
+universally. This is a v5.0 pre-condition, not in scope for the current audit phase.
+
 ### Fixes applied
+
+- **D1 — timer.js Escape key**: `document.addEventListener('keydown', ...)` handler added to
+  `init()`. Covers Throwdown and Liga timer overlay fullscreen exit. Guarded by `inited`;
+  optional chaining on `ovl()` for standalone-page safety. Syntax: PASS.
+
 ### Notes for POA-16 audience rebuild
+
+1. **Two-panel architecture is hardcoded** (`aud-lb` + `aud-hist`). Adding a podium panel
+   (POA-11) requires a third slot in the `show()` signature and all module overlay markups.
+2. **`aud-ts` and `aud-hist` are hard element requirements** with no null guards — rename or
+   removal in the rebuild will throw at runtime. Add `?.` to both for safety.
+3. **S1 — `aud-close` accumulation** must be resolved in the rebuild (add `audInited` guard,
+   mirroring `timer.js`).
+4. **Fallback hex `#9CA3AF`** (lines 29, 30) is below projector contrast. Replace with a
+   higher-contrast value in POA-16.
+5. **`ovl()` at line 31 has no null guard** — `#aud-overlay` must remain in overlay markup.
+6. **BBTC is fully isolated** — POA-16 will need a separate retrofit pass for BBTC's
+   self-contained audience (POA-09); extending the shared module alone is not enough.
 
 ## Dashboard + Timer — POA-22
 ### Dead code
