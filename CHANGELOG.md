@@ -2,6 +2,27 @@
 
 ---
 
+## [4.4.1] — Cup Taster analytics additions · June 2026
+
+### cup-taster/index.html
+- **Score distribution panel** — new card in Report tab (inside `cup_taster_analytics` gate),
+  above per-contestant breakdown. Shows frequency and share % for each correct-count score,
+  derived from prelims heats only (full-field view). Hidden if no prelims heats are confirmed.
+- **Avg time/set** — per-contestant breakdown table now shows `~Xs/set` as a second line
+  within each stage cell. Computed as `Math.round(elapsedSecs / trioCount)`. Blank for
+  contestants who maxed out (timer expired).
+- **Hardest trio callout** — a `.hint` paragraph below each per-trio difficulty table
+  identifies the trio with the lowest identification rate. Ties named explicitly:
+  "Hardest sets: Trio 2, Trio 5 — both at 33%".
+- **CSV export additions** — standings section gains `Avg/set(s)` column (`max` for timed-out
+  contestants); a `Score Distribution (Prelims — full field)` section appended after standings,
+  before trio difficulty. Trio difficulty section unchanged.
+- **`rankStandings()` bug fix** — `prev._pos` was read from the unmapped input array (always
+  undefined beyond the first tied row). Fixed by tracking `lastPos` in a closure; all
+  contestants in a tie now correctly inherit the shared position.
+
+---
+
 ## [4.4.0] — Cup Taster module · June 2026
 
 ### cup-taster/index.html (new module)

@@ -983,6 +983,38 @@ function rReport() {
   if (analyticsAccess.allowed) {
     const analyticsStages = ['prelims','semis','finals'].filter(st => S.heats.some(h => h.stage === st && h.done));
 
+    // Analytics C — Score distribution (prelims, full field)
+    const prelimsHeatsDone = S.heats.filter(h => h.stage === 'prelims' && h.done);
+    if (prelimsHeatsDone.length) {
+      const trioCountPrelims = S.triosPerStage.prelims || 5;
+      const scoreDist = {};
+      for (const heat of prelimsHeatsDone) {
+        for (const id of heat.contestantIds) {
+          const r = heat.results[id];
+          if (!r) continue;
+          scoreDist[r.correct] = (scoreDist[r.correct] || 0) + 1;
+        }
+      }
+      const distRows = Object.entries(scoreDist)
+        .map(([score, count]) => ({ score: +score, count }))
+        .sort((a, b) => b.score - a.score);
+      const distTotal = distRows.reduce((s, r) => s + r.count, 0);
+
+      out += '<div class="card"><div class="card-hdr">Score distribution</div><div class="card-body" style="padding:0">'
+        + '<table class="analytics-table"><thead><tr>'
+        + '<th>Score</th><th>Contestants</th><th>Share</th>'
+        + '</tr></thead><tbody>';
+      for (const row of distRows) {
+        const pct = distTotal > 0 ? Math.round(100 * row.count / distTotal) : 0;
+        out += '<tr>'
+          + '<td style="font-weight:700;font-family:var(--font-mono)">' + row.score + '/' + trioCountPrelims + '</td>'
+          + '<td>' + row.count + '</td>'
+          + '<td>' + pct + '%</td>'
+          + '</tr>';
+      }
+      out += '</tbody></table></div></div>';
+    }
+
     out += '<div class="card"><div class="card-hdr">Per-contestant breakdown</div><div class="card-body" style="padding:0">'
       + '<table class="analytics-table"><thead><tr>'
       + '<th>Contestant</th>'
@@ -1001,8 +1033,12 @@ function rReport() {
         }
         const r = heat.results[cid] || { trioResults: [], correct: 0 };
         const t = heat.timings[cid] || { elapsedSecs: null, maxed: false };
+        const avgPerSet = (!t.maxed && t.elapsedSecs !== null && heat.trioCount > 0)
+          ? Math.round(t.elapsedSecs / heat.trioCount) : null;
         out += '<td>' + r.correct + '/' + heat.trioCount
-          + ' <span style="color:var(--txt3);font-size:10px">' + (t.maxed ? 'max' : fmtSecs(t.elapsedSecs)) + '</span></td>';
+          + ' <span style="color:var(--txt3);font-size:10px">' + (t.maxed ? 'max' : fmtSecs(t.elapsedSecs)) + '</span>'
+          + (avgPerSet !== null ? '<br><span style="color:var(--txt3);font-size:10px">~' + avgPerSet + 's/set</span>' : '')
+          + '</td>';
       }
 
       out += '</tr>';
@@ -1055,7 +1091,12 @@ function rReport() {
           + '</tr>';
       }
 
-      out += '</tbody></table></div></div>';
+      const minPct = trioRows[trioRows.length - 1].pct;
+      const hardest = trioRows.filter(r => r.pct === minPct);
+      const hardestCallout = hardest.length > 1
+        ? 'Hardest sets: ' + hardest.map(r => 'Trio ' + (r.idx + 1)).join(', ') + ' — both at ' + minPct + '%'
+        : 'Hardest set: Trio ' + (hardest[0].idx + 1) + ' — identified correctly by ' + hardest[0].correct + ' of ' + hardest[0].attempts + ' contestants (' + minPct + '%)';
+      out += '</tbody></table><p class="hint" style="margin:.5rem .75rem">' + hardestCallout + '</p></div></div>';
     }
   } else {
     out += '<div class="upgrade-prompt">'
@@ -1180,10 +1221,39 @@ function exportCSV() {
     const stageLabel = stage.charAt(0).toUpperCase() + stage.slice(1);
     const trioCount = S.triosPerStage[stage] || 5;
     csv += stageLabel + ' Standings\n';
-    csv += 'Position,Contestant,Correct,Time\n';
+    csv += 'Position,Contestant,Correct,Time,Avg/set(s)\n';
     const ranked = rankStandings(standings);
     for (const row of ranked) {
-      csv += row._pos + ',' + getName(row.cid) + ',' + row.correct + '/' + trioCount + ',' + fmtSecs(row.time) + '\n';
+      const rowHeat = S.heats.find(h => h.stage === stage && h.done && h.contestantIds.includes(row.cid));
+      const rowTiming = rowHeat ? rowHeat.timings[row.cid] : null;
+      const rowAvg = (rowHeat && rowTiming && !rowTiming.maxed && rowTiming.elapsedSecs !== null)
+        ? Math.round(rowTiming.elapsedSecs / rowHeat.trioCount) : null;
+      csv += row._pos + ',' + getName(row.cid) + ',' + row.correct + '/' + trioCount + ',' + fmtSecs(row.time) + ',' + (rowAvg !== null ? rowAvg : 'max') + '\n';
+    }
+    csv += '\n';
+  }
+
+  // Score distribution (prelims, full field)
+  const csvPrelimsDone = S.heats.filter(h => h.stage === 'prelims' && h.done);
+  if (csvPrelimsDone.length) {
+    const csvTrioCount = S.triosPerStage.prelims || 5;
+    const csvDist = {};
+    for (const heat of csvPrelimsDone) {
+      for (const id of heat.contestantIds) {
+        const r = heat.results[id];
+        if (!r) continue;
+        csvDist[r.correct] = (csvDist[r.correct] || 0) + 1;
+      }
+    }
+    const csvDistRows = Object.entries(csvDist)
+      .map(([score, count]) => ({ score: +score, count }))
+      .sort((a, b) => b.score - a.score);
+    const csvDistTotal = csvDistRows.reduce((s, r) => s + r.count, 0);
+    csv += 'Score Distribution (Prelims — full field)\n';
+    csv += 'Score,Contestants,Share%\n';
+    for (const row of csvDistRows) {
+      const pct = csvDistTotal > 0 ? Math.round(100 * row.count / csvDistTotal) : 0;
+      csv += row.score + '/' + csvTrioCount + ',' + row.count + ',' + pct + '\n';
     }
     csv += '\n';
   }
