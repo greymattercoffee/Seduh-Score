@@ -2,6 +2,13 @@
 
 ---
 
+## [4.4.2] — Deep surface token suite · June 2026
+
+### shared/theme.css
+- **`--surface-deep` token suite** — nine additive tokens for warm near-black palette: `--surface-deep`, `--deep-card`, `--deep-bd`, `--deep-bd2`, `--deep-ink`, `--deep-ink2`, `--deep-sub`, `--deep-ink3`, `--deep-ink4`. Warm near-black palette addition for org zone and future audience view. No existing token renamed or removed.
+
+---
+
 ## [4.4.1] — Cup Taster analytics additions · June 2026
 
 ### cup-taster/index.html
