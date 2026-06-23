@@ -2,6 +2,78 @@
 
 ---
 
+## [4.3.2] — shared/gates.js stub · canAccess() API · feature registry · June 2026
+
+### shared/gates.js (new file)
+- **`Gates.canAccess(featureKey)` API created** — the sole method modules ever call.
+  Returns `{ allowed: true }` or `{ allowed: false, reason: 'tier' | 'disabled' }`.
+- **FEATURES registry** — documents all known feature keys and their `minTier` values:
+  module access keys (`btc`, `liga`, `cup_taster`), Throwdown gated features,
+  Liga Seduh gated features, Cup Taster gated features, Audience features,
+  and platform-switch-only keys (`cup_taster_module`, `audience_links_live`)
+  with `minTier: null`.
+- **Internal stubs** — `getTier()` returns `'annual'`, `isEnabled()` returns `true`,
+  `tierRank()` maps tier strings to rank integers. None exported — gates.js internal use only.
+- **Stub behaviour** — all `canAccess()` calls return `{ allowed: true }` through v4.5.
+  Replaced by Firebase custom claims + Firestore platform-switch reads in v4.6.
+- No user-facing changes.
+
+### All modules (index.html, throwdown, liga, bbtc)
+- **`<script src="[../]shared/gates.js"></script>` added** — script tag inserted after
+  `storage.js` in Throwdown and Liga; after `timer.js` in BBTC (no `storage.js` in BBTC);
+  as the sole external shared script in the dashboard. Gates is loaded but not yet called —
+  Throwdown is the reference implementation for first gate touch points.
+
+---
+
+## [4.3.1] — Timer overlay structural consistency · POA-07 · June 2026
+
+### throwdown/index.html
+- **Footer button classes added** — `#tmr-close` and `#tmr-fs` now carry
+  `class="tmr-close"` and `class="tmr-fs-btn"` respectively, matching the
+  BBTC reference pattern. Previously these buttons had `id` attributes only.
+
+### timer/index.html
+- **`.tmr-extras` wrappers added** — presets and custom time input now live
+  inside a first `<div class="tmr-extras">`; controls and footer inside a
+  second. Matches the two-wrapper structure used by BBTC, Throwdown, and Liga.
+  No change to fullscreen behaviour (driven by `#tmr-overlay.fs`, not the
+  wrapper divs).
+
+---
+
+## [4.3.0] — v4.1 completion pass: favicons · .plat-mark · fonts · BBTC rename · POA-06 · June 2026
+
+### All modules (index.html, bbtc, throwdown, liga, timer)
+- **Favicon block added** — all five files now link `favicon.svg`, `favicon-32.png`,
+  `favicon-16.png`, and `apple-touch-icon.png` from `shared/assets/`. No favicon
+  links existed in any file before this session.
+- **`.plat-mark` brand mark integrated** — the Seduh brew-waves SVG is now inlined
+  in every module header, replacing the plain amber rail (`plat-hdr-ac`, `hdr-ac`,
+  `liga-ac`, `timer-hdr-ac` elements). SVG recolours via `currentColor`; styled by
+  `.plat-mark` and `.plat-mark svg` rules already in `theme.css`.
+
+### bbtc/index.html
+- **`.hdr` → `.plat-hdr`** — CSS class renamed to match platform convention;
+  `.hdr-ac` CSS rule removed (element replaced by `.plat-mark`).
+- **`font-family:system-ui,sans-serif` → `var(--font-body)`** in `.pdf-page` class.
+  CSS variables are supported in modern print contexts — print compat confirmed.
+- **BBTC rename: "Brunei" removed from all display strings (5 locations):**
+  - `rMain()` header eyebrow: `hdr-s` → "Seduh Score"
+  - Audience overlay `aud-sub`: "Brunei" → "Seduh Score"
+  - PDF footer: "Brunei Barista Team Championship" → "Barista Team Championship"
+  - PDF page eyebrow (both pages): "Brunei" → "Seduh Score · Grey Matter Coffee Werks"
+    (platform credit added — POA-06 CHECK 8)
+  - CSV header row: "Brunei Barista Team Championship" → "Barista Team Championship"
+  - JS identifiers (`BBTC`, `bbtc`), storage key (`seduh_bbtc_v3`), and file paths
+    unchanged.
+
+### timer/index.html
+- **`font-family:system-ui,...` → `var(--font-body)`** on `body` rule in local
+  style block. Dark court-display context confirmed compatible with CSS variable.
+
+---
+
 ## [4.2.5] — Dashboard + Timer: POA-22 audit · June 2026
 
 ### timer/index.html

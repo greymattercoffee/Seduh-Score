@@ -5,15 +5,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BBTC Organizer</title>
 <link rel="stylesheet" href="../shared/theme.css">
+<link rel="icon" href="../shared/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../shared/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="../shared/assets/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="../shared/assets/apple-touch-icon.png">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);min-height:100vh}
 input,select,button{font-family:inherit}
 .app{max-width:900px;margin:0 auto;padding:0 0 60px}
 /* Header */
-.hdr{display:flex;align-items:center;gap:10px;padding:.85rem 1.5rem;background:var(--surface);border-bottom:2px solid var(--am-bd);position:sticky;top:0;z-index:100;flex-wrap:wrap;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-.hdr-ac{width:4px;height:38px;background:var(--am);border-radius:2px;flex-shrink:0}
-.hdr-s{font-size:10px;color:var(--am);letter-spacing:.18em;text-transform:uppercase;margin-bottom:2px;font-weight:600}
+.plat-hdr{display:flex;align-items:center;gap:10px;padding:.85rem 1.5rem;background:var(--surface);border-bottom:2px solid var(--am-bd);position:sticky;top:0;z-index:100;flex-wrap:wrap;box-shadow:0 1px 4px rgba(0,0,0,.08)}.hdr-s{font-size:10px;color:var(--am);letter-spacing:.18em;text-transform:uppercase;margin-bottom:2px;font-weight:600}
 .hdr-t{font-size:17px;font-weight:700;color:var(--txt);letter-spacing:-.01em}
 .badge{background:var(--am-bg);border:1.5px solid var(--am-bd);border-radius:var(--rad-s);padding:3px 10px;font-size:11px;color:var(--am);white-space:nowrap;font-weight:600}
 .hdr-btns{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -216,7 +218,7 @@ input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--
 .pdf-toolbar-hint{font-size:12px;color:#8a7f73}
 .btn-print{background:#b45309;color:#fff;border:none;padding:9px 20px;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer}
 .btn-print:hover{background:#92400e}
-.pdf-page{width:210mm;min-height:297mm;background:#fff;margin:1.5rem auto;padding:16mm;box-shadow:0 2px 20px rgba(0,0,0,.12);font-family:system-ui,sans-serif;color:#211a14;page-break-after:always}
+.pdf-page{width:210mm;min-height:297mm;background:#fff;margin:1.5rem auto;padding:16mm;box-shadow:0 2px 20px rgba(0,0,0,.12);font-family:var(--font-body);color:#211a14;page-break-after:always}
 .pdf-page:last-child{page-break-after:auto}
 .pdf-logo-row{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:3px solid #b45309;padding-bottom:10px;margin-bottom:18px}
 .pdf-event-name{font-size:22px;font-weight:700;letter-spacing:-.01em}
@@ -288,7 +290,7 @@ input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--
 <div id="aud-overlay">
   <div class="aud-banner">
     <div class="aud-ac"></div>
-    <div><div class="aud-sub">Brunei</div><div class="aud-title">Barista Team Championship</div></div>
+    <div><div class="aud-sub">Seduh Score</div><div class="aud-title">Barista Team Championship</div></div>
     <div class="aud-ts" id="aud-ts"></div>
     <button class="aud-close" id="aud-close">✕ Close</button>
   </div>
@@ -311,6 +313,7 @@ input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--
 
 <script src="../shared/sound.js"></script>
 <script src="../shared/timer.js"></script>
+<script src="../shared/gates.js"></script>
 <script>
 const RC={
   preliminary:   {label:'Preliminary',   drinks:15,time:'10 min',maxJ:45},
@@ -562,9 +565,9 @@ function generatePDF(){
     }).join('');
     return header+rows;
   }).join('');
-  const footer='<div class="pdf-footer"><span>Brunei Barista Team Championship'+(S.eventVenue?' · '+S.eventVenue:'')+'</span><span>Exported '+dateStr+' at '+timeStr+'</span></div>';
+  const footer='<div class="pdf-footer"><span>Barista Team Championship'+(S.eventVenue?' · '+S.eventVenue:'')+'</span><span>Exported '+dateStr+' at '+timeStr+'</span></div>';
   const logoSub=eventMeta?'<div style="font-size:11px;color:#8a7f73;margin-top:5px">'+eventMeta+'</div>':'';
-  document.getElementById('pdf-content').innerHTML='<div class="pdf-page"><div class="pdf-logo-row"><div><div class="pdf-event-sub">Brunei</div><div class="pdf-event-name">Barista Team Championship</div>'+logoSub+'</div><div class="pdf-meta"><div>Preliminary Standings</div><div>'+dateStr+'</div><div style="color:#b45309">QF Spots: Top '+S.qfSlots+'</div></div></div><div class="pdf-section-title">Preliminary Standings</div><table class="pdf-lb-table"><thead><tr><th>#</th><th>Team</th><th style="text-align:center">Record</th><th style="text-align:center">Played</th><th style="text-align:right">Points</th></tr></thead><tbody>'+(lbRows||'<tr><td colspan="5" style="text-align:center;color:#8a7f73;padding:20px">No teams registered.</td></tr>')+'</tbody></table>'+footer+'</div><div class="pdf-page"><div class="pdf-logo-row"><div><div class="pdf-event-sub">Brunei</div><div class="pdf-event-name">Barista Team Championship</div>'+logoSub+'</div><div class="pdf-meta"><div>Match Results</div><div>'+dateStr+'</div><div>'+done.length+' matches completed</div></div></div><div class="pdf-section-title">Match Results</div><table class="pdf-res-table"><thead><tr><th>Round</th><th>Team 1</th><th style="text-align:center">Score</th><th style="text-align:center"></th><th style="text-align:center">Score</th><th style="text-align:right">Team 2</th><th style="text-align:center">Time</th></tr></thead><tbody>'+(resultsHTML||'<tr><td colspan="7" style="text-align:center;color:#8a7f73;padding:20px">No completed matches yet.</td></tr>')+'</tbody></table>'+footer+'</div>';
+  document.getElementById('pdf-content').innerHTML='<div class="pdf-page"><div class="pdf-logo-row"><div><div class="pdf-event-sub">Seduh Score · Grey Matter Coffee Werks</div><div class="pdf-event-name">Barista Team Championship</div>'+logoSub+'</div><div class="pdf-meta"><div>Preliminary Standings</div><div>'+dateStr+'</div><div style="color:#b45309">QF Spots: Top '+S.qfSlots+'</div></div></div><div class="pdf-section-title">Preliminary Standings</div><table class="pdf-lb-table"><thead><tr><th>#</th><th>Team</th><th style="text-align:center">Record</th><th style="text-align:center">Played</th><th style="text-align:right">Points</th></tr></thead><tbody>'+(lbRows||'<tr><td colspan="5" style="text-align:center;color:#8a7f73;padding:20px">No teams registered.</td></tr>')+'</tbody></table>'+footer+'</div><div class="pdf-page"><div class="pdf-logo-row"><div><div class="pdf-event-sub">Seduh Score · Grey Matter Coffee Werks</div><div class="pdf-event-name">Barista Team Championship</div>'+logoSub+'</div><div class="pdf-meta"><div>Match Results</div><div>'+dateStr+'</div><div>'+done.length+' matches completed</div></div></div><div class="pdf-section-title">Match Results</div><table class="pdf-res-table"><thead><tr><th>Round</th><th>Team 1</th><th style="text-align:center">Score</th><th style="text-align:center"></th><th style="text-align:center">Score</th><th style="text-align:right">Team 2</th><th style="text-align:center">Time</th></tr></thead><tbody>'+(resultsHTML||'<tr><td colspan="7" style="text-align:center;color:#8a7f73;padding:20px">No completed matches yet.</td></tr>')+'</tbody></table>'+footer+'</div>';
   document.getElementById('pdf-overlay').classList.add('show');
 }
 
@@ -574,7 +577,7 @@ function generateCSV(){
   const row=cols=>cols.map(esc).join(',');
   const lines=[];
   const eventMeta=[S.eventDate,S.eventVenue].filter(Boolean).join(' | ');
-  lines.push(row(['Brunei Barista Team Championship',eventMeta]));lines.push('');
+  lines.push(row(['Barista Team Championship',eventMeta]));lines.push('');
   lines.push(row(['PRELIMINARY STANDINGS']));
   lines.push(row(['Rank','Team','Wins','Losses','Played','Points','QF Qualified']));
   calcPrelimLB().forEach((s,i)=>lines.push(row([i+1,s.t,s.wins,s.played-s.wins,s.played,s.pts,(i+1)<=S.qfSlots?'Yes':'No'])));
@@ -637,7 +640,7 @@ function render(){
 
 function rMain(){
   const done=S.matches.filter(m=>m.done).length;
-  return '<div class="hdr"><div class="hdr-ac"></div><div><div class="hdr-s">Brunei</div><div class="hdr-t">Barista Team Championship</div></div><div class="hdr-btns"><button class="btn-hdr btn-o" id="homebtn">← Seduh Score</button><button class="btn-hdr btn-am" id="tmrbtn">⏱ Timer</button><button class="btn-hdr btn-am" id="pubview">📺 Audience</button><button class="btn-hdr btn-bl" id="exportbtn">📄 PDF</button><button class="btn-hdr btn-gn" id="csvbtn">📊 CSV</button><button class="btn-hdr btn-rd" id="resetbtn">↺ Reset</button><div class="badge">'+done+'/'+S.matches.length+' done</div></div></div>'
+  return '<div class="plat-hdr"><span class="plat-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh"><circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"/><path d="M26 60 a24 24 0 0 1 48 0"/><path d="M35 60 a15 15 0 0 1 30 0"/><path d="M44 60 a6 6 0 0 1 12 0"/></svg></span><div><div class="hdr-s">Seduh Score</div><div class="hdr-t">Barista Team Championship</div></div><div class="hdr-btns"><button class="btn-hdr btn-o" id="homebtn">← Seduh Score</button><button class="btn-hdr btn-am" id="tmrbtn">⏱ Timer</button><button class="btn-hdr btn-am" id="pubview">📺 Audience</button><button class="btn-hdr btn-bl" id="exportbtn">📄 PDF</button><button class="btn-hdr btn-gn" id="csvbtn">📊 CSV</button><button class="btn-hdr btn-rd" id="resetbtn">↺ Reset</button><div class="badge">'+done+'/'+S.matches.length+' done</div></div></div>'
   +'<div class="tabs">'+[['setup','Setup'],['prelims','Prelims ('+S.matches.filter(m=>m.round==='preliminary').length+')'],['bracket','Bracket'],['history','History'],['standings','Standings']].map(([t,l])=>'<button class="tbtn'+(S.tab===t?' on':'')+'" data-tab="'+t+'">'+l+'</button>').join('')+'</div>'
   +'<div class="body">'+(S.tab==='setup'?rSetup():S.tab==='prelims'?rPrelims():S.tab==='bracket'?rBracket():S.tab==='history'?rHistory():rStandings())+'</div>';
 }

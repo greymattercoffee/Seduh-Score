@@ -299,19 +299,82 @@ store.clear();                    // used by Reset
 
 ### Gates (`shared/gates.js`) — v4.3+
 
+**Primary module-facing call:**
+
 ```javascript
-Gates.isPaid();        // returns true if org has an active paid subscription
-Gates.isCommunity();   // returns true if no active subscription
+const access = Gates.canAccess('feature_key');
+// returns: { allowed: true }
+// or:      { allowed: false, reason: 'tier' }
+// or:      { allowed: false, reason: 'disabled' }
 ```
 
-**Gate pattern (B3):**
-- Gate logic lives in `shared/gates.js` only — never inline tier checks in module files
-- Call `Gates.isPaid()` / `Gates.isCommunity()` at render time only
+**Module usage pattern:**
+
+```javascript
+const access = Gates.canAccess('cup_taster_analytics');
+if (!access.allowed) {
+  // reason: 'tier'     → render upgrade prompt
+  // reason: 'disabled' → render nothing (feature not yet live)
+  return '';
+}
+```
+
+**Internal methods — gates.js use only, never called from modules:**
+
+```javascript
+Gates.getTier()              // 'community' | 'per_event' | 'annual'
+Gates.isEnabled('feature_key') // true | false — checks platform switch
+```
+
+**Gate pattern (B3 — updated):**
+- Gate logic lives in `shared/gates.js` only — never inline tier or switch checks in module files
+- Modules call only `Gates.canAccess('feature_key')` — never `getTier()` or `isEnabled()` directly
 - Gated elements are **hidden, not disabled** — use `display:none` or conditional render
-- Never call an internal `getTier()` directly from a module
-- Stub behaviour through v4.3: `getTier()` returns `'paid'` — all features unlocked; stub is replaced when Firebase auth lands in v4.4
+- `canAccess()` checks both axes: org tier AND platform switch. Both must pass for `allowed: true`
+- `reason: 'tier'` → org's subscription doesn't cover this feature → show upgrade prompt
+- `reason: 'disabled'` → super admin has this feature switched off platform-wide → show nothing
+- Stub behaviour through v4.3: all calls return `{ allowed: true }` — all features unlocked
+- Stub is replaced when Firebase auth lands in v4.6
 - **Throwdown is the reference implementation** for gate touch points
-- **BBTC gate is routing-layer only** — no gate touch points inside `bbtc/index.html`; access is controlled by whether the org account can reach the module URL
+- **BTC gate is routing-layer only** — no gate touch points inside `bbtc/index.html`; access controlled by whether the org account can reach the module URL
+
+**Feature key registry (documented inside gates.js):**
+
+```javascript
+const FEATURES = {
+  // Module access — routing layer
+  'btc':                    { minTier: 'annual' },
+  'liga':                   { minTier: 'per_event' },
+  'cup_taster':             { minTier: 'per_event' },
+
+  // Throwdown
+  'throwdown_redemption':   { minTier: 'per_event' },
+  'throwdown_revival':      { minTier: 'per_event' },
+  'throwdown_report':       { minTier: 'per_event' },
+  'throwdown_unlimited':    { minTier: 'per_event' }, // >16 participants
+
+  // Liga Seduh
+  'liga_device_tracking':   { minTier: 'per_event' },
+  'liga_csv_export':        { minTier: 'per_event' },
+  'liga_unlimited':         { minTier: 'per_event' }, // >8 brewers
+
+  // Cup Taster
+  'cup_taster_analytics':   { minTier: 'per_event' },
+  'cup_taster_report':      { minTier: 'per_event' },
+  'cup_taster_unlimited':   { minTier: 'per_event' }, // >8 contestants or >3 sets
+
+  // Audience
+  'audience_enhanced':      { minTier: 'per_event' },
+  'audience_links':         { minTier: 'per_event' },
+
+  // Platform switches — minTier: null means tier-independent
+  // Feature hidden for ALL orgs regardless of tier until super admin enables it
+  'cup_taster_module':      { minTier: null },
+  'audience_links_live':    { minTier: null },
+}
+```
+
+`minTier: null` = platform switch only. No tier entitles an org to this feature until the switch is on.
 
 ---
 
