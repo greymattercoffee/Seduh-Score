@@ -1,0 +1,1506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cup Taster — Seduh Score</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="icon" href="../shared/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../shared/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="../shared/assets/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="../shared/assets/apple-touch-icon.png">
+<style>
+/* ── Cup Taster module-local styles ── */
+.app{max-width:900px;margin:0 auto;padding:0 0 60px}
+.hdr-btn{display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:var(--rad-s);font-size:12px;cursor:pointer;font-weight:600;border:1.5px solid}
+.hdr-btns{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.body{padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1rem}
+/* Contestant list */
+.p-list{display:flex;flex-direction:column;gap:5px;margin-top:8px;max-height:280px;overflow-y:auto}
+.p-item{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--rad-s)}
+.p-seed{font-size:11px;color:var(--txt3);width:20px;text-align:center;font-weight:700}
+.p-name{flex:1;font-size:13px;font-weight:600}
+.p-rm{background:none;border:none;cursor:pointer;color:var(--txt3);font-size:15px;line-height:1;padding:0}
+/* Heat cards */
+.heat-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rad);margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.heat-card.timing{border-color:var(--bl-bd);border-left:4px solid var(--bl)}
+.heat-card.scoring{border-color:var(--am-bd);border-left:4px solid var(--am)}
+.heat-card.done{border-color:var(--gn-bd);border-left:4px solid var(--gn)}
+.heat-hdr{display:flex;align-items:center;gap:8px;padding:.55rem 1rem;background:var(--bg);border-bottom:1.5px solid var(--border)}
+.heat-title{font-size:12px;font-weight:700;color:var(--txt2);flex:1;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em}
+.heat-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;border:1px solid;text-transform:uppercase;letter-spacing:.06em}
+.heat-badge.pending{color:var(--txt3);border-color:var(--border);background:var(--bg)}
+.heat-badge.timing{color:var(--bl);border-color:var(--bl-bd);background:var(--bl-bg)}
+.heat-badge.scoring{color:var(--am);border-color:var(--am-bd);background:var(--am-bg)}
+.heat-badge.done{color:var(--gn);border-color:var(--gn-bd);background:var(--gn-bg)}
+.heat-names{padding:.6rem 1rem;font-size:13px;color:var(--txt2);font-weight:600}
+.heat-foot{padding:.55rem 1rem;border-top:1.5px solid var(--border);background:var(--bg);display:flex;align-items:center;gap:8px}
+/* Local heat timer surface */
+.ht-surface{padding:1.25rem 1rem;background:var(--bl-bg);border-top:1.5px solid var(--bl-bd)}
+.ht-master{text-align:center;margin-bottom:1.25rem}
+.ht-master-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--bl);margin-bottom:4px;font-family:var(--font-mono)}
+.ht-master-display{font-size:64px;font-weight:900;color:var(--bl);font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.02em}
+.ht-master-display.warning{color:var(--rd)}
+.ht-stop-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.ht-stop-btn{padding:.65rem .75rem;border-radius:var(--rad-s);border:2px solid var(--bl);background:var(--surface);cursor:pointer;text-align:center}
+.ht-stop-btn-name{font-size:13px;font-weight:700;color:var(--bl);margin-bottom:2px}
+.ht-stop-btn-sub{font-size:10px;color:var(--bl);font-weight:600;font-family:var(--font-mono)}
+.ht-stop-btn:hover:not([disabled]){background:var(--bl-bg)}
+.ht-stop-btn[disabled]{cursor:default}
+.ht-stop-btn.stopped{border-color:var(--gn-bd);background:var(--gn-bg)}
+.ht-stop-btn.stopped .ht-stop-btn-name{color:var(--gn)}
+.ht-stop-btn.stopped .ht-stop-btn-sub{color:var(--gn)}
+.ht-stop-btn.maxed{border-color:var(--border);background:var(--bg)}
+.ht-stop-btn.maxed .ht-stop-btn-name{color:var(--txt3)}
+.ht-stop-btn.maxed .ht-stop-btn-sub{color:var(--txt3)}
+/* Scoring surface */
+.sc-surface{padding:1rem}
+.sc-contestant{background:var(--bg);border:1.5px solid var(--border);border-radius:var(--rad-s);margin-bottom:10px;padding:.75rem}
+.sc-contestant-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:.65rem}
+.sc-contestant-name{font-size:13px;font-weight:700}
+.sc-time-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--surface);border:1.5px solid var(--border);color:var(--txt2)}
+.sc-time-badge.maxed{background:var(--rd-bg);border-color:var(--rd-bd);color:var(--rd)}
+.sc-trio-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:.4rem}
+.sc-trio-label{font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;width:40px;font-family:var(--font-mono)}
+.sc-trio-btn{width:42px;height:38px;border-radius:var(--rad-s);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-size:16px;font-weight:700;color:var(--txt3);display:flex;align-items:center;justify-content:center}
+.sc-trio-btn:hover:not([disabled]){border-color:var(--txt3)}
+.sc-trio-btn.correct{border-color:var(--gn-bd);background:var(--gn-bg);color:var(--gn)}
+.sc-trio-btn.incorrect{border-color:var(--rd-bd);background:var(--rd-bg);color:var(--rd)}
+.sc-correct-tally{font-size:12px;color:var(--txt3);font-weight:600;margin-top:.2rem}
+/* Standings table */
+.stnds-table{width:100%;border-collapse:collapse}
+.stnds-table th{text-align:left;font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.1em;padding:.4rem .75rem;border-bottom:2px solid var(--border);font-family:var(--font-mono)}
+.stnds-table td{padding:.5rem .75rem;font-size:13px;border-bottom:1px solid var(--border2)}
+.stnds-table tr.adv td{background:var(--gn-bg)}
+.stnds-table tr.tie-cut td{background:var(--am-bg)}
+.pos-num{font-size:11px;font-weight:700;color:var(--txt3);font-family:var(--font-mono)}
+.tie-flag{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:var(--am-bg);border:1px solid var(--am-bd);color:var(--am);margin-left:4px;text-transform:uppercase;letter-spacing:.06em}
+/* Advancement panel */
+.adv-panel{background:var(--gn-bg);border:1.5px solid var(--gn-bd);border-radius:var(--rad);padding:1rem 1.1rem;margin-top:.75rem}
+.adv-panel-title{font-size:12px;font-weight:700;color:var(--gn);margin-bottom:.6rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.1em}
+.adv-tie-warn{background:var(--am-bg);border:1.5px solid var(--am-bd);border-radius:var(--rad-s);padding:.5rem .75rem;font-size:12px;color:var(--am);font-weight:600;margin-bottom:.75rem}
+/* Champion banner */
+.champion-banner{background:var(--gn-bg);border:2px solid var(--gn-bd);border-radius:var(--rad);padding:1.5rem;text-align:center;margin-bottom:1rem}
+.champion-eyebrow{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--gn);margin-bottom:.3rem;font-family:var(--font-mono)}
+.champion-name{font-size:30px;font-weight:900;color:var(--gn);line-height:1.1}
+.champion-stats{font-size:12px;color:var(--txt3);margin-top:.4rem;font-weight:600}
+/* Analytics */
+.analytics-section{margin-bottom:1.5rem}
+.analytics-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--txt3);margin-bottom:.6rem;font-family:var(--font-mono)}
+.analytics-table{width:100%;border-collapse:collapse;font-size:12px}
+.analytics-table th{text-align:left;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em;padding:.3rem .6rem;border-bottom:2px solid var(--border);font-size:10px;font-family:var(--font-mono)}
+.analytics-table td{padding:.35rem .6rem;border-bottom:1px solid var(--border2)}
+.diff-bar{height:6px;border-radius:3px;background:var(--gn);display:inline-block;min-width:4px}
+/* Upgrade prompt */
+.upgrade-prompt{text-align:center;padding:2rem;color:var(--txt3)}
+.upgrade-prompt-title{font-size:14px;font-weight:700;color:var(--txt2);margin-bottom:.4rem}
+/* Gate placeholder */
+.gate-placeholder{max-width:480px;margin:4rem auto;text-align:center;padding:0 1.5rem}
+.gate-placeholder-icon{font-size:48px;margin-bottom:1rem}
+.gate-placeholder-title{font-size:20px;font-weight:800;color:var(--txt);margin-bottom:.5rem}
+.gate-placeholder-body{font-size:14px;color:var(--txt3);line-height:1.6}
+/* Demo card */
+.demo-card{padding:.9rem 1rem;background:#F5F3FF;border:2px dashed #C4B5FD;border-radius:var(--rad);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.demo-card-title{font-size:13px;font-weight:700;color:#6D28D9;margin-bottom:2px}
+</style>
+</head>
+<body>
+
+<!-- Timer overlay (shared — header ⏱ button only, not heat timing) -->
+<div id="tmr-overlay">
+  <div class="tmr-extras">
+    <div class="tmr-presets">
+      <button class="tmr-preset" data-secs="300">5 min</button>
+      <button class="tmr-preset" data-secs="420">7 min</button>
+      <button class="tmr-preset" data-secs="480">8 min</button>
+      <button class="tmr-preset" data-secs="600">10 min</button>
+    </div>
+    <div class="tmr-custom">
+      <input class="tmr-custom-input" id="tmr-custom-input" type="number" min="1" max="99" placeholder="min">
+      <span class="tmr-custom-label">min</span>
+      <button class="tmr-custom-set" id="tmr-custom-set">Set</button>
+    </div>
+  </div>
+  <div class="tmr-display" id="tmr-display">8:00</div>
+  <div class="tmr-extras">
+    <div class="tmr-controls">
+      <button class="tmr-btn tmr-start" id="tmr-start">▶ Start</button>
+      <button class="tmr-btn tmr-pause" id="tmr-pause">⏸ Pause</button>
+      <button class="tmr-btn tmr-reset" id="tmr-reset">↺ Reset</button>
+    </div>
+    <div class="tmr-footer">
+      <button class="tmr-close" id="tmr-close">✕ Close</button>
+      <button class="tmr-fs-btn" id="tmr-fs">⛶ Fullscreen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Audience overlay (shared) -->
+<div id="aud-overlay">
+  <div class="aud-banner">
+    <div class="aud-ac"></div>
+    <div class="aud-title-block">
+      <div class="aud-sub">Seduh Score</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="aud-title">Cup Taster</div>
+        <span class="aud-module-tag badge badge-am" id="aud-module-tag"></span>
+      </div>
+    </div>
+    <div class="aud-ts" id="aud-ts"></div>
+    <button class="aud-close" id="aud-close">✕ Close</button>
+  </div>
+  <div class="aud-body">
+    <div class="aud-panel" id="aud-lb-panel"><div class="aud-sec-title">Standings</div><div id="aud-lb"></div></div>
+    <div class="aud-panel"><div class="aud-sec-title">Current heat</div><div id="aud-hist"></div></div>
+  </div>
+</div>
+
+<!-- Hidden file input for JSON load -->
+<input type="file" id="json-file-input" accept=".json" style="display:none">
+
+<div class="app" id="app"></div>
+
+<script src="../shared/storage.js"></script>
+<script src="../shared/gates.js"></script>
+<script src="../shared/timer.js"></script>
+<script src="../shared/audience.js"></script>
+<script>
+'use strict';
+
+/* ════════ State ════════ */
+const STORE = Store('seduh_cup_taster_v1');
+
+const DEFAULT_STATE = () => ({
+  eventName: 'Cup Taster', eventDate: '', eventVenue: '',
+  contestants: [],
+  stages: 'prelims+semis+finals',
+  triosPerStage: { prelims: 5, semis: 7, finals: 7 },
+  durationSecs: 480,
+  cutoffs: { semis: 8, finals: 4 },
+  scheduleLocked: false,
+  heats: [],
+  tab: 'setup',
+  activeHeatId: null,
+});
+
+let S = DEFAULT_STATE();
+let hid = 0;
+let cid = 0;
+
+let heatTimerInterval = null;
+
+/* ════════ Boot ════════ */
+function init() {
+  const moduleAccess = Gates.canAccess('cup_taster_module');
+  if (!moduleAccess.allowed) {
+    document.getElementById('app').innerHTML =
+      '<div class="gate-placeholder">'
+      + '<div class="gate-placeholder-icon">☕</div>'
+      + '<div class="gate-placeholder-title">Cup Taster</div>'
+      + '<div class="gate-placeholder-body">This module is coming soon. Check back after your next update.</div>'
+      + '<div style="margin-top:1.5rem"><a href="../index.html" class="plat-back">← Back to Seduh Score</a></div>'
+      + '</div>';
+    return;
+  }
+  const d = STORE.load();
+  if (d) {
+    S = { ...DEFAULT_STATE(), ...d };
+    hid = d._hid || 0;
+    cid = d._cid || 0;
+  }
+  render();
+}
+
+/* ════════ Persistence ════════ */
+function save() {
+  STORE.save({ ...S, _hid: hid, _cid: cid, _module: 'cup_taster' });
+}
+
+function exportJSON() {
+  const data = { ...S, _hid: hid, _cid: cid, _module: 'cup_taster' };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (S.eventName || 'cup-taster').replace(/\s+/g, '-').toLowerCase() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJSON(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const d = JSON.parse(e.target.result);
+      if (d._module !== 'cup_taster') {
+        alert('Wrong file — this save is not a Cup Taster file.');
+        return;
+      }
+      S = { ...DEFAULT_STATE(), ...d };
+      hid = d._hid || 0;
+      cid = d._cid || 0;
+      save();
+      render();
+    } catch {
+      alert('Could not read file. Make sure it is a valid Cup Taster JSON save.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ════════ Helpers ════════ */
+const $ = id => document.getElementById(id);
+const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); };
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtSecs(s) {
+  s = Math.max(0, Math.floor(s));
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+
+function shuffleArr(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function getName(id) {
+  const c = S.contestants.find(c => c.id === id);
+  return c ? c.name : '?';
+}
+
+/* Partition N contestants into heats: ceil(N/4) heats, distributed as evenly as possible */
+function partitionField(N) {
+  if (N < 2) return [];
+  const numHeats = Math.ceil(N / 4);
+  const base = Math.floor(N / numHeats);
+  const extras = N % numHeats;
+  const sizes = [];
+  for (let i = 0; i < numHeats; i++) sizes.push(i < extras ? base + 1 : base);
+  return sizes;
+}
+
+function heatStatus(heat) {
+  if (heat.done) return 'done';
+  if (!heat.masterStartedAt) return 'pending';
+  const allStopped = heat.contestantIds.every(id => heat.timings[id] && heat.timings[id].elapsedSecs !== null);
+  return allStopped ? 'scoring' : 'timing';
+}
+
+/* ════════ Core scoring (pure functions — never store derived data) ════════ */
+function resolveHeat(heat) {
+  const result = {};
+  for (const id of heat.contestantIds) {
+    const t = heat.timings[id] || { elapsedSecs: null, maxed: false };
+    const r = heat.results[id] || { trioResults: [], correct: 0 };
+    result[id] = {
+      correct: r.correct,
+      time: t.maxed ? heat.durationSecs : (t.elapsedSecs !== null ? t.elapsedSecs : heat.durationSecs),
+      maxed: !!t.maxed,
+    };
+  }
+  return result;
+}
+
+function calcStandings(stage) {
+  const stageHeats = S.heats.filter(h => h.stage === stage && h.done);
+  const byContestant = {};
+  for (const heat of stageHeats) {
+    const resolved = resolveHeat(heat);
+    for (const [id, res] of Object.entries(resolved)) {
+      byContestant[id] = { cid: id, correct: res.correct, time: res.time, maxed: res.maxed };
+    }
+  }
+  return Object.values(byContestant).sort((a, b) => b.correct - a.correct || a.time - b.time);
+}
+
+/* Assign positions and flag ties */
+function rankStandings(rows) {
+  let lastPos = 0;
+  return rows.map((row, i) => {
+    const prev = rows[i - 1];
+    const pos = (prev && prev.correct === row.correct && prev.time === row.time) ? lastPos : i + 1;
+    lastPos = pos;
+    return { ...row, _pos: pos };
+  });
+}
+
+/* Returns {advIds, tieAtCutoff} for stage→nextStage advancement */
+function computeAdvancement(stage) {
+  const standings = calcStandings(stage);
+  const nextStage = stage === 'prelims'
+    ? (S.stages === 'prelims+finals' ? 'finals' : 'semis')
+    : 'finals';
+  const cutoff = S.cutoffs[nextStage] || (nextStage === 'semis' ? 8 : 4);
+
+  if (standings.length <= cutoff) return { advIds: standings.map(r => r.cid), tieAtCutoff: false };
+
+  const cutoffRow = standings[cutoff - 1];
+  let lastIdx = cutoff - 1;
+  while (
+    lastIdx + 1 < standings.length &&
+    standings[lastIdx + 1].correct === cutoffRow.correct &&
+    standings[lastIdx + 1].time === cutoffRow.time
+  ) { lastIdx++; }
+
+  const tieAtCutoff = lastIdx >= cutoff;
+  return { advIds: standings.slice(0, lastIdx + 1).map(r => r.cid), tieAtCutoff };
+}
+
+/* ════════ Heat management ════════ */
+function generateStageHeats(stage, contestantIds) {
+  const ids = shuffleArr(contestantIds);
+  const sizes = partitionField(ids.length);
+  const trioCount = S.triosPerStage[stage] || 5;
+  const newHeats = [];
+  let offset = 0;
+
+  // Remove existing heats for this stage
+  S.heats = S.heats.filter(h => h.stage !== stage);
+
+  for (let i = 0; i < sizes.length; i++) {
+    const slice = ids.slice(offset, offset + sizes[i]);
+    offset += sizes[i];
+    const heat = {
+      id: 'h' + hid++,
+      stage,
+      heatNum: i + 1,
+      contestantIds: slice,
+      trioCount,
+      durationSecs: S.durationSecs,
+      masterStartedAt: null,
+      timings: {},
+      results: {},
+      done: false,
+      masterElapsedSecs: null,
+    };
+    for (const id of slice) {
+      heat.timings[id] = { elapsedSecs: null, maxed: false };
+      heat.results[id] = { trioResults: new Array(trioCount).fill(null), correct: 0 };
+    }
+    newHeats.push(heat);
+  }
+
+  S.heats.push(...newHeats);
+}
+
+function startHeat(heatId) {
+  if (S.activeHeatId) return;
+  const heat = S.heats.find(h => h.id === heatId);
+  if (!heat || heatStatus(heat) !== 'pending') return;
+
+  heat.masterStartedAt = Date.now();
+  S.activeHeatId = heatId;
+  save();
+  render();
+}
+
+function stopContestant(heatId, cid) {
+  const heat = S.heats.find(h => h.id === heatId);
+  if (!heat || !heat.masterStartedAt) return;
+  if (heat.timings[cid] && heat.timings[cid].elapsedSecs !== null) return;
+
+  const elapsed = Math.floor((Date.now() - heat.masterStartedAt) / 1000);
+  heat.timings[cid].elapsedSecs = Math.min(elapsed, heat.durationSecs);
+
+  const allStopped = heat.contestantIds.every(id => heat.timings[id].elapsedSecs !== null);
+  if (allStopped) {
+    heat.masterElapsedSecs = Math.max(...heat.contestantIds.map(id => heat.timings[id].elapsedSecs));
+    clearInterval(heatTimerInterval);
+    heatTimerInterval = null;
+  }
+
+  save();
+  render();
+}
+
+function toggleTrio(heatId, cid, trioIdx) {
+  const heat = S.heats.find(h => h.id === heatId);
+  if (!heat || !heat.results[cid]) return;
+  const cur = heat.results[cid].trioResults[trioIdx];
+  heat.results[cid].trioResults[trioIdx] = cur === true ? false : true;
+  heat.results[cid].correct = heat.results[cid].trioResults.filter(r => r === true).length;
+  save();
+  render();
+}
+
+function confirmHeat(heatId) {
+  const heat = S.heats.find(h => h.id === heatId);
+  if (!heat) return;
+  heat.done = true;
+  S.activeHeatId = null;
+  S.scheduleLocked = true;
+  clearInterval(heatTimerInterval);
+  heatTimerInterval = null;
+  save();
+  render();
+}
+
+function editHeat(heatId) {
+  const heat = S.heats.find(h => h.id === heatId);
+  if (!heat) return;
+  heat.done = false;
+  S.activeHeatId = heatId;
+  save();
+  render();
+}
+
+function confirmAdvancement(fromStage) {
+  const { advIds } = computeAdvancement(fromStage);
+  const nextStage = fromStage === 'prelims'
+    ? (S.stages === 'prelims+finals' ? 'finals' : 'semis')
+    : 'finals';
+  generateStageHeats(nextStage, advIds);
+  S.tab = nextStage === 'finals' ? 'finals' : 'semis';
+  save();
+  render();
+}
+
+/* ════════ Heat timer tick ════════ */
+function tickHeatTimer() {
+  const heat = S.heats.find(h => h.id === S.activeHeatId);
+  if (!heat || heatStatus(heat) !== 'timing') {
+    clearInterval(heatTimerInterval);
+    heatTimerInterval = null;
+    return;
+  }
+
+  const elapsed = Math.floor((Date.now() - heat.masterStartedAt) / 1000);
+  const remaining = Math.max(0, heat.durationSecs - elapsed);
+
+  const display = $('ht-master-display');
+  if (display) {
+    display.textContent = fmtSecs(remaining);
+    display.className = 'ht-master-display' + (remaining <= 60 ? ' warning' : '');
+  }
+
+  if (elapsed >= heat.durationSecs) {
+    clearInterval(heatTimerInterval);
+    heatTimerInterval = null;
+    for (const id of heat.contestantIds) {
+      if (heat.timings[id].elapsedSecs === null) {
+        heat.timings[id].elapsedSecs = heat.durationSecs;
+        heat.timings[id].maxed = true;
+      }
+    }
+    heat.masterElapsedSecs = heat.durationSecs;
+    save();
+    render();
+  }
+}
+
+/* ════════ Render functions ════════ */
+function render() {
+  save();
+  document.getElementById('app').innerHTML = rMain();
+  bind();
+}
+
+function rMain() {
+  const hasSemisHeats = S.heats.some(h => h.stage === 'semis');
+  const hasFinalsHeats = S.heats.some(h => h.stage === 'finals');
+  const showSemisTab = S.stages === 'prelims+semis+finals' && hasSemisHeats;
+  const showFinalsTab = (S.stages === 'prelims+finals' || S.stages === 'prelims+semis+finals') && hasFinalsHeats;
+
+  const tabs = [['setup','Setup'],['heats','Heats'],['standings','Standings']];
+  if (showSemisTab) tabs.push(['semis','Semis']);
+  if (showFinalsTab) tabs.push(['finals','Finals']);
+  tabs.push(['report','Report']);
+
+  // Validate current tab
+  const validTabs = tabs.map(t => t[0]);
+  if (!validTabs.includes(S.tab)) S.tab = 'setup';
+
+  const SEDUH_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh"><circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"/><path d="M26 60 a24 24 0 0 1 48 0"/><path d="M35 60 a15 15 0 0 1 30 0"/><path d="M44 60 a6 6 0 0 1 12 0"/></svg>';
+
+  let out = '<div class="plat-hdr">'
+    + '<a href="../index.html" class="plat-back">← Seduh Score</a>'
+    + '<span class="plat-mark">' + SEDUH_SVG + '</span>'
+    + '<div><div class="plat-hdr-sub" style="font-size:10px;color:var(--am);font-weight:700;letter-spacing:.15em;text-transform:uppercase">Seduh Score</div>'
+    + '<div class="plat-hdr-name">' + esc(S.eventName || 'Cup Taster') + '</div></div>'
+    + '<div class="hdr-btns">'
+    + '<button class="hdr-btn btn-am" id="tmrbtn">⏱ Timer</button>'
+    + '<button class="hdr-btn btn-am" id="audbtn">📺 Audience</button>'
+    + '<button class="hdr-btn btn-o" id="savejsonbtn">⬇ Save</button>'
+    + '<button class="hdr-btn btn-o" id="loadjsonbtn">⬆ Load</button>'
+    + '<button class="hdr-btn btn-o" id="demobtn">Demo</button>'
+    + '<button class="hdr-btn btn-rd" id="resetbtn">Reset</button>'
+    + '</div></div>'
+    + '<div class="tabs">'
+    + tabs.map(([t,l]) => '<button class="tbtn' + (S.tab===t?' on':'') + '" data-tab="' + t + '">' + l + '</button>').join('')
+    + '</div>'
+    + '<div class="body">';
+
+  if (S.tab === 'setup')          out += rSetup();
+  else if (S.tab === 'heats')     out += rStageHeats('prelims');
+  else if (S.tab === 'standings') out += rStandings();
+  else if (S.tab === 'semis')     out += rStageHeats('semis');
+  else if (S.tab === 'finals')    out += rStageHeats('finals');
+  else                             out += rReport();
+
+  out += '</div>';
+  return out;
+}
+
+/* ── Setup tab ── */
+function rSetup() {
+  const canGen = S.contestants.length >= 2;
+  const hasPrelimHeats = S.heats.some(h => h.stage === 'prelims');
+  const unlimitedAccess = Gates.canAccess('cup_taster_unlimited');
+  const atCap = !unlimitedAccess.allowed && S.contestants.length >= 8;
+
+  let out = '';
+
+  // Event info
+  out += '<div class="card"><div class="card-hdr">Event info</div><div class="card-body">'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
+    + '<div><label class="field-lbl">Event name</label><input id="ev-name" type="text" value="' + esc(S.eventName) + '" placeholder="e.g. Cup Taster Night #1"/></div>'
+    + '<div><label class="field-lbl">Date</label><input id="ev-date" type="text" value="' + esc(S.eventDate) + '" placeholder="e.g. 14 June 2026"/></div>'
+    + '<div><label class="field-lbl">Venue</label><input id="ev-venue" type="text" value="' + esc(S.eventVenue) + '" placeholder="e.g. Grey Matter HQ"/></div>'
+    + '</div></div></div>';
+
+  // Stage config
+  const stageOpts = [
+    ['prelims','Prelims only','Single stage — standings are the final result.'],
+    ['prelims+finals','Prelims + Finals','Top N advance directly to finals.'],
+    ['prelims+semis+finals','Prelims + Semis + Finals','Full three-stage format (default).'],
+  ];
+  out += '<div class="card"><div class="card-hdr">Stage format</div><div class="card-body">'
+    + '<div style="display:flex;flex-direction:column;gap:8px">';
+  for (const [val, label, hint] of stageOpts) {
+    const disabled = S.scheduleLocked ? 'disabled' : '';
+    out += '<label style="display:flex;align-items:flex-start;gap:10px;cursor:' + (S.scheduleLocked ? 'default' : 'pointer') + '">'
+      + '<input type="radio" name="stages" value="' + val + '"' + (S.stages === val ? ' checked' : '') + ' ' + disabled + ' style="margin-top:3px;accent-color:var(--am)">'
+      + '<div><div style="font-size:13px;font-weight:700;color:var(--txt)">' + label + '</div>'
+      + '<div class="hint">' + hint + '</div></div></label>';
+  }
+  out += '</div>' + (S.scheduleLocked ? '<p class="hint" style="margin-top:.75rem">Stage format locked after first heat is confirmed.</p>' : '')
+    + '</div></div>';
+
+  // Trios per stage
+  const stages = S.stages === 'prelims' ? ['prelims']
+    : S.stages === 'prelims+finals' ? ['prelims','finals']
+    : ['prelims','semis','finals'];
+  out += '<div class="card"><div class="card-hdr">Trios per set</div><div class="card-body">'
+    + '<div style="display:flex;gap:16px;flex-wrap:wrap">';
+  for (const st of stages) {
+    const label = st.charAt(0).toUpperCase() + st.slice(1);
+    out += '<div><label class="field-lbl">' + label + '</label>'
+      + '<input id="trios-' + st + '" type="number" min="3" max="12" value="' + (S.triosPerStage[st] || 5) + '" style="width:72px;text-align:center;font-size:18px;font-weight:700" ' + (S.scheduleLocked ? 'disabled' : '') + '/></div>';
+  }
+  out += '</div><p class="hint" style="margin-top:.5rem">Each set is tasted by all contestants in the same heat simultaneously.</p>'
+    + '</div></div>';
+
+  // Timer duration
+  out += '<div class="card"><div class="card-hdr">Heat duration</div><div class="card-body">'
+    + '<div style="display:flex;align-items:center;gap:12px">'
+    + '<input id="duration-mins" type="number" min="1" max="30" value="' + Math.round(S.durationSecs / 60) + '" style="width:72px;text-align:center;font-size:18px;font-weight:700" ' + (S.scheduleLocked ? 'disabled' : '') + '/>'
+    + '<span style="font-size:14px;font-weight:600;color:var(--txt2)">minutes per heat</span></div>'
+    + '<p class="hint" style="margin-top:.5rem">The master countdown runs from this duration. Contestants who do not finish in time receive max time but keep their correct identifications.</p>'
+    + '</div></div>';
+
+  // Cutoffs (multi-stage only)
+  if (S.stages !== 'prelims') {
+    out += '<div class="card"><div class="card-hdr">Advancement cutoffs</div><div class="card-body">'
+      + '<div style="display:flex;gap:16px;flex-wrap:wrap">';
+    if (S.stages === 'prelims+semis+finals') {
+      out += '<div><label class="field-lbl">Prelims → Semis (top N)</label>'
+        + '<input id="cutoff-semis" type="number" min="2" max="64" value="' + (S.cutoffs.semis || 8) + '" style="width:72px;text-align:center;font-size:18px;font-weight:700" ' + (S.scheduleLocked ? 'disabled' : '') + '/></div>';
+    }
+    out += '<div><label class="field-lbl">' + (S.stages === 'prelims+finals' ? 'Prelims' : 'Semis') + ' → Finals (top N)</label>'
+      + '<input id="cutoff-finals" type="number" min="2" max="64" value="' + (S.cutoffs.finals || 4) + '" style="width:72px;text-align:center;font-size:18px;font-weight:700" ' + (S.scheduleLocked ? 'disabled' : '') + '/></div>';
+    out += '</div><p class="hint" style="margin-top:.5rem">Ties at the cutoff position: both contestants advance. Heat assignments adjust automatically.</p>'
+      + '</div></div>';
+  }
+
+  // Contestant roster
+  out += '<div class="card"><div class="card-hdr">Contestants — ' + S.contestants.length + ' entered</div><div class="card-body">';
+  if (!S.scheduleLocked) {
+    out += '<div class="ir"><input id="c-inp" type="text" placeholder="Contestant name…" style="width:auto"/>'
+      + '<button class="btn-p" id="c-add"' + (atCap ? ' disabled' : '') + '>Add</button></div>';
+    if (atCap) {
+      out += '<p class="hint" style="margin-top:.5rem;color:var(--am)">Community plan: up to 8 contestants. Upgrade for unlimited.</p>';
+    }
+  }
+  if (S.contestants.length) {
+    out += '<div class="p-list">' + S.contestants.map((c, i) =>
+      '<div class="p-item"><span class="p-seed">' + (i + 1) + '</span>'
+      + '<span class="p-name">' + esc(c.name) + '</span>'
+      + (!S.scheduleLocked ? '<button class="p-rm" data-crm="' + c.id + '">×</button>' : '')
+      + '</div>'
+    ).join('') + '</div>';
+  } else {
+    out += '<p class="hint" style="margin-top:.75rem">No contestants yet.</p>';
+  }
+  out += '</div></div>';
+
+  // Generate heats
+  if (!S.scheduleLocked || !hasPrelimHeats) {
+    out += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
+      + '<button class="btn-p" id="gen-heats"' + (!canGen ? ' disabled' : '') + '>▶ Generate heats</button>'
+      + '<span class="hint">' + (canGen
+        ? partitionField(S.contestants.length).join('+') + ' (heat sizes from ' + S.contestants.length + ' contestants)'
+        : 'Add at least 2 contestants to generate heats.')
+      + '</span></div>';
+  } else {
+    out += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
+      + '<span style="font-size:13px;font-weight:600;color:var(--gn)">✓ Heats locked. First heat has been confirmed.</span></div>';
+  }
+
+  // Demo card
+  out += '<div class="demo-card">'
+    + '<div><div class="demo-card-title">🎮 Demo mode</div>'
+    + '<p class="hint">7 contestants · Prelims complete · Semis in progress (scoring entry active)</p></div>'
+    + '<button style="padding:7px 16px;border-radius:var(--rad-s);border:1.5px solid #C4B5FD;background:#6D28D9;color:#fff;font-size:12px;font-weight:700;cursor:pointer" id="load-demo">Load Demo</button>'
+    + '</div>';
+
+  return out;
+}
+
+/* ── Heats tab (any stage) ── */
+function rStageHeats(stage) {
+  const stageHeats = S.heats.filter(h => h.stage === stage);
+  const stageLabel = stage.charAt(0).toUpperCase() + stage.slice(1);
+
+  if (!stageHeats.length) {
+    return '<div class="empty">No heats generated yet for ' + stageLabel + '.</div>';
+  }
+
+  const allDone = stageHeats.every(h => h.done);
+  const unlockRegen = stage === 'prelims' && !S.scheduleLocked;
+
+  let out = '';
+  if (unlockRegen) {
+    out += '<div style="display:flex;justify-content:flex-end;margin-bottom:.5rem">'
+      + '<button class="btn-sm btn-am" id="regen-heats">↺ Regenerate heats</button></div>';
+  }
+
+  for (const heat of stageHeats) {
+    out += rHeatCard(heat);
+  }
+
+  // Advancement panel — show when all done and there is a next stage
+  const stageLeadsOnward = stage !== 'finals' && (stage !== 'prelims' || S.stages !== 'prelims');
+  if (allDone && stageLeadsOnward) {
+    const nextStage = stage === 'prelims'
+      ? (S.stages === 'prelims+finals' ? 'finals' : 'semis')
+      : 'finals';
+    const alreadyAdvanced = S.heats.some(h => h.stage === nextStage);
+    if (!alreadyAdvanced) {
+      out += rAdvancementPanel(stage, nextStage);
+    }
+  }
+
+  // Final results banner
+  if (allDone && stage === 'finals') {
+    out += rChampionBanner();
+  }
+
+  return out;
+}
+
+function rHeatCard(heat) {
+  const status = heatStatus(heat);
+  const names = heat.contestantIds.map(id => esc(getName(id))).join(', ');
+  const isActive = S.activeHeatId === heat.id;
+  const canStart = !S.activeHeatId && status === 'pending';
+
+  let out = '<div class="heat-card ' + status + '">'
+    + '<div class="heat-hdr">'
+    + '<span class="heat-title">Heat ' + heat.heatNum + ' · ' + heat.contestantIds.length + ' contestants</span>'
+    + '<span class="heat-badge ' + status + '">'
+    + (status === 'pending' ? 'Pending' : status === 'timing' ? 'Timing' : status === 'scoring' ? 'Enter scores' : 'Confirmed')
+    + '</span>'
+    + (status === 'done' ? '<button class="btn-sm btn-o" data-edit-heat="' + heat.id + '" style="margin-left:8px">Edit</button>' : '')
+    + '</div>'
+    + '<div class="heat-names">' + names + '</div>';
+
+  if (status === 'pending') {
+    out += '<div class="heat-foot">'
+      + '<button class="btn-p" data-start-heat="' + heat.id + '"' + (!canStart ? ' disabled' : '') + '>▶ Start heat</button>'
+      + (!canStart && S.activeHeatId && S.activeHeatId !== heat.id ? '<span class="hint" style="margin-left:.5rem">Another heat is active.</span>' : '')
+      + '</div>';
+  } else if (status === 'timing' && isActive) {
+    out += rTimerSurface(heat);
+  } else if (status === 'scoring' && isActive) {
+    out += rScoringSurface(heat);
+  } else if (status === 'done') {
+    out += rDoneSummary(heat);
+  }
+
+  out += '</div>';
+  return out;
+}
+
+function rTimerSurface(heat) {
+  const elapsed = heat.masterStartedAt ? Math.floor((Date.now() - heat.masterStartedAt) / 1000) : 0;
+  const remaining = Math.max(0, heat.durationSecs - elapsed);
+
+  let out = '<div class="ht-surface">'
+    + '<div class="ht-master">'
+    + '<div class="ht-master-label">Time remaining</div>'
+    + '<div class="ht-master-display' + (remaining <= 60 ? ' warning' : '') + '" id="ht-master-display">' + fmtSecs(remaining) + '</div>'
+    + '</div>'
+    + '<div class="ht-stop-grid">';
+
+  for (const id of heat.contestantIds) {
+    const t = heat.timings[id];
+    const stopped = t && t.elapsedSecs !== null && !t.maxed;
+    const maxed = t && t.maxed;
+    const cls = stopped ? 'stopped' : maxed ? 'maxed' : '';
+    const subText = stopped ? fmtSecs(t.elapsedSecs) : maxed ? 'Max time' : 'Tap to stop';
+
+    out += '<button class="ht-stop-btn ' + cls + '" data-stop-contestant="' + id + '" data-heat-id="' + heat.id + '"'
+      + ((stopped || maxed) ? ' disabled' : '')
+      + '><div class="ht-stop-btn-name">' + esc(getName(id)) + '</div>'
+      + '<div class="ht-stop-btn-sub">' + subText + '</div></button>';
+  }
+
+  out += '</div></div>';
+  return out;
+}
+
+function rScoringSurface(heat) {
+  const allHaveEntry = heat.contestantIds.every(id => {
+    const r = heat.results[id];
+    return r && r.trioResults.some(t => t !== null);
+  });
+
+  let out = '<div class="sc-surface">';
+
+  for (const id of heat.contestantIds) {
+    const t = heat.timings[id];
+    const r = heat.results[id] || { trioResults: new Array(heat.trioCount).fill(null), correct: 0 };
+    const timeStr = t ? (t.maxed ? 'Max time' : fmtSecs(t.elapsedSecs)) : '—';
+
+    out += '<div class="sc-contestant">'
+      + '<div class="sc-contestant-hdr">'
+      + '<span class="sc-contestant-name">' + esc(getName(id)) + '</span>'
+      + '<span class="sc-time-badge' + (t && t.maxed ? ' maxed' : '') + '">' + timeStr + '</span>'
+      + '</div>'
+      + '<div class="sc-trio-row">'
+      + '<span class="sc-trio-label">Trios</span>';
+
+    for (let i = 0; i < heat.trioCount; i++) {
+      const val = r.trioResults[i];
+      const cls = val === true ? 'correct' : val === false ? 'incorrect' : '';
+      const symbol = val === true ? '✓' : val === false ? '✗' : String(i + 1);
+      out += '<button class="sc-trio-btn ' + cls + '" data-trio="' + i + '" data-cid="' + id + '" data-heat-id="' + heat.id + '">' + symbol + '</button>';
+    }
+
+    out += '</div><div class="sc-correct-tally">' + r.correct + ' / ' + heat.trioCount + ' correct</div>'
+      + '</div>';
+  }
+
+  out += '<div style="margin-top:.75rem">'
+    + '<button class="btn-p" id="confirm-heat-' + heat.id + '"' + (!allHaveEntry ? ' disabled' : '') + '>✓ Confirm results</button>'
+    + (!allHaveEntry ? '<span class="hint" style="margin-left:.75rem">Enter at least one trio per contestant to confirm.</span>' : '')
+    + '</div>'
+    + '</div>';
+
+  return out;
+}
+
+function rDoneSummary(heat) {
+  const resolved = resolveHeat(heat);
+  const rows = heat.contestantIds
+    .map(id => ({ id, ...resolved[id] }))
+    .sort((a, b) => b.correct - a.correct || a.time - b.time);
+
+  let out = '<div style="padding:.6rem 1rem;border-top:1px solid var(--border2)">';
+  for (const row of rows) {
+    out += '<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px">'
+      + '<span style="font-weight:700;color:var(--txt)">' + esc(getName(row.id)) + '</span>'
+      + '<span style="color:var(--gn);font-weight:700">' + row.correct + '/' + heat.trioCount + '</span>'
+      + '<span style="color:var(--txt3)">' + fmtSecs(row.time) + (row.maxed ? ' (max)' : '') + '</span>'
+      + '</div>';
+  }
+  out += '</div>';
+  return out;
+}
+
+function rAdvancementPanel(stage, nextStage) {
+  const standings = calcStandings(stage);
+  const { advIds, tieAtCutoff } = computeAdvancement(stage);
+  const nextLabel = nextStage.charAt(0).toUpperCase() + nextStage.slice(1);
+
+  let out = '<div class="adv-panel">'
+    + '<div class="adv-panel-title">Advancement to ' + nextLabel + '</div>';
+
+  if (tieAtCutoff) {
+    out += '<div class="adv-tie-warn">⚠ Tie at the cutoff position — ' + advIds.length + ' contestants advance instead of the configured cutoff. Confirm to proceed.</div>';
+  }
+
+  out += '<p style="font-size:13px;margin-bottom:.75rem">'
+    + advIds.map(id => '<strong>' + esc(getName(id)) + '</strong>').join(', ')
+    + ' (' + advIds.length + ' contestant' + (advIds.length !== 1 ? 's' : '') + ' advancing)</p>'
+    + '<button class="btn-gn btn-sm" id="confirm-adv-' + stage + '">✓ Confirm advancement → ' + nextLabel + '</button>'
+    + '</div>';
+
+  return out;
+}
+
+function rChampionBanner() {
+  const standings = calcStandings('finals');
+  if (!standings.length) return '';
+  const champ = standings[0];
+
+  return '<div class="champion-banner">'
+    + '<div class="champion-eyebrow">🏆 Cup Taster Champion</div>'
+    + '<div class="champion-name">' + esc(getName(champ.cid)) + '</div>'
+    + '<div class="champion-stats">' + champ.correct + '/' + (S.triosPerStage.finals || 7) + ' correct · ' + fmtSecs(champ.time) + '</div>'
+    + '</div>';
+}
+
+/* ── Standings tab ── */
+function rStandings() {
+  // Determine active stage for standings display
+  const hasFinalsHeats = S.heats.some(h => h.stage === 'finals');
+  const hasSemisHeats = S.heats.some(h => h.stage === 'semis');
+  const activeStage = hasFinalsHeats ? 'finals' : hasSemisHeats ? 'semis' : 'prelims';
+
+  const allStages = ['prelims'];
+  if (hasSemisHeats) allStages.push('semis');
+  if (hasFinalsHeats) allStages.push('finals');
+
+  let out = '';
+
+  for (const stage of allStages) {
+    const stageLabel = stage.charAt(0).toUpperCase() + stage.slice(1);
+    const stageHeats = S.heats.filter(h => h.stage === stage);
+    const completedHeats = stageHeats.filter(h => h.done);
+    if (!completedHeats.length) continue;
+
+    const standings = calcStandings(stage);
+    const ranked = rankStandings(standings);
+    const trioCount = S.triosPerStage[stage] || 5;
+
+    // Positions that appear more than once are tied
+    const posCounts = {};
+    for (const row of ranked) posCounts[row._pos] = (posCounts[row._pos] || 0) + 1;
+    const tiedPos = new Set(Object.keys(posCounts).filter(p => posCounts[p] > 1).map(Number));
+
+    // Advancement state (only meaningful when stage has a next stage)
+    const hasNextStage = stage !== 'finals' && S.stages !== 'prelims';
+    const nextStage = stage === 'prelims'
+      ? (S.stages === 'prelims+finals' ? 'finals' : 'semis')
+      : 'finals';
+    const alreadyAdvanced = hasNextStage && S.heats.some(h => h.stage === nextStage);
+    const { advIds, tieAtCutoff } = hasNextStage && !alreadyAdvanced
+      ? computeAdvancement(stage)
+      : { advIds: [], tieAtCutoff: false };
+
+    out += '<div class="card"><div class="card-hdr">' + stageLabel + ' Standings'
+      + ' <span style="font-weight:400;letter-spacing:0;text-transform:none;font-size:10px">(' + completedHeats.length + '/' + stageHeats.length + ' heats confirmed)</span>'
+      + '</div><div class="card-body" style="padding:0">'
+      + '<table class="stnds-table"><thead><tr>'
+      + '<th style="width:36px">Pos</th><th>Contestant</th><th>Correct</th><th>Time</th>'
+      + '</tr></thead><tbody>';
+
+    for (const row of ranked) {
+      const isAdv = !alreadyAdvanced && advIds.includes(row.cid);
+      const isTied = tiedPos.has(row._pos);
+      const isTieAtCut = tieAtCutoff && isAdv;
+
+      out += '<tr class="' + (isAdv ? (isTieAtCut ? 'tie-cut' : 'adv') : '') + '">'
+        + '<td><span class="pos-num">' + row._pos + '</span></td>'
+        + '<td>' + esc(getName(row.cid)) + (isTied ? '<span class="tie-flag">⚠ Tie</span>' : '') + '</td>'
+        + '<td style="font-weight:700">' + row.correct + '/' + trioCount + '</td>'
+        + '<td style="color:var(--txt3)">' + fmtSecs(row.time) + (row.maxed ? ' <span class="hint">(max)</span>' : '') + '</td>'
+        + '</tr>';
+    }
+
+    out += '</tbody></table></div></div>';
+
+    // Advancement panel
+    if (stageHeats.length && stageHeats.every(h => h.done) && stage !== 'finals' && S.stages !== 'prelims' && !alreadyAdvanced) {
+      out += rAdvancementPanel(stage, nextStage);
+    }
+  }
+
+  if (!out) {
+    out = '<div class="empty">Confirm heats to see standings.</div>';
+  }
+
+  return out;
+}
+
+/* ── Report tab ── */
+function rReport() {
+  const reportAccess = Gates.canAccess('cup_taster_report');
+  if (!reportAccess.allowed) {
+    return '<div class="upgrade-prompt">'
+      + '<div class="upgrade-prompt-title">Report &amp; Analytics</div>'
+      + '<p class="hint">Upgrade your plan to access the full event report, per-contestant breakdowns, and trio difficulty analytics.</p>'
+      + '</div>';
+  }
+
+  const hasAnyData = S.heats.some(h => h.done);
+  if (!hasAnyData) {
+    return '<div class="empty">Complete at least one heat to see the report.</div>';
+  }
+
+  let out = '';
+
+  // Champion
+  const hasFinalsData = S.heats.some(h => h.stage === 'finals' && h.done);
+  if (hasFinalsData) {
+    out += rChampionBanner();
+  }
+
+  // Analytics D — Event summary
+  const allDoneHeats = S.heats.filter(h => h.done);
+  const totalContestants = S.contestants.length;
+  let totalCorrect = 0, totalAttempts = 0;
+
+  for (const heat of allDoneHeats) {
+    const resolved = resolveHeat(heat);
+    for (const res of Object.values(resolved)) {
+      totalCorrect += res.correct;
+      totalAttempts += heat.trioCount;
+    }
+  }
+
+  const overallRate = totalAttempts > 0 ? Math.round(100 * totalCorrect / totalAttempts) : 0;
+  const stagesRun = [...new Set(allDoneHeats.map(h => h.stage))];
+
+  out += '<div class="card"><div class="card-hdr">Event summary</div><div class="card-body">'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1rem">'
+    + '<div style="text-align:center"><div style="font-size:28px;font-weight:900;color:var(--am)">' + totalContestants + '</div><div class="hint">Contestants</div></div>'
+    + '<div style="text-align:center"><div style="font-size:28px;font-weight:900;color:var(--am)">' + stagesRun.length + '</div><div class="hint">Stage' + (stagesRun.length !== 1 ? 's' : '') + ' run</div></div>'
+    + '<div style="text-align:center"><div style="font-size:28px;font-weight:900;color:var(--am)">' + overallRate + '%</div><div class="hint">Identification rate</div></div>'
+    + '<div style="text-align:center"><div style="font-size:28px;font-weight:900;color:var(--am)">' + allDoneHeats.length + '</div><div class="hint">Heats completed</div></div>'
+    + '</div></div></div>';
+
+  // Analytics A — Per-contestant breakdown
+  const analyticsAccess = Gates.canAccess('cup_taster_analytics');
+  if (analyticsAccess.allowed) {
+    const analyticsStages = ['prelims','semis','finals'].filter(st => S.heats.some(h => h.stage === st && h.done));
+
+    out += '<div class="card"><div class="card-hdr">Per-contestant breakdown</div><div class="card-body" style="padding:0">'
+      + '<table class="analytics-table"><thead><tr>'
+      + '<th>Contestant</th>'
+      + analyticsStages.map(st => '<th>' + st.charAt(0).toUpperCase() + st.slice(1) + '</th>').join('')
+      + '</tr></thead><tbody>';
+
+    for (const contestant of S.contestants) {
+      const cid = contestant.id;
+      out += '<tr><td style="font-weight:700">' + esc(contestant.name) + '</td>';
+
+      for (const stage of analyticsStages) {
+        const heat = S.heats.find(h => h.stage === stage && h.done && h.contestantIds.includes(cid));
+        if (!heat) {
+          out += '<td style="color:var(--txt3)">—</td>';
+          continue;
+        }
+        const r = heat.results[cid] || { trioResults: [], correct: 0 };
+        const t = heat.timings[cid] || { elapsedSecs: null, maxed: false };
+        out += '<td>' + r.correct + '/' + heat.trioCount
+          + ' <span style="color:var(--txt3);font-size:10px">' + (t.maxed ? 'max' : fmtSecs(t.elapsedSecs)) + '</span></td>';
+      }
+
+      out += '</tr>';
+    }
+
+    out += '</tbody></table></div></div>';
+
+    // Analytics B — Per-trio difficulty
+    for (const stage of ['prelims','semis','finals']) {
+      const stageHeatsDone = S.heats.filter(h => h.stage === stage && h.done);
+      if (!stageHeatsDone.length) continue;
+
+      const trioCount = S.triosPerStage[stage] || 5;
+      const stageLabel = stage.charAt(0).toUpperCase() + stage.slice(1);
+
+      // Collect per-trio correct counts across all heats in stage
+      const trioCounts = new Array(trioCount).fill(0);
+      const trioAttempts = new Array(trioCount).fill(0);
+
+      for (const heat of stageHeatsDone) {
+        for (const id of heat.contestantIds) {
+          const r = heat.results[id];
+          if (!r) continue;
+          for (let i = 0; i < heat.trioCount && i < trioCount; i++) {
+            if (r.trioResults[i] !== null) {
+              trioAttempts[i]++;
+              if (r.trioResults[i] === true) trioCounts[i]++;
+            }
+          }
+        }
+      }
+
+      const trioRows = trioCounts.map((c, i) => ({
+        idx: i, correct: c,
+        attempts: trioAttempts[i],
+        pct: trioAttempts[i] > 0 ? Math.round(100 * c / trioAttempts[i]) : 0,
+      })).sort((a, b) => b.pct - a.pct);
+
+      out += '<div class="card"><div class="card-hdr">' + stageLabel + ' — trio difficulty</div><div class="card-body" style="padding:0">'
+        + '<table class="analytics-table"><thead><tr>'
+        + '<th>Trio</th><th>Correct</th><th>Contestants</th><th>Identification rate</th>'
+        + '</tr></thead><tbody>';
+
+      for (const row of trioRows) {
+        out += '<tr>'
+          + '<td style="font-weight:700;font-family:var(--font-mono)">Trio ' + (row.idx + 1) + '</td>'
+          + '<td>' + row.correct + '</td>'
+          + '<td>' + row.attempts + '</td>'
+          + '<td><span class="diff-bar" style="width:' + row.pct + 'px;max-width:100px"></span> ' + row.pct + '%</td>'
+          + '</tr>';
+      }
+
+      out += '</tbody></table></div></div>';
+    }
+  } else {
+    out += '<div class="upgrade-prompt">'
+      + '<div class="upgrade-prompt-title">Per-contestant &amp; trio analytics</div>'
+      + '<p class="hint">Upgrade to per-event plan to unlock contestant breakdowns and trio difficulty tracking.</p>'
+      + '</div>';
+  }
+
+  // CSV export
+  out += '<div style="margin-top:.5rem">'
+    + '<button class="btn-sm btn-am" id="csv-export">⬇ Export CSV</button>'
+    + '<span class="hint" style="margin-left:.75rem">Standings (all stages) + trio difficulty</span>'
+    + '</div>';
+
+  return out;
+}
+
+/* ════════ Audience ════════ */
+function rAudienceLbHTML() {
+  const hasFinalsData = S.heats.some(h => h.stage === 'finals' && h.done);
+  const hasSemisData  = S.heats.some(h => h.stage === 'semis'  && h.done);
+  const stage = hasFinalsData ? 'finals' : hasSemisData ? 'semis' : 'prelims';
+  const standings = calcStandings(stage);
+  if (!standings.length) return '<div style="color:#8a7f73;font-size:13px">No scores yet.</div>';
+
+  const stageLabel = stage.charAt(0).toUpperCase() + stage.slice(1);
+  const trioCount = S.triosPerStage[stage] || 5;
+  const ranked = rankStandings(standings);
+
+  let html = '<div style="font-family:system-ui,sans-serif;font-size:11px;font-weight:700;color:#8a7f73;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">' + stageLabel + '</div>'
+    + '<table style="width:100%;border-collapse:collapse">';
+
+  for (const row of ranked) {
+    const isFirst = row._pos === 1;
+    const nameColor = isFirst ? '#0b7a52' : '#211a14';
+    const ptColor   = isFirst ? '#0b7a52' : '#b45309';
+    html += '<tr>'
+      + '<td style="padding:4px 6px;font-size:12px;font-weight:700;color:#8a7f73;width:24px">' + row._pos + '</td>'
+      + '<td style="padding:4px 6px;font-size:14px;font-weight:700;color:' + nameColor + '">' + esc(getName(row.cid)) + '</td>'
+      + '<td style="padding:4px 6px;font-size:14px;font-weight:900;color:' + ptColor + ';text-align:right">' + row.correct + '/' + trioCount + '</td>'
+      + '<td style="padding:4px 6px;font-size:11px;color:#8a7f73;text-align:right">' + fmtSecs(row.time) + '</td>'
+      + '</tr>';
+  }
+
+  return html + '</table>';
+}
+
+function rAudienceHeatHTML() {
+  const activeHeat = S.activeHeatId ? S.heats.find(h => h.id === S.activeHeatId) : null;
+  const recentDone = S.heats.filter(h => h.done).slice(-3);
+
+  let html = '';
+
+  if (activeHeat) {
+    const status = heatStatus(activeHeat);
+    const stageLabel = activeHeat.stage.charAt(0).toUpperCase() + activeHeat.stage.slice(1);
+    const statusLabel = status === 'timing' ? 'Timing…' : 'Scoring…';
+    html += '<div style="font-family:system-ui,sans-serif;margin-bottom:12px">'
+      + '<div style="font-size:11px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">'
+      + stageLabel + ' · Heat ' + activeHeat.heatNum + ' — ' + statusLabel
+      + '</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+    for (const id of activeHeat.contestantIds) {
+      const t = activeHeat.timings[id];
+      const stopped = t && t.elapsedSecs !== null;
+      const bg = stopped ? '#e6f6ee' : '#faf7f1';
+      const border = stopped ? '#8fd9b8' : '#efe9de';
+      html += '<div style="padding:5px 10px;border-radius:6px;border:1.5px solid ' + border + ';background:' + bg + ';font-size:13px;font-weight:700;color:#211a14">'
+        + esc(getName(id)) + (stopped && !t.maxed ? '<span style="font-size:10px;color:#0b7a52;font-weight:600;margin-left:5px">✓</span>' : '')
+        + (t && t.maxed ? '<span style="font-size:10px;color:#8a7f73;font-weight:600;margin-left:5px">max</span>' : '')
+        + '</div>';
+    }
+    html += '</div></div>';
+  }
+
+  if (recentDone.length) {
+    html += '<div style="font-family:system-ui,sans-serif;font-size:11px;font-weight:700;color:#8a7f73;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Recent results</div>';
+    for (const heat of recentDone.slice().reverse()) {
+      const resolved = resolveHeat(heat);
+      const rows = heat.contestantIds.map(id => ({ id, ...resolved[id] })).sort((a,b)=>b.correct-a.correct||a.time-b.time);
+      const stageLabel = heat.stage.charAt(0).toUpperCase() + heat.stage.slice(1);
+      html += '<div style="margin-bottom:8px">'
+        + '<div style="font-size:10px;font-weight:700;color:#8a7f73;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">' + stageLabel + ' · Heat ' + heat.heatNum + '</div>';
+      for (const row of rows) {
+        html += '<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:13px">'
+          + '<span style="font-weight:700;color:#211a14">' + esc(getName(row.id)) + '</span>'
+          + '<span style="font-weight:700;color:#0b7a52">' + row.correct + '/' + heat.trioCount + '</span>'
+          + '<span style="color:#8a7f73;font-size:11px">' + fmtSecs(row.time) + (row.maxed ? ' (max)' : '') + '</span>'
+          + '</div>';
+      }
+      html += '</div>';
+    }
+  }
+
+  if (!html) html = '<div style="color:#8a7f73;font-size:13px">No heats started yet.</div>';
+  return html;
+}
+
+function showAudience() {
+  const enhanced = Gates.canAccess('audience_enhanced').allowed;
+  const activeHeat = S.activeHeatId ? S.heats.find(h => h.id === S.activeHeatId) : null;
+  const stageLabel = activeHeat
+    ? (activeHeat.stage.charAt(0).toUpperCase() + activeHeat.stage.slice(1)) + ' · Heat ' + activeHeat.heatNum
+    : (S.heats.some(h=>h.done) ? 'Standings' : 'Cup Taster');
+
+  Audience.show({
+    title: S.eventName || 'Cup Taster',
+    moduleTag: stageLabel,
+    lbHTML: enhanced ? rAudienceLbHTML() : null,
+    histHTML: rAudienceHeatHTML(),
+  });
+}
+
+/* ════════ CSV export ════════ */
+function exportCSV() {
+  let csv = '﻿'; // BOM for Excel
+
+  // Standings per stage
+  for (const stage of ['prelims','semis','finals']) {
+    const standings = calcStandings(stage);
+    if (!standings.length) continue;
+    const stageLabel = stage.charAt(0).toUpperCase() + stage.slice(1);
+    const trioCount = S.triosPerStage[stage] || 5;
+    csv += stageLabel + ' Standings\n';
+    csv += 'Position,Contestant,Correct,Time\n';
+    const ranked = rankStandings(standings);
+    for (const row of ranked) {
+      csv += row._pos + ',' + getName(row.cid) + ',' + row.correct + '/' + trioCount + ',' + fmtSecs(row.time) + '\n';
+    }
+    csv += '\n';
+  }
+
+  // Trio difficulty
+  for (const stage of ['prelims','semis','finals']) {
+    const stageHeatsDone = S.heats.filter(h => h.stage === stage && h.done);
+    if (!stageHeatsDone.length) continue;
+    const stageLabel = stage.charAt(0).toUpperCase() + stage.slice(1);
+    const trioCount = S.triosPerStage[stage] || 5;
+    const trioCounts = new Array(trioCount).fill(0);
+    const trioAttempts = new Array(trioCount).fill(0);
+    for (const heat of stageHeatsDone) {
+      for (const id of heat.contestantIds) {
+        const r = heat.results[id];
+        if (!r) continue;
+        for (let i = 0; i < heat.trioCount; i++) {
+          if (r.trioResults[i] !== null) {
+            trioAttempts[i]++;
+            if (r.trioResults[i] === true) trioCounts[i]++;
+          }
+        }
+      }
+    }
+    csv += stageLabel + ' Trio Difficulty\n';
+    csv += 'Trio,Correct,Contestants,Rate%\n';
+    for (let i = 0; i < trioCount; i++) {
+      const pct = trioAttempts[i] > 0 ? Math.round(100 * trioCounts[i] / trioAttempts[i]) : 0;
+      csv += 'Trio ' + (i + 1) + ',' + trioCounts[i] + ',' + trioAttempts[i] + ',' + pct + '\n';
+    }
+    csv += '\n';
+  }
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (S.eventName || 'cup-taster').replace(/\s+/g,'-').toLowerCase() + '-report.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ════════ Demo ════════ */
+function buildCupTasterDemo() {
+  const now = Date.now();
+  const ago = t => now - t * 1000;
+
+  // Prelims Heat 1 — 4 contestants, done
+  // Cyrus maxed (timeout), Amir perfect score
+  const h0 = {
+    id: 'h0', stage: 'prelims', heatNum: 1,
+    contestantIds: ['0','1','2','3'],
+    trioCount: 5, durationSecs: 480,
+    masterStartedAt: ago(1800),
+    timings: {
+      '0': { elapsedSecs: 245, maxed: false },
+      '1': { elapsedSecs: 380, maxed: false },
+      '2': { elapsedSecs: 480, maxed: true },
+      '3': { elapsedSecs: 310, maxed: false },
+    },
+    results: {
+      '0': { trioResults: [true,true,true,true,true], correct: 5 },
+      '1': { trioResults: [true,false,true,false,true], correct: 3 },
+      '2': { trioResults: [false,true,false,true,false], correct: 2 },
+      '3': { trioResults: [true,true,false,true,true], correct: 4 },
+    },
+    done: true, masterElapsedSecs: 380,
+  };
+
+  // Prelims Heat 2 — 3 contestants, done
+  // Faris and Greta tie on correct AND time — triggers tie flag
+  const h1 = {
+    id: 'h1', stage: 'prelims', heatNum: 2,
+    contestantIds: ['4','5','6'],
+    trioCount: 5, durationSecs: 480,
+    masterStartedAt: ago(1500),
+    timings: {
+      '4': { elapsedSecs: 295, maxed: false },
+      '5': { elapsedSecs: 340, maxed: false },
+      '6': { elapsedSecs: 340, maxed: false },
+    },
+    results: {
+      '4': { trioResults: [true,true,false,true,true], correct: 4 },
+      '5': { trioResults: [true,false,true,false,true], correct: 3 },
+      '6': { trioResults: [false,true,true,false,true], correct: 3 },
+    },
+    done: true, masterElapsedSecs: 340,
+  };
+
+  // Semis Heat 1 — 4 contestants, done
+  // All 7 advance (N < semis cutoff of 8, so no cutoff decision needed)
+  const h2 = {
+    id: 'h2', stage: 'semis', heatNum: 1,
+    contestantIds: ['0','3','4','1'],
+    trioCount: 7, durationSecs: 480,
+    masterStartedAt: ago(900),
+    timings: {
+      '0': { elapsedSecs: 285, maxed: false },
+      '3': { elapsedSecs: 350, maxed: false },
+      '4': { elapsedSecs: 400, maxed: false },
+      '1': { elapsedSecs: 420, maxed: false },
+    },
+    results: {
+      '0': { trioResults: [true,true,false,true,true,true,true], correct: 6 },
+      '3': { trioResults: [true,false,true,true,false,true,true], correct: 5 },
+      '4': { trioResults: [true,true,true,false,false,true,false], correct: 4 },
+      '1': { trioResults: [false,true,false,false,true,true,false], correct: 3 },
+    },
+    done: true, masterElapsedSecs: 420,
+  };
+
+  // Semis Heat 2 — 3 contestants, SCORING MODE (timing done, results not confirmed)
+  // Greta maxed. Results partially entered — this is the active scoring surface.
+  const h3 = {
+    id: 'h3', stage: 'semis', heatNum: 2,
+    contestantIds: ['2','5','6'],
+    trioCount: 7, durationSecs: 480,
+    masterStartedAt: ago(600),
+    timings: {
+      '2': { elapsedSecs: 390, maxed: false },
+      '5': { elapsedSecs: 310, maxed: false },
+      '6': { elapsedSecs: 480, maxed: true },
+    },
+    results: {
+      '2': { trioResults: [true,false,true,null,null,true,null], correct: 3 },
+      '5': { trioResults: [true,true,false,true,null,null,true], correct: 4 },
+      '6': { trioResults: [false,true,null,null,null,null,null], correct: 1 },
+    },
+    done: false, masterElapsedSecs: 480,
+  };
+
+  return {
+    eventName: 'Cup Taster Demo',
+    eventDate: '23 June 2026',
+    eventVenue: 'Grey Matter Coffee Werks',
+    contestants: [
+      { id:'0', name:'Amir' }, { id:'1', name:'Bella' }, { id:'2', name:'Cyrus' },
+      { id:'3', name:'Dana' }, { id:'4', name:'Elena' }, { id:'5', name:'Faris' },
+      { id:'6', name:'Greta' },
+    ],
+    stages: 'prelims+semis+finals',
+    triosPerStage: { prelims: 5, semis: 7, finals: 7 },
+    durationSecs: 480,
+    cutoffs: { semis: 8, finals: 4 },
+    scheduleLocked: true,
+    heats: [h0, h1, h2, h3],
+    tab: 'semis',
+    activeHeatId: 'h3',
+  };
+}
+
+function loadCupTasterDemo() {
+  if (S.heats.length || S.contestants.length) {
+    if (!confirm('Load the Cup Taster demo? Your current data will be replaced.')) return;
+  }
+  const d = buildCupTasterDemo();
+  S = { ...DEFAULT_STATE(), ...d };
+  hid = 10;
+  cid = 10;
+  clearInterval(heatTimerInterval);
+  heatTimerInterval = null;
+  save();
+  render();
+}
+
+/* ════════ Bind ════════ */
+function bind() {
+  Timer.init();
+  Audience.init();
+
+  on('tmrbtn', 'click', () => Timer.open());
+  on('audbtn', 'click', showAudience);
+  on('savejsonbtn', 'click', exportJSON);
+  on('loadjsonbtn', 'click', () => $('json-file-input').click());
+  on('json-file-input', 'change', e => { if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value=''; });
+  on('demobtn', 'click', loadCupTasterDemo);
+  on('load-demo', 'click', loadCupTasterDemo);
+  on('resetbtn', 'click', () => {
+    if (confirm('Reset all Cup Taster data? This cannot be undone.')) {
+      STORE.clear();
+      clearInterval(heatTimerInterval);
+      heatTimerInterval = null;
+      hid = 0; cid = 0;
+      S = DEFAULT_STATE();
+      render();
+    }
+  });
+
+  // Tabs
+  document.querySelectorAll('[data-tab]').forEach(btn =>
+    btn.addEventListener('click', () => { S.tab = btn.dataset.tab; render(); })
+  );
+
+  // Setup: event info
+  on('ev-name',  'input', () => { S.eventName  = $('ev-name').value;  save(); });
+  on('ev-date',  'input', () => { S.eventDate  = $('ev-date').value;  save(); });
+  on('ev-venue', 'input', () => { S.eventVenue = $('ev-venue').value; save(); });
+
+  // Stage radios
+  document.querySelectorAll('[name="stages"]').forEach(r =>
+    r.addEventListener('change', () => { if (!S.scheduleLocked) { S.stages = r.value; save(); render(); } })
+  );
+
+  // Trios per stage
+  for (const st of ['prelims','semis','finals']) {
+    on('trios-' + st, 'change', () => {
+      const v = parseInt($('trios-' + st)?.value, 10);
+      if (v >= 3) { S.triosPerStage[st] = v; save(); }
+    });
+  }
+
+  // Duration
+  on('duration-mins', 'change', () => {
+    const v = parseInt($('duration-mins')?.value, 10);
+    if (v >= 1) { S.durationSecs = v * 60; save(); }
+  });
+
+  // Cutoffs
+  on('cutoff-semis', 'change', () => {
+    const v = parseInt($('cutoff-semis')?.value, 10);
+    if (v >= 2) { S.cutoffs.semis = v; save(); }
+  });
+  on('cutoff-finals', 'change', () => {
+    const v = parseInt($('cutoff-finals')?.value, 10);
+    if (v >= 2) { S.cutoffs.finals = v; save(); }
+  });
+
+  // Add contestant
+  const addContestant = () => {
+    const inp = $('c-inp'); if (!inp) return;
+    const name = inp.value.trim();
+    if (!name) return;
+    const unlimitedAccess = Gates.canAccess('cup_taster_unlimited');
+    if (!unlimitedAccess.allowed && S.contestants.length >= 8) return;
+    if (S.contestants.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+      inp.value = ''; return;
+    }
+    S.contestants.push({ id: String(cid++), name });
+    inp.value = '';
+    save(); render();
+  };
+  on('c-add', 'click', addContestant);
+  on('c-inp', 'keydown', e => e.key === 'Enter' && addContestant());
+
+  // Remove contestant
+  document.querySelectorAll('[data-crm]').forEach(btn =>
+    btn.addEventListener('click', () => {
+      S.contestants = S.contestants.filter(c => c.id !== btn.dataset.crm);
+      save(); render();
+    })
+  );
+
+  // Generate heats
+  on('gen-heats', 'click', () => {
+    if (S.contestants.length < 2) return;
+    generateStageHeats('prelims', S.contestants.map(c => c.id));
+    S.tab = 'heats';
+    save(); render();
+  });
+
+  // Regenerate heats
+  on('regen-heats', 'click', () => {
+    if (!confirm('Regenerate heat assignments? Contestant order will be reshuffled.')) return;
+    generateStageHeats('prelims', S.contestants.map(c => c.id));
+    save(); render();
+  });
+
+  // Start heat buttons
+  document.querySelectorAll('[data-start-heat]').forEach(btn =>
+    btn.addEventListener('click', () => startHeat(btn.dataset.startHeat))
+  );
+
+  // Stop contestant buttons
+  document.querySelectorAll('[data-stop-contestant]').forEach(btn =>
+    btn.addEventListener('click', () => stopContestant(btn.dataset.heatId, btn.dataset.stopContestant))
+  );
+
+  // Trio toggle buttons
+  document.querySelectorAll('[data-trio]').forEach(btn =>
+    btn.addEventListener('click', () => toggleTrio(btn.dataset.heatId, btn.dataset.cid, +btn.dataset.trio))
+  );
+
+  // Confirm heat
+  S.heats.forEach(heat => {
+    on('confirm-heat-' + heat.id, 'click', () => confirmHeat(heat.id));
+  });
+
+  // Edit heat (re-open scoring)
+  document.querySelectorAll('[data-edit-heat]').forEach(btn =>
+    btn.addEventListener('click', () => editHeat(btn.dataset.editHeat))
+  );
+
+  // Advancement buttons
+  for (const stage of ['prelims','semis']) {
+    on('confirm-adv-' + stage, 'click', () => confirmAdvancement(stage));
+  }
+
+  // CSV export
+  on('csv-export', 'click', exportCSV);
+
+  // Audience lb panel visibility
+  const enhanced = Gates.canAccess('audience_enhanced').allowed;
+  const lbPanel = $('aud-lb-panel');
+  if (lbPanel) lbPanel.style.display = enhanced ? '' : 'none';
+
+  // Heat timer — restart interval if active heat is still timing
+  clearInterval(heatTimerInterval);
+  heatTimerInterval = null;
+  if (S.activeHeatId) {
+    const activeHeat = S.heats.find(h => h.id === S.activeHeatId);
+    if (activeHeat && heatStatus(activeHeat) === 'timing') {
+      heatTimerInterval = setInterval(tickHeatTimer, 250);
+    }
+  }
+}
+
+init();
+</script>
+</body>
+</html>

@@ -2,6 +2,56 @@
 
 ---
 
+## [4.4.0] — Cup Taster module · June 2026
+
+### cup-taster/index.html (new module)
+- **Cup Taster** — blind trio sensory identification competition. Contestants taste
+  three cups (2 identical, 1 different origin or lot) per trio and identify the odd cup.
+- **Gate check** — `Gates.canAccess('cup_taster_module')` called before any UI renders;
+  "coming soon" placeholder shown if `allowed: false`. Module-level IIFE, render never
+  called unless gate passes.
+- **State:** `DEFAULT_STATE()` factory; storage key `seduh_cup_taster_v1`;
+  `_module:'cup_taster'` guard on JSON import.
+- **Heat partition algorithm** — `partitionField(N)`: `Math.ceil(N/4)` heats, distributed
+  as evenly as possible (4+4=8, 4+3=7, 3+3=6, etc.). Verified against the spec table.
+- **Local heat timer surface** — full-width master countdown + per-contestant stop buttons.
+  Shared `Timer.open()` NOT used for heat timing. `heatTimerInterval` survives re-renders;
+  restarted in `bind()` if active heat is still in timing mode. Timeout auto-maxes all
+  untapped contestants. Warning colour activates at ≤60 s remaining.
+- **Scoring entry** — trio toggle buttons (✓/✗, cycling true/false) per contestant.
+  Confirm active when every contestant has at least one trio entered. Edit link re-opens
+  confirmed heat for correction (times preserved, `done` cleared).
+- **`resolveHeat(heat)`** — pure function, single source of truth for all standings,
+  analytics, report, and audience views. Never stores derived data.
+- **`calcStandings(stage)`** — sorts by correct desc → time asc. `rankStandings()` assigns
+  shared positions to tied rows.
+- **Stage tabs** — dynamic: `Setup · Heats · Standings · [Semis] · [Finals] · Report`.
+  Semis and Finals tabs unlock progressively as heats are generated for those stages.
+- **Advancement** — `computeAdvancement()` includes all tied rows at the cutoff position.
+  Tied cutoff flagged with amber ⚠ badge. Confirmation generates next-stage heats and
+  switches to the new stage tab.
+- **Audience view** — `Audience.show()` with dual-panel (enhanced gate) or single-panel
+  (community). Inline hex throughout both `rAudienceLbHTML()` and `rAudienceHeatHTML()`.
+- **Gates checked:** `cup_taster_module` (module visibility), `cup_taster_analytics`
+  (per-contestant + per-trio breakdown), `cup_taster_report` (report tab),
+  `cup_taster_unlimited` (8-contestant cap), `audience_enhanced` (dual-panel audience).
+- **Report tab** — champion banner, event summary (identification rate, stages run),
+  per-contestant breakdown (Analytics A), per-trio difficulty ordered easy→hard (Analytics B),
+  CSV export (standings + difficulty). Gated behind `cup_taster_report`.
+- **Demo mode** — `buildCupTasterDemo()` / `loadCupTasterDemo()`. 7 contestants (Amir,
+  Bella, Cyrus, Dana, Elena, Faris, Greta). Prelims: 2 heats, all confirmed; Cyrus maxed
+  on time; Faris + Greta tie. All 7 advance to semis (N < cutoff). Semis Heat 1 confirmed;
+  Semis Heat 2 active in scoring entry mode with partial trio results.
+- **Conventions:** `Timer.init()` first line of `bind()`; `Audience.init()` in `bind()`;
+  no hardcoded hex in module CSS (audience overlay excepted); gate pattern hidden not
+  disabled; sentence case copy throughout.
+
+### index.html (dashboard)
+- Cup Taster card added: `live: false`, `href: 'cup-taster/index.html'`. Set to
+  `live: true` when `cup_taster_module` platform switch is confirmed on.
+
+---
+
 ## [4.3.2] — shared/gates.js stub · canAccess() API · feature registry · June 2026
 
 ### shared/gates.js (new file)
