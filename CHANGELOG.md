@@ -2,6 +2,16 @@
 
 ---
 
+## [4.4.4] — Module entry gate removal · June 2026
+
+### liga/index.html
+- **Remove module entry gate** — `Gates.canAccess('liga')` call was already absent (never added to this file). Liga Basic is free to enter for all users. Premium feature gates (`liga_unlimited`, `liga_device_tracking`, `liga_csv_export`) remain intact inside the module.
+
+### cup-taster/index.html
+- **Remove module entry gate** — removed `Gates.canAccess('cup_taster_module')` check from `init()` that rendered a "coming soon" placeholder and blocked render. Cup Taster Basic is now free to enter for all users. Internal feature gates (`cup_taster_unlimited`, `cup_taster_report`, `cup_taster_analytics`) remain intact.
+
+---
+
 ## [4.4.3] — gates.js cleanup · June 2026
 
 ### shared/gates.js

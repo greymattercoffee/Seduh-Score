@@ -191,17 +191,6 @@ let heatTimerInterval = null;
 
 /* ════════ Boot ════════ */
 function init() {
-  const moduleAccess = Gates.canAccess('cup_taster_module');
-  if (!moduleAccess.allowed) {
-    document.getElementById('app').innerHTML =
-      '<div class="gate-placeholder">'
-      + '<div class="gate-placeholder-icon">☕</div>'
-      + '<div class="gate-placeholder-title">Cup Taster</div>'
-      + '<div class="gate-placeholder-body">This module is coming soon. Check back after your next update.</div>'
-      + '<div style="margin-top:1.5rem"><a href="../index.html" class="plat-back">← Back to Seduh Score</a></div>'
-      + '</div>';
-    return;
-  }
   const d = STORE.load();
   if (d) {
     S = { ...DEFAULT_STATE(), ...d };
