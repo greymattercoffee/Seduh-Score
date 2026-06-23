@@ -2,6 +2,13 @@
 
 ---
 
+## [4.5.1] — Changelog cleanup · June 2026
+
+### CHANGELOG.md
+- **fix(changelog): Firebase milestone `v4.6` → `v4.7` in v4.3.2 stub-behaviour line; v4.5.0 entry completed** — missing `feat(theme)`, `fix(gates)`, and Firebase milestone items added.
+
+---
+
 ## [4.5.0] — Platform front door · Jerudong · June 2026
 
 ### index.html (replaced — dashboard launcher → platform front door)
@@ -13,6 +20,13 @@
 
 ### CONVENTIONS.md
 - **fix(conventions): Firebase Auth milestone corrected to v4.7** — Gates section comment previously said "v4.6"; corrected to "v4.7". v4.6 = custom domain + Firebase Hosting (still static); v4.7 = Firebase Auth + admin panel. Comment text only — no logic changed.
+
+### shared/theme.css
+- **feat(theme): `--surface-deep` token suite** — warm near-black palette addition for the org platform zone.
+
+### shared/gates.js
+- **fix(gates): remove `liga` + `cup_taster` module-access keys** — Option A free tier; module entry free for all tiers, only in-module premium features gated.
+- **fix: Firebase Auth milestone corrected to v4.7** — stub-behaviour comment in `gates.js` updated (`v4.6` → `v4.7`); also in CONVENTIONS.md and CHANGELOG v4.3.2 entry.
 
 ---
 
@@ -125,7 +139,7 @@
 - **Internal stubs** — `getTier()` returns `'annual'`, `isEnabled()` returns `true`,
   `tierRank()` maps tier strings to rank integers. None exported — gates.js internal use only.
 - **Stub behaviour** — all `canAccess()` calls return `{ allowed: true }` through v4.5.
-  Replaced by Firebase custom claims + Firestore platform-switch reads in v4.6.
+  Replaced by Firebase custom claims + Firestore platform-switch reads in v4.7.
 - No user-facing changes.
 
 ### All modules (index.html, throwdown, liga, bbtc)
