@@ -2,6 +2,30 @@
 
 ---
 
+## [4.3.2] — shared/gates.js stub · canAccess() API · feature registry · June 2026
+
+### shared/gates.js (new file)
+- **`Gates.canAccess(featureKey)` API created** — the sole method modules ever call.
+  Returns `{ allowed: true }` or `{ allowed: false, reason: 'tier' | 'disabled' }`.
+- **FEATURES registry** — documents all known feature keys and their `minTier` values:
+  module access keys (`btc`, `liga`, `cup_taster`), Throwdown gated features,
+  Liga Seduh gated features, Cup Taster gated features, Audience features,
+  and platform-switch-only keys (`cup_taster_module`, `audience_links_live`)
+  with `minTier: null`.
+- **Internal stubs** — `getTier()` returns `'annual'`, `isEnabled()` returns `true`,
+  `tierRank()` maps tier strings to rank integers. None exported — gates.js internal use only.
+- **Stub behaviour** — all `canAccess()` calls return `{ allowed: true }` through v4.5.
+  Replaced by Firebase custom claims + Firestore platform-switch reads in v4.6.
+- No user-facing changes.
+
+### All modules (index.html, throwdown, liga, bbtc)
+- **`<script src="[../]shared/gates.js"></script>` added** — script tag inserted after
+  `storage.js` in Throwdown and Liga; after `timer.js` in BBTC (no `storage.js` in BBTC);
+  as the sole external shared script in the dashboard. Gates is loaded but not yet called —
+  Throwdown is the reference implementation for first gate touch points.
+
+---
+
 ## [4.3.1] — Timer overlay structural consistency · POA-07 · June 2026
 
 ### throwdown/index.html
