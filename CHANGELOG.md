@@ -2,6 +2,14 @@
 
 ---
 
+## [4.4.3] — gates.js cleanup · June 2026
+
+### shared/gates.js
+- **Remove `liga` + `cup_taster` module-access keys** — Option A free tier decision: module entry is free for all tiers; only premium features within each module are gated. Removing these keys means `Gates.canAccess('liga')` and `Gates.canAccess('cup_taster')` now return `{ allowed: false, reason: 'disabled' }` (unknown key). Expected and temporary — Session 3 removes those calls from the module files before this merges to main.
+- **Fix Firebase milestone comments: v4.6 → v4.7** — v4.6 = custom domain + Firebase Hosting (still static); v4.7 = Firebase Auth + admin panel (when the stub is actually replaced). Three comment occurrences updated; no logic changed.
+
+---
+
 ## [4.4.2] — Deep surface token suite · June 2026
 
 ### shared/theme.css

@@ -1,12 +1,10 @@
 // shared/gates.js — feature gate stub (v4.3+)
-// Stub: all canAccess() calls return { allowed: true } until Firebase auth lands in v4.6.
+// Stub: all canAccess() calls return { allowed: true } until Firebase auth lands in v4.7.
 // Modules call ONLY Gates.canAccess() — never getTier(), isEnabled(), or tierRank() directly.
 
 const FEATURES = {
   // Module access — routing layer
   'btc':                  { minTier: 'annual' },
-  'liga':                 { minTier: 'per_event' },
-  'cup_taster':           { minTier: 'per_event' },
 
   // Throwdown
   'throwdown_redemption': { minTier: 'per_event' },
@@ -34,13 +32,13 @@ const FEATURES = {
   'audience_links_live':  { minTier: null },
 };
 
-// STUB: returns 'annual' — replaced by Firebase custom claims read in v4.6
+// STUB: returns 'annual' — replaced by Firebase custom claims read in v4.7
 // Never call from modules.
 function getTier() {
   return 'annual';
 }
 
-// STUB: returns true for all keys — replaced by Firestore platform-switch document read in v4.6
+// STUB: returns true for all keys — replaced by Firestore platform-switch document read in v4.7
 // Never call from modules.
 function isEnabled(featureKey) {
   return true;
