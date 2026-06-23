@@ -4,328 +4,256 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Seduh Score — Coffee Competition Platform</title>
-<link rel="stylesheet" href="shared/theme.css">
 <link rel="icon" href="shared/assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="shared/assets/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="shared/assets/favicon-16.png" sizes="16x16" type="image/png">
 <link rel="apple-touch-icon" href="shared/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="shared/theme.css">
+
+<!--
+  ════════════════════════════════════════════════════════════════════
+  Seduh Score — Platform Front Door  ·  index.html  ·  v4.5  ·  Direction B
+  Pure HTML/CSS/JS, single file, no build step (CONVENTIONS B1).
+  Loads only shared/theme.css + shared/gates.js.
+
+  PALETTE (v4.5): the org zone uses --surface-deep (#1c1510) — the warm
+  "café at night" surface. Ship it as ONE additive token in shared/theme.css
+  (separate patch, see CONVENTIONS follow-up #4 / the timer-overlay value),
+  then delete the local :root block below. No existing token is renamed.
+
+  AUTH: visitor vs org is simulated via [data-auth] on <html> until Firebase
+  (v4.7). gates.js stub returns allowed:true today and cannot drive the
+  visitor view yet — on v4.7, derive [data-auth] from auth state and gate the
+  module links with Gates.canAccess(). No persistence pre-Firebase (by design).
+  ════════════════════════════════════════════════════════════════════
+-->
+<style>
+  /* keep the front-door header label on one line */
+  .plat-hdr-actions .btn-p,.plat-hdr-actions .btn-o{white-space:nowrap}
+
+  /* ——— featured event ribbon (full-bleed, architectural — not a card) ——— */
+  .fd-ribbon{background:linear-gradient(100deg,var(--accent-bg),var(--surface2));border-bottom:1.5px solid var(--accent-bd)}
+  .fd-ribbon-in{max-width:var(--container);margin:0 auto;padding:clamp(20px,3vw,28px) clamp(16px,4vw,40px);
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 30px}
+  .fd-ribbon-main{min-width:0;display:flex;gap:16px;align-items:stretch}
+  .fd-ribbon-rail{width:5px;align-self:stretch;min-height:56px;background:var(--accent);border-radius:3px;flex-shrink:0}
+  .fd-now{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+  .fd-livedot{width:8px;height:8px;border-radius:50%;background:var(--gn);box-shadow:0 0 0 3px var(--gn-bg);animation:pulse 1.8s ease-in-out infinite}
+  .fd-ribbon-title{font-family:var(--font-display);font-weight:800;font-size:clamp(22px,2.9vw,32px);letter-spacing:-.02em;line-height:1.02;color:var(--ink)}
+  .fd-ribbon-meta{display:flex;flex-wrap:wrap;gap:7px 22px;margin-top:11px}
+  .fd-ribbon-meta span{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink2)}
+  .fd-ribbon-meta svg{width:15px;height:15px;color:var(--accent);flex-shrink:0}
+  .fd-ribbon-cta{border-radius:var(--rad-s);white-space:nowrap;display:inline-flex;align-items:center;gap:7px;text-decoration:none;flex-shrink:0}
+  .fd-ribbon-cta svg{width:15px;height:15px}
+
+  /* ——— hero (two-column action console) ——— */
+  .fd-hero{max-width:var(--container);margin:0 auto;padding:clamp(28px,5vw,52px) clamp(16px,4vw,40px) clamp(18px,3vw,28px)}
+  .fd-2col{display:grid;grid-template-columns:1.25fr .95fr;gap:clamp(24px,4vw,52px);align-items:center}
+  .fd-hero .hero-name{font-size:clamp(36px,6.2vw,66px);max-width:14ch;text-wrap:pretty}
+  .fd-hero .hero-sub{max-width:46ch}
+  .fd-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+  .fd-cta .btn-p{font-size:15px;padding:13px 24px;border-radius:var(--rad-s);text-decoration:none;display:inline-flex;align-items:center}
+  .fd-cta .btn-o{font-size:14px;padding:12px 20px;border-radius:var(--rad-s);text-decoration:none;display:inline-flex;align-items:center}
+
+  /* free quick-launch panel */
+  .fd-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);box-shadow:var(--shadow-md);overflow:hidden}
+  .fd-panel-hd{padding:13px 16px;border-bottom:1px solid var(--border2);background:var(--surface2);
+    font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);
+    display:flex;justify-content:space-between;align-items:center}
+  .fd-panel-hd em{font-style:normal;color:var(--gn)}
+  .fd-panel-body{padding:12px;display:flex;flex-direction:column;gap:8px}
+  .fd-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);
+    border-radius:var(--rad-s);text-decoration:none;color:inherit;transition:border-color .14s,background .14s}
+  .fd-row:hover{border-color:var(--accent);background:var(--surface3)}
+  .fd-row .ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);font-size:18px;flex-shrink:0}
+  .fd-row .tt{flex:1;min-width:0}
+  .fd-row .tt b{display:block;font-weight:700;font-size:13.5px;color:var(--ink)}
+  .fd-row .tt span{font-size:11.5px;color:var(--ink3)}
+  .fd-row .go{width:15px;height:15px;color:var(--ink4);flex-shrink:0}
+
+  /* free cutline anchor */
+  .fd-freeline{max-width:var(--container);margin:0 auto;padding:clamp(6px,1.5vw,12px) clamp(16px,4vw,40px) clamp(30px,4vw,48px)}
+
+  /* ——— org platform (deep zone) ——— */
+  .fd-deep{background:var(--surface-deep);color:var(--deep-ink);padding:clamp(44px,6vw,82px) 0}
+  .fd-deep-in{max-width:var(--container);margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+  .fd-deep-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:clamp(24px,4vw,48px);align-items:start}
+  .fd-deep-kick{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .fd-deep-kick .line{height:2px;width:34px;background:var(--am-bd);border-radius:2px}
+  .fd-deep-kick .eyebrow{color:var(--am-bd)}
+  .fd-deep h2{font-family:var(--font-display);font-weight:800;font-size:clamp(24px,3.2vw,36px);letter-spacing:-.025em;line-height:1.04;color:var(--deep-ink);max-width:18ch}
+  .fd-deep-sub{color:var(--deep-sub);font-size:clamp(14px,1.6vw,16px);margin-top:12px;max-width:48ch;line-height:1.5}
+  .fd-dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:24px}
+  .fd-dmod{background:var(--deep-card);border:1px solid var(--deep-bd);border-radius:var(--rad-s);padding:14px 15px}
+  .fd-dmod b{font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--deep-ink)}
+  .fd-dmod b small{font-weight:400;color:var(--deep-ink3);font-size:13px}
+  .fd-dmod p{font-size:12.5px;color:var(--deep-sub);margin-top:5px;line-height:1.45}
+  .fd-annual{font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--surface-deep);background:var(--am-bd);border-radius:var(--rad-pill);padding:2px 8px;vertical-align:middle}
+
+  /* org login card */
+  .fd-login{background:var(--deep-card);border:1px solid var(--deep-bd);border-radius:var(--rad);overflow:hidden}
+  .fd-login-pad{padding:20px 22px}
+  .fd-login h3{font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--deep-ink)}
+  .fd-login-sub{font-family:var(--font-mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--deep-ink4);font-weight:700;margin-top:3px}
+  .fd-login-form{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+  .fd-login-form label{font-size:12px;font-weight:700;color:var(--deep-ink2);display:block;margin-bottom:6px}
+  .fd-login-form input{background:var(--surface-deep);border:1.5px solid var(--deep-bd);color:var(--deep-ink);border-radius:var(--rad-s);padding:10px 12px;font-size:14px;width:100%;outline:none;transition:border-color .14s}
+  .fd-login-form input:focus{border-color:var(--am-bd)}
+  .fd-login-form .btn-p{margin-top:2px;border-radius:var(--rad-s)}
+  .fd-login-note{font-size:11.5px;color:var(--deep-ink4);line-height:1.5;text-align:center;margin:0}
+  .fd-signedin{padding:24px 22px;text-align:center}
+  .fd-signedin .tick{width:46px;height:46px;border-radius:50%;background:rgba(11,122,82,.2);border:1px solid #2f6b4f;display:grid;place-items:center;margin:0 auto;color:#8fd9b8;font-size:20px}
+  .fd-signedin h3{margin-top:14px}
+  .fd-signedin p{font-size:12.5px;color:var(--deep-sub);margin-top:4px}
+  .fd-signedin .btn-o{margin-top:16px;border-radius:var(--rad-s);background:transparent;color:var(--deep-ink2);border-color:var(--deep-bd2)}
+
+  /* org chip in header (signed in) */
+  .fd-org{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--ink2);background:var(--surface2);border:1px solid var(--border);border-radius:var(--rad-pill);padding:6px 13px}
+  .fd-org .dot{width:6px;height:6px;border-radius:50%;background:var(--gn)}
+
+  /* footer */
+  .fd-foot{max-width:var(--container);margin:0 auto;padding:clamp(26px,4vw,38px) clamp(16px,4vw,40px);
+    display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;border-top:1px solid var(--border)}
+  .fd-credit{font-size:12px;color:var(--ink3);line-height:1.7}
+  .fd-credit a{color:var(--am);text-decoration:none;font-weight:700}
+
+  /* auth visibility */
+  [data-auth="out"] .when-in{display:none}
+  [data-auth="in"] .when-out{display:none}
+
+  /* responsive — stack the two-column blocks (front door must work on a phone) */
+  @media(max-width:820px){
+    .fd-2col{grid-template-columns:1fr}
+    .fd-deep-grid{grid-template-columns:1fr}
+  }
+</style>
 </head>
 <body>
 <div class="shell">
 
-  <!-- ══ Permanent platform lockup (Seduh / Grey Matter — roadmap v4.1 IP) ══ -->
+  <!-- ══ Permanent platform lockup (Seduh / Grey Matter) ══ -->
   <header class="plat-hdr">
     <a class="plat-hdr-logo" href="index.html">
       <span class="plat-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh"><circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"/><path d="M26 60 a24 24 0 0 1 48 0"/><path d="M35 60 a15 15 0 0 1 30 0"/><path d="M44 60 a6 6 0 0 1 12 0"/></svg></span>
-      <span>
-        <span class="plat-hdr-name">Seduh Score</span>
-        <span class="plat-hdr-sub">Coffee Competition Platform</span>
-      </span>
+      <span><span class="plat-hdr-name">Seduh Score</span><span class="plat-hdr-sub">Coffee competition platform</span></span>
     </a>
     <div class="plat-hdr-actions">
       <span class="plat-hdr-loc"><span class="dot"></span>Brunei Darussalam</span>
-      <button class="btn-customize" id="open-setup">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
-        Make it your own
-      </button>
+      <a class="btn-p when-out" href="#org-login" style="padding:9px 18px;font-size:13px">Org login</a>
+      <span class="fd-org when-in"><span class="dot"></span>&amp;Coffee Bandar</span>
+      <button class="btn-o when-in" data-act="signout" style="border-radius:var(--rad-pill)">Sign out</button>
     </div>
   </header>
 
-  <main class="main">
-    <section class="hero reveal d1" id="hero"><!-- rendered by JS --></section>
-
-    <div class="sec-head reveal d2">
-      <h2>Competition formats</h2>
-      <span class="rule"></span>
-      <span class="count" id="mod-count"></span>
-    </div>
-    <div class="modules" id="modules"></div>
-
-    <div class="tools reveal d3" id="tools"></div>
-
-    <footer class="foot">
-      <div class="credit">
-        Built by <a href="https://instagram.com/mfosaminumkopi" target="_blank" rel="noreferrer">Firdaus Omar</a> · Grey Matter Coffee Werks, Brunei<br>
-        Free to use, adapt &amp; share with the coffee community.
+  <!-- ══ Featured event — full-bleed ribbon ══ -->
+  <section class="fd-ribbon">
+    <div class="fd-ribbon-in">
+      <div class="fd-ribbon-main">
+        <span class="fd-ribbon-rail"></span>
+        <div>
+          <div class="fd-now"><span class="fd-livedot"></span><span class="eyebrow">Now on Seduh Score · Upcoming</span></div>
+          <h2 class="fd-ribbon-title">Liga Seduh Bawah Tanah</h2>
+          <div class="fd-ribbon-meta">
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>Sat, 14 June 2026</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>Grey Matter Coffee Werks, BSB</span>
+          </div>
+        </div>
       </div>
-      <span class="live-pill"><span class="dot"></span>Your changes save to this device</span>
-    </footer>
-  </main>
-</div>
-
-<!-- ══ "Make it your own" slide-over ══ -->
-<div class="scrim" id="scrim"></div>
-<aside class="sheet" id="sheet" role="dialog" aria-label="Customize competition">
-  <header class="sheet-hdr">
-    <span class="bar"></span>
-    <div class="htxt"><h3>Make it your own</h3><div class="sub">Live customization</div></div>
-    <button class="sheet-close" id="close-setup" aria-label="Close">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M6 6l12 12M18 6 6 18"/></svg>
-    </button>
-  </header>
-  <div class="sheet-body">
-    <div class="fieldset">
-      <div class="leg">Event identity</div>
-      <div class="field"><label for="f-name">Competition name</label>
-        <input id="f-name" type="text" maxlength="48" placeholder="e.g. Brunei Aeropress Open"></div>
-      <div class="field"><label for="f-sub">Subtitle / blurb</label>
-        <textarea id="f-sub" maxlength="180" placeholder="One line that sets the scene"></textarea>
-        <span class="hint" id="f-sub-count"></span></div>
+      <a href="#" class="btn-p fd-ribbon-cta">View event <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </div>
-    <div class="fieldset">
-      <div class="leg">Schedule &amp; place</div>
-      <div class="row2">
-        <div class="field"><label for="f-date">Date</label><input id="f-date" type="date"></div>
-        <div class="field"><label for="f-venue">Venue</label><input id="f-venue" type="text" maxlength="60" placeholder="Café, city"></div>
+  </section>
+
+  <!-- ══ Hero — two-column action console ══ -->
+  <section class="fd-hero">
+    <div class="fd-2col">
+      <div>
+        <div class="hero-kicker"><span class="line"></span><span class="eyebrow">Brunei · Southeast Asia</span></div>
+        <h1 class="hero-name">Every format. One platform.</h1>
+        <p class="hero-sub">Brackets, leagues, sensory rounds and the court timer — score it the way it actually runs in the room.</p>
+        <div class="fd-cta">
+          <a class="btn-p" href="#free">Open a free tool</a>
+          <a class="btn-o" href="#org-login">Org sign-in</a>
+        </div>
+      </div>
+      <div class="fd-panel">
+        <div class="fd-panel-hd">Jump straight in — free<em>No account</em></div>
+        <div class="fd-panel-body">
+          <a class="fd-row" href="throwdown/index.html"><span class="ic">⚡</span><span class="tt"><b>Throwdown Basic</b><span>1v1 knockout · up to 16</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="fd-row" href="liga/index.html"><span class="ic">🏆</span><span class="tt"><b>Liga Basic</b><span>Round robin · up to 8</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="fd-row" href="cup-taster/index.html"><span class="ic">☕</span><span class="tt"><b>Cup Taster Basic</b><span>Blind trio · up to 8</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="fd-row" href="timer/index.html"><span class="ic">⏱</span><span class="tt"><b>Timer</b><span>5 / 7 / 10 / 15 min court timer</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
       </div>
     </div>
-    <div class="fieldset">
-      <div class="leg">Branding</div>
-      <div class="field"><label>Accent colour</label>
-        <div class="swatches" id="swatches"></div>
-        <span class="hint" style="margin-top:8px">Seduh Amber is the house colour — yours overrides it across the platform.</span></div>
-      <div class="field"><label>Logo / poster</label>
-        <span class="hint">Click the placeholder on the dashboard to upload your event logo (saved to this device).</span></div>
+  </section>
+
+  <!-- free anchor -->
+  <section id="free" class="fd-freeline"><div class="cutline">Free, on this device — start now</div></section>
+
+  <!-- ══ The org platform — deep zone, embedded login ══ -->
+  <section id="org-login" class="fd-deep">
+    <div class="fd-deep-in">
+      <div class="fd-deep-grid">
+        <div>
+          <div class="fd-deep-kick"><span class="line"></span><span class="eyebrow">The org platform</span></div>
+          <h2>The full platform, for organisations.</h2>
+          <p class="fd-deep-sub">Unlimited fields, persistent data and branded exports across every module.</p>
+          <div class="fd-dgrid">
+            <div class="fd-dmod"><b>⚡ Throwdown <small>— full</small></b><p>Unlimited brewers, redemption + revival draw, report.</p></div>
+            <div class="fd-dmod"><b>☕ BBTC <span class="fd-annual">Annual</span></b><p>Team championship · cup-by-cup token bracket.</p></div>
+            <div class="fd-dmod"><b>🏆 Liga Seduh <small>— full</small></b><p>Unlimited brewers, device tracking, CSV, report.</p></div>
+            <div class="fd-dmod"><b>☕ Cup Taster <small>— full</small></b><p>Unlimited sets, round analytics, report.</p></div>
+          </div>
+        </div>
+
+        <div class="fd-login">
+          <div class="when-out fd-login-pad">
+            <h3>Org login</h3>
+            <div class="fd-login-sub">Persistent · multi-user</div>
+            <form class="fd-login-form" onsubmit="return false">
+              <div><label for="org-email">Organisation email</label><input id="org-email" type="email" placeholder="you@yourcafe.com" autocomplete="username"></div>
+              <div><label for="org-pass">Password</label><input id="org-pass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+              <button class="btn-p" type="submit" data-act="signin">Sign in</button>
+              <p class="fd-login-note">Accounts go live with Firebase — this is a v4.5 preview. No account? Per-event access is sorted with your organiser.</p>
+            </form>
+          </div>
+          <div class="when-in fd-signedin">
+            <div class="tick">✓</div>
+            <h3>&amp;Coffee Bandar</h3>
+            <p>All modules unlocked — pick one above.</p>
+            <button class="btn-o" data-act="signout">Sign out</button>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="fieldset">
-      <div class="leg">Cover layout</div>
-      <div class="layout-pick" id="layout-pick"></div>
-    </div>
-  </div>
-  <footer class="sheet-foot">
-    <button class="btn-o" id="reset-setup">Reset</button>
-    <button class="btn-p" id="done-setup">Done</button>
+  </section>
+
+  <footer class="fd-foot">
+    <div class="fd-credit">Built by <a href="https://instagram.com/mfosaminumkopi" target="_blank" rel="noreferrer">Firdaus Omar</a> · Grey Matter Coffee Werks, Brunei<br>Free tools save to this device.</div>
+    <span class="live-pill"><span class="dot"></span>Seduh Score · v4.5</span>
   </footer>
-</aside>
+
+</div>
 
 <script src="shared/gates.js"></script>
 <script>
-/* ───────── Seduh Score dashboard — vanilla, no dependencies ───────── */
+/* ───────── Seduh Score front door — vanilla, no dependencies ─────────
+   Pre-Firebase: visitor vs org is a simulated UI state via [data-auth].
+   On v4.7, replace setAuth() with the real auth listener and gate the
+   module links with Gates.canAccess(). No persistence by design. */
 (function(){
   "use strict";
+  var html = document.documentElement;
+  function setAuth(v){ html.setAttribute("data-auth", v); }
+  setAuth("out");
 
-  /* ── icons ── */
-  var IC = {
-    calendar:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>',
-    pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>',
-    arrow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>'
-  };
-
-  /* ── accents (amber = house default) ── */
-  var ACCENTS = {
-    amber:   {name:"Seduh Amber", base:"#b45309",h:"#92400e",bg:"#fbf0df",bd:"#e09a36",ink:"#ffffff"},
-    espresso:{name:"Espresso",    base:"#6f4636",h:"#553328",bg:"#f1e8e2",bd:"#c4a392",ink:"#ffffff"},
-    crema:   {name:"Crema Gold",  base:"#a87514",h:"#855a0c",bg:"#f8eecf",bd:"#dcae45",ink:"#ffffff"},
-    teal:    {name:"Pandan Teal", base:"#0f766e",h:"#0c5d57",bg:"#dff3f0",bd:"#5cc2b6",ink:"#ffffff"},
-    cobalt:  {name:"Cobalt",      base:"#1d4ed8",h:"#1740ad",bg:"#e7eefe",bd:"#9bbcf6",ink:"#ffffff"},
-    berry:   {name:"Roselle",     base:"#a3175a",h:"#821248",bg:"#fbe4ee",bd:"#e88bb6",ink:"#ffffff"}
-  };
-
-  var MODULES = [
-    {id:"bbtc",href:"bbtc/index.html",icon:"☕",live:true,name:"BBTC",format:"Team · Knockout bracket",
-     desc:"Brunei Barista Team Championship. Head-to-head, cup-by-cup token scoring with a seeded knockout bracket.",
-     m:"#b45309",bg:"#fbf0df",bd:"#e6c79a"},
-    {id:"throwdown",href:"throwdown/index.html",icon:"⚡",live:true,name:"Throwdown 1v1",format:"Solo · Redemption round",
-     desc:"Individual knockout bracket. Judges vote a winner per match, with randomized seeding and an optional redemption round.",
-     m:"#1d4ed8",bg:"#eaf1fe",bd:"#bcd3f8"},
-    {id:"liga",href:"liga/index.html",icon:"🏆",live:true,name:"Liga Seduh",format:"League · Round robin",
-     desc:"Full-season standings and match scheduling for a round-robin league. Track form across the whole season.",
-     m:"#0b7a52",bg:"#e6f6ee",bd:"#a6dcc4"},
-    {id:"cup-taster",href:"cup-taster/index.html",icon:"☕",live:false,name:"Cup Taster",format:"Sensory · Blind trio",
-     desc:"Blind cup tasting competition. Contestants identify the odd cup in a trio by origin or lot.",
-     m:"#b45309",bg:"#fbf0df",bd:"#e6c79a"}
-  ];
-
-  var TOOLS = [
-    {ic:"⏱",t:"Timer",d:"5 / 7 / 10 / 15 min countdown",href:"timer/index.html"},
-    {ic:"📺",t:"Audience View",d:"Projector-ready overlay"},
-    {ic:"💾",t:"Auto-save",d:"Saved to this device"}
-  ];
-
-  var DEFAULT_EVENT = {
-    name:"Liga Seduh Bawah Tanah",
-    subtitle:"Season 3 · the underground brew league returns to Bandar. Sixteen baristas, one bracket, last cup standing.",
-    date:"2026-06-14",
-    venue:"Grey Matter Coffee Werks, Bandar Seri Begawan",
-    accent:"amber", layout:"band", logo:null
-  };
-
-  var LS = "seduh_event_v1";
-  var state = load();
-
-  function load(){
-    try{ var raw = localStorage.getItem(LS); if(raw) return Object.assign({}, DEFAULT_EVENT, JSON.parse(raw)); }catch(e){}
-    return Object.assign({}, DEFAULT_EVENT);
-  }
-  function save(){ try{ localStorage.setItem(LS, JSON.stringify(state)); }catch(e){} }
-
-  function fmtDate(iso){
-    if(!iso) return null;
-    var d = new Date(iso+"T00:00:00"); if(isNaN(d)) return null;
-    return d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"long",year:"numeric"});
-  }
-  function esc(s){ return (s||"").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
-
-  function applyAccent(){
-    var a = ACCENTS[state.accent] || ACCENTS.amber, r = document.documentElement.style;
-    r.setProperty("--accent",a.base); r.setProperty("--accent-h",a.h);
-    r.setProperty("--accent-bg",a.bg); r.setProperty("--accent-bd",a.bd); r.setProperty("--accent-ink",a.ink);
-  }
-
-  /* ── logo slot markup ── */
-  function logoSlot(id, ph){
-    var img = state.logo ? '<img src="'+state.logo+'" alt="event logo">' : '<span class="ph">'+ph+'</span>';
-    return '<label class="logo-slot hero-logo" data-logo="1">'+img+'<input type="file" accept="image/*"></label>';
-  }
-
-  /* ── meta chips ── */
-  function metaRow(){
-    var dl = fmtDate(state.date);
-    return '<div class="hero-meta">'+
-      '<span class="metachip'+(dl?'':' empty')+'">'+IC.calendar+'<span><span class="k">Date</span>'+(dl||"Set a date")+'</span></span>'+
-      '<span class="metachip'+(state.venue?'':' empty')+'">'+IC.pin+'<span><span class="k">Venue</span>'+(esc(state.venue)||"Set a venue")+'</span></span>'+
-    '</div>';
-  }
-
-  /* ── hero (3 layouts) ── */
-  function renderHero(){
-    var hero = document.getElementById("hero");
-    hero.setAttribute("data-layout", state.layout);
-    var name = esc(state.name)||"Name your competition";
-    var sub  = state.subtitle ? '<p class="hero-sub">'+esc(state.subtitle)+'</p>' : '';
-    var kick = '<div class="hero-kicker"><span class="line"></span><span class="eyebrow">'+(fmtDate(state.date)?"Presented on Seduh Score":"Your competition")+'</span></div>';
-
-    if(state.layout==="editorial"){
-      hero.innerHTML =
-        '<div class="hero-text">'+kick+'<h1 class="hero-name">'+name+'</h1>'+sub+metaRow()+'</div>'+
-        '<div class="hero-figure">'+logoSlot("ed","Drop event poster")+'<span class="fig-tab">Est. Brunei</span></div>';
-    } else if(state.layout==="ticket"){
-      var dl = fmtDate(state.date);
-      hero.innerHTML =
-        '<div class="ticket"><div class="ticket-main">'+kick+'<h1 class="hero-name">'+name+'</h1>'+sub+metaRow()+'</div>'+
-        '<div class="ticket-stub"><span class="ticket-admit">Admit · Brew · Score</span>'+logoSlot("tk","Logo")+
-        '<span class="eyebrow" style="text-align:center">'+(dl?dl.split(",").pop().trim():"—")+'</span></div></div>';
-    } else {
-      hero.innerHTML =
-        '<span class="accent-rail"></span><div class="hero-inner">'+logoSlot("bd","Drop logo")+
-        kick+'<h1 class="hero-name">'+name+'</h1>'+sub+metaRow()+'</div>';
-    }
-    bindLogo();
-  }
-
-  /* ── modules ── */
-  function renderModules(){
-    var live = MODULES.filter(function(m){return m.live;}).length;
-    document.getElementById("mod-count").textContent = live+" live · "+MODULES.length+" total";
-    document.getElementById("modules").innerHTML = MODULES.map(function(m,i){
-      var st = 'style="--m:'+m.m+';--m-bg:'+m.bg+';--m-bd:'+m.bd+'"';
-      var soon = m.live ? '' : '<span class="soon-tag">Coming soon</span>';
-      var foot = '<div class="mod-foot"><span class="status'+(m.live?'':' soon')+'"><span class="dot"></span>'+(m.live?'Live':'Planned')+'</span>'+
-                 (m.live?'<span class="mod-go">Open '+IC.arrow+'</span>':'')+'</div>';
-      var inner = '<div class="mod-top"></div><div class="mod-body"><div class="mod-row"><div class="mod-icon">'+m.icon+'</div>'+
-        '<div class="mod-h"><div class="mod-name">'+m.name+' '+soon+'</div><div class="mod-fmt">'+m.format+'</div></div></div>'+
-        '<p class="mod-desc">'+m.desc+'</p>'+foot+'</div>';
-      var cls = "mod reveal d"+Math.min(i+2,4)+(m.live?'':' soon');
-      return m.live ? '<a class="'+cls+'" href="'+m.href+'" '+st+'>'+inner+'</a>'
-                    : '<div class="'+cls+'" '+st+'>'+inner+'</div>';
-    }).join("");
-  }
-
-  function renderTools(){
-    document.getElementById("tools").innerHTML = TOOLS.map(function(t){
-      var inner = '<div class="tool-ic">'+t.ic+'</div><div><div class="tool-t">'+t.t+'</div><div class="tool-d">'+t.d+'</div></div>';
-      return t.href
-        ? '<a class="tool" href="'+t.href+'">'+inner+'</a>'
-        : '<div class="tool">'+inner+'</div>';
-    }).join("");
-  }
-
-  /* ── setup panel controls ── */
-  function renderSwatches(){
-    document.getElementById("swatches").innerHTML = Object.keys(ACCENTS).map(function(k){
-      var a = ACCENTS[k];
-      return '<button class="swatch'+(state.accent===k?' on':'')+'" data-accent="'+k+'" title="'+a.name+'" style="background:'+a.base+';--sw:'+a.base+'"></button>';
-    }).join("");
-  }
-  function layoutMini(kind){
-    var a="var(--accent)", l="var(--border3)";
-    if(kind==="band") return '<svg viewBox="0 0 60 34"><rect x="0" y="0" width="60" height="34" rx="4" fill="var(--surface)" stroke="var(--border)"/><rect x="0" y="0" width="4" height="34" fill="'+a+'"/><rect x="10" y="9" width="28" height="6" rx="2" fill="'+a+'"/><rect x="10" y="19" width="20" height="3" rx="1.5" fill="'+l+'"/><rect x="44" y="7" width="11" height="11" rx="2" fill="none" stroke="'+l+'"/></svg>';
-    if(kind==="editorial") return '<svg viewBox="0 0 60 34"><rect x="2" y="9" width="26" height="6" rx="2" fill="'+a+'"/><rect x="2" y="19" width="18" height="3" rx="1.5" fill="'+l+'"/><rect x="36" y="3" width="22" height="28" rx="3" fill="none" stroke="'+l+'" stroke-dasharray="2 2"/></svg>';
-    return '<svg viewBox="0 0 60 34"><rect x="3" y="4" width="54" height="26" rx="4" fill="var(--surface)" stroke="var(--border)"/><line x1="42" y1="4" x2="42" y2="30" stroke="'+l+'" stroke-dasharray="2 2"/><rect x="9" y="10" width="24" height="5" rx="2" fill="'+a+'"/><rect x="9" y="19" width="16" height="3" rx="1.5" fill="'+l+'"/><rect x="46" y="12" width="9" height="9" rx="2" fill="none" stroke="'+l+'"/></svg>';
-  }
-  function renderLayoutPick(){
-    var names={band:"Band",editorial:"Editorial",ticket:"Ticket"};
-    document.getElementById("layout-pick").innerHTML = ["band","editorial","ticket"].map(function(k){
-      return '<button class="lp'+(state.layout===k?' on':'')+'" data-layout="'+k+'">'+layoutMini(k)+'<span class="lpn">'+names[k]+'</span></button>';
-    }).join("");
-  }
-
-  /* ── logo upload ── */
-  function bindLogo(){
-    document.querySelectorAll('[data-logo] input').forEach(function(inp){
-      inp.addEventListener("change", function(e){
-        var f = e.target.files[0]; if(!f) return;
-        var rd = new FileReader();
-        rd.onload = function(){ state.logo = rd.result; save(); renderHero(); };
-        rd.readAsDataURL(f);
-      });
-    });
-  }
-
-  /* ── form sync ── */
-  function fillForm(){
-    document.getElementById("f-name").value = state.name||"";
-    document.getElementById("f-sub").value = state.subtitle||"";
-    document.getElementById("f-date").value = state.date||"";
-    document.getElementById("f-venue").value = state.venue||"";
-    updateSubCount();
-  }
-  function updateSubCount(){
-    var n = (state.subtitle||"").length;
-    document.getElementById("f-sub-count").textContent = (180-n)+" characters left";
-  }
-  function field(id, key){
-    document.getElementById(id).addEventListener("input", function(e){
-      state[key] = e.target.value; save();
-      if(key==="subtitle") updateSubCount();
-      renderHero();
-    });
-  }
-
-  /* ── panel open/close ── */
-  var scrim=document.getElementById("scrim"), sheet=document.getElementById("sheet");
-  function openSheet(){ scrim.classList.add("open"); sheet.classList.add("open"); }
-  function closeSheet(){ scrim.classList.remove("open"); sheet.classList.remove("open"); }
-
-  /* ── wire up ── */
-  function init(){
-    applyAccent(); renderHero(); renderModules(); renderTools();
-    renderSwatches(); renderLayoutPick(); fillForm();
-
-    document.getElementById("open-setup").addEventListener("click", openSheet);
-    document.getElementById("close-setup").addEventListener("click", closeSheet);
-    document.getElementById("done-setup").addEventListener("click", closeSheet);
-    scrim.addEventListener("click", closeSheet);
-
-    field("f-name","name"); field("f-sub","subtitle"); field("f-date","date"); field("f-venue","venue");
-
-    document.getElementById("swatches").addEventListener("click", function(e){
-      var b = e.target.closest("[data-accent]"); if(!b) return;
-      state.accent = b.getAttribute("data-accent"); save();
-      applyAccent(); renderSwatches(); renderLayoutPick();
-    });
-    document.getElementById("layout-pick").addEventListener("click", function(e){
-      var b = e.target.closest("[data-layout]"); if(!b) return;
-      state.layout = b.getAttribute("data-layout"); save();
-      renderHero(); renderLayoutPick();
-    });
-    document.getElementById("reset-setup").addEventListener("click", function(){
-      if(!confirm("Reset all competition details to the Seduh sample?")) return;
-      state = Object.assign({}, DEFAULT_EVENT);
-      save(); applyAccent(); renderHero(); renderSwatches(); renderLayoutPick(); fillForm();
-    });
-  }
-  init();
+  document.addEventListener("click", function(e){
+    var act = e.target.closest("[data-act]");
+    if(!act) return;
+    var a = act.getAttribute("data-act");
+    if(a === "signin"){ e.preventDefault(); setAuth("in"); }
+    else if(a === "signout"){ setAuth("out"); }
+  });
 })();
 </script>
 </body>

@@ -2,6 +2,20 @@
 
 ---
 
+## [4.5.0] — Platform front door · Jerudong · June 2026
+
+### index.html (replaced — dashboard launcher → platform front door)
+- **feat: platform front door** — `index.html` replaces the old dashboard launcher with the new public-facing platform front door. Single-file, no build step (CONVENTIONS B1). Loads `shared/theme.css` + `shared/gates.js` only.
+- **feat: four free tools** — Throwdown Basic, Liga Basic, Cup Taster Basic, Timer. All four links in the free quick-launch panel; no account required.
+- **feat: org platform zone** — warm dark section (`--surface-deep`) with module cards (Throwdown full, BBTC Annual, Liga Seduh full, Cup Taster full) and embedded login UI. Firebase v4.7 will wire up real auth.
+- **feat: featured event ribbon** — full-bleed upcoming event showcase (architectural slot — update copy per event).
+- **feat: auth state simulation** — `[data-auth]` visitor/org toggle on `<html>`. Default state: visitor (`data-auth="out"`). Clicking Sign in sets `data-auth="in"` — org chip appears, login form replaced by signed-in confirmation. Sign out returns to visitor state. No persistence pre-Firebase (by design).
+
+### CONVENTIONS.md
+- **fix(conventions): Firebase Auth milestone corrected to v4.7** — Gates section comment previously said "v4.6"; corrected to "v4.7". v4.6 = custom domain + Firebase Hosting (still static); v4.7 = Firebase Auth + admin panel. Comment text only — no logic changed.
+
+---
+
 ## [4.4.4] — Module entry gate removal · June 2026
 
 ### liga/index.html

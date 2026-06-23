@@ -334,7 +334,7 @@ Gates.isEnabled('feature_key') // true | false — checks platform switch
 - `reason: 'tier'` → org's subscription doesn't cover this feature → show upgrade prompt
 - `reason: 'disabled'` → super admin has this feature switched off platform-wide → show nothing
 - Stub behaviour through v4.3: all calls return `{ allowed: true }` — all features unlocked
-- Stub is replaced when Firebase auth lands in v4.6
+- Stub is replaced when Firebase auth lands in v4.7
 - **Throwdown is the reference implementation** for gate touch points
 - **BTC gate is routing-layer only** — no gate touch points inside `bbtc/index.html`; access controlled by whether the org account can reach the module URL
 
