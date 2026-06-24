@@ -137,21 +137,26 @@
 
 <!-- Audience overlay (shared) -->
 <div id="aud-overlay">
-  <div class="aud-banner">
-    <div class="aud-ac"></div>
-    <div class="aud-title-block">
-      <div class="aud-sub">Seduh Score</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div class="aud-title">Cup Taster</div>
-        <span class="aud-module-tag badge badge-am" id="aud-module-tag"></span>
+  <div class="aud-hdr">
+    <div class="aud-hdr-left">
+      <img id="aud-logo" src="" alt="" style="display:none">
+      <div>
+        <div class="aud-hdr-sub" id="aud-tag" style="display:none"></div>
+        <div class="aud-hdr-name" id="aud-ts"></div>
       </div>
     </div>
-    <div class="aud-ts" id="aud-ts"></div>
-    <button class="aud-close" id="aud-close">✕ Close</button>
+    <div class="aud-hdr-right">
+      <button class="aud-toggle-btn" id="aud-theme-toggle">☀︎</button>
+      <button class="aud-close-btn" id="aud-close">✕</button>
+    </div>
   </div>
-  <div class="aud-body">
-    <div class="aud-panel" id="aud-lb-panel"><div class="aud-sec-title">Standings</div><div id="aud-lb"></div></div>
-    <div class="aud-panel"><div class="aud-sec-title">Current heat</div><div id="aud-hist"></div></div>
+  <div class="aud-content">
+    <div class="aud-lb-panel"><div id="aud-lb"></div></div>
+    <div class="aud-hist-panel"><div id="aud-hist"></div></div>
+  </div>
+  <div id="aud-podium-panel">
+    <button class="aud-podium-back-btn" id="aud-podium-back">← Back</button>
+    <div class="aud-podium-stage"></div>
   </div>
 </div>
 
@@ -1542,11 +1547,6 @@ function bind() {
 
   // CSV export
   on('csv-export', 'click', exportCSV);
-
-  // Audience lb panel visibility
-  const enhanced = Gates.canAccess('audience_enhanced').allowed;
-  const lbPanel = $('aud-lb-panel');
-  if (lbPanel) lbPanel.style.display = enhanced ? '' : 'none';
 
   // Heat timer — restart interval if active heat is still timing
   clearInterval(heatTimerInterval);

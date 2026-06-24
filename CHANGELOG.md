@@ -2,6 +2,52 @@
 
 ---
 
+## [4.6.0] — Audience view rebuild · POA-16 · June 2026
+
+### shared/audience.js (full rebuild)
+- **feat: `audInited` guard** — `Audience.init()` is now idempotent; safe to call on every render cycle. Mirrors `Timer.init()` pattern.
+- **feat: dark/light theme toggle** — `_toggleTheme()` toggles `.aud-dark`/`.aud-light` on `#aud-overlay`. Choice persisted to `seduh_aud_config_v1` localStorage key; restored on next session.
+- **feat: `projectionMode` + `accentColour` persistence** — `_saveConfig()`/`_loadConfig()` write/read `{ projectionMode, accentColour }` to `seduh_aud_config_v1`. `logoUrl` intentionally excluded (blob URLs are ephemeral).
+- **feat: podium mode** — `Audience.showPodium()` triggers full-screen podium takeover (dark locked). Champion centred, 1st Runner Up left, 2nd Runner Up right. `#aud-podium-back` returns to `_lastState`. Enhanced tier only.
+- **feat: `moduleTag` param** — `Audience.show()` accepts `moduleTag` string for round/stage badge in overlay header.
+- **feat: `podium` param** — `Audience.show()` accepts podium data array; stored as `_podiumData` for `showPodium()`. Does not auto-trigger podium mode.
+- **feat: dual/single panel logic** — `lbHTML` present → dual panel (42/58 split); absent/null/empty → single panel (results fills full width).
+- **feat: overlay state tracking** — `_currentState` tracks one of `hidden`, `lite`, `enh-dark`, `enh-light`, `enh-single-dark`, `enh-single-light`, `podium`.
+- **feat: `Audience.setEventConfig()`** — merges partial config into `_cfg`; persists `projectionMode` + `accentColour`.
+
+### shared/theme.css
+- **feat: `--aud-accent` token** — added to `:root`. Default `var(--accent)`; overridden per-event via inline style on `#aud-overlay`.
+- **feat: `.aud-round-pre/qf/sf/fin` classes** — round-colour badge classes for audience history rows.
+- **feat: v4.6 audience overlay CSS** — full layout block: `.aud-hdr`, `.aud-content`, `.aud-lb-panel`, `.aud-hist-panel`, `.aud-toggle-btn`, `.aud-close-btn`, `#aud-podium-panel`, `.aud-podium-tile`, `.aud-podium-rank-1/2/3`. Dark/light theming via `.aud-dark`/`.aud-light` on `#aud-overlay`. Dual/single panel via `.aud-dual`/`.aud-single`. Responsive: ≤640px collapses to single column, results above standings.
+
+### shared/gates.js
+- **feat: audience link gate split** — `audience_links` key replaced by `audience_links_concluded` (`minTier: 'community'`) and `audience_links_snapshot` (`minTier: 'per_event'`). `audience_links_live` (`minTier: null`) retained as platform switch.
+
+### throwdown/index.html (migration)
+- **feat: new overlay markup** — replaced old banner/body structure with v4.6 markup (`aud-hdr`, `aud-content`, `aud-hist-panel`, `aud-podium-panel`).
+- **feat: podium data** — `showAudience()` builds podium array from final/SF results when bracket is complete; passes to `Audience.show()`.
+- **feat: podium button** — "🏆 Podium" button added to header when `audience_enhanced` gate passes and bracket is done; calls `Audience.showPodium()`.
+
+### liga/index.html (migration)
+- **feat: new overlay markup** — replaced old banner/body structure with v4.6 markup (dual panel: `aud-lb-panel` + `aud-hist-panel`, plus `aud-podium-panel`).
+- **feat: podium data** — `showAudience()` builds podium from Liga Final result when available, falls back to live standings.
+- **feat: podium button** — "🏆 Podium" button added when `audience_enhanced` gate passes and at least one match is done; calls `Audience.showPodium()`.
+
+### bbtc/index.html (migration — POA-09)
+- **feat: migrate to shared audience.js** — removed self-contained `#aud-overlay` HTML block, local audience CSS, and local audience JS. Now loads `shared/audience.js` and calls `Audience.init()` / `Audience.show()`.
+- **feat: `rAudienceLbHTML()`** — preliminary standings rendered as lbHTML string (inline hex per CONVENTIONS.md exception).
+- **feat: `rAudienceHistHTML()`** — match history with `.aud-round-*` round-colour classes.
+- **note: BTC podium deferred** — `Audience.showPodium()` not wired in this build. Podium data model documented in AUDIENCE-SPEC.md §5.3b.
+
+### cup-taster/index.html (migration)
+- **fix: overlay markup** — replaced old banner/body structure (`aud-banner`, `aud-title-block`, `aud-module-tag`) with v4.6 markup (`aud-hdr`, `aud-content`, `aud-podium-panel`).
+- **fix: remove dead `aud-lb-panel` visibility code** — `bind()` no longer manually toggles the LB panel by ID; `Audience.show()` owns panel visibility.
+
+### audience/index.html (new file)
+- **feat: remote viewer stub** — new `audience/` page with four URL states: `?state=pre` (holding page), `?state=live` (event in progress), `?state=concluded` (final results), `?state=none` (no event). Default: `pre`. Firebase TODO hooks planted at all three integration points. `#aud-remote-updated` present in DOM; always hidden pre-Firebase. Light/paper base, mobile-first, single-panel layout.
+
+---
+
 ## [4.5.1] — Changelog cleanup · June 2026
 
 ### CHANGELOG.md

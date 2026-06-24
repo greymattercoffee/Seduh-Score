@@ -109,20 +109,26 @@
 
 <!-- Audience overlay (shared) -->
 <div id="aud-overlay">
-  <div class="aud-banner">
-    <div class="aud-ac"></div>
-    <div class="aud-title-block">
-      <div class="aud-sub">Seduh Score</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div class="aud-title">Throwdown 1v1</div>
-        <span class="aud-module-tag badge badge-pu" id="aud-module-tag"></span>
-      </div>
-    </div>
-    <div class="aud-ts" id="aud-ts"></div>
-    <button class="aud-close" id="aud-close">✕ Close</button>
+  <div id="aud-podium-panel">
+    <button id="aud-podium-back" class="aud-podium-back-btn">← Back</button>
   </div>
-  <div class="aud-body">
-    <div class="aud-panel" style="flex:1;max-width:100%"><div class="aud-sec-title">Match results</div><div id="aud-hist"></div></div>
+  <div class="aud-hdr">
+    <div class="aud-hdr-left">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:28px;height:28px;flex-shrink:0;color:var(--aud-accent)"><circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"/><path d="M26 60 a24 24 0 0 1 48 0"/><path d="M35 60 a15 15 0 0 1 30 0"/><path d="M44 60 a6 6 0 0 1 12 0"/></svg>
+      <div>
+        <div class="aud-hdr-sub">Seduh Score</div>
+        <div class="aud-hdr-name" id="aud-ts"></div>
+      </div>
+      <span id="aud-tag" style="display:none"></span>
+    </div>
+    <div class="aud-hdr-right">
+      <img id="aud-logo" class="aud-logo" style="display:none" alt="">
+      <button id="aud-theme-toggle" class="aud-toggle-btn" title="Toggle dark/light">☀</button>
+      <button id="aud-close" class="aud-close-btn">✕ Close</button>
+    </div>
+  </div>
+  <div class="aud-content">
+    <div class="aud-hist-panel" id="aud-hist"></div>
   </div>
 </div>
 
@@ -777,6 +783,7 @@ function rMain() {
     + '<button class="hdr-btn btn-gn" id="savejsonbtn">💾 Save</button>'
     + '<button class="hdr-btn btn-bl" id="loadjsonbtn">📂 Load</button>'
     + '<button class="hdr-btn btn-am" id="audbtn">📺 Audience</button>'
+    + (Gates.canAccess('audience_enhanced').allowed && S.bracket?.phase === 'done' ? '<button class="hdr-btn btn-pu" id="podiumBtn">🏆 Podium</button>' : '')
     + '<button class="hdr-btn btn-rd" id="resetbtn">↺ Reset</button></div></div>'
     + '<div class="tabs">'
     + [['setup','Setup'],['bracket','Bracket'],['history','History']]
@@ -1119,10 +1126,36 @@ function showAudience() {
       + '</div>';
   }).join('') : '';
 
+  // Module tag — current round label or Final when done
+  const activeRound = getActiveRound();
+  const moduleTag = S.bracket
+    ? (S.bracket.phase === 'done' ? 'Final' : (activeRound?.label || 'Live'))
+    : '';
+
+  // Podium data — built when bracket is complete
+  let podiumData = null;
+  if (S.bracket?.phase === 'done') {
+    const finalRound = S.bracket.rounds.filter(r => r.phase === 'main' && r.label === 'Final').slice(-1)[0];
+    const thirdRound = S.bracket.rounds.filter(r => r.phase === 'third').slice(-1)[0];
+    const finalPair  = finalRound?.pairs[0];
+    if (finalPair?.winner) {
+      const sfLosers = S.bracket.rounds
+        .filter(r => r.label === 'Semi Finals')
+        .flatMap(r => r.pairs.filter(p => p.loser).map(p => p.loser));
+      const rank3 = thirdRound?.pairs[0]?.winner || sfLosers.join(' · ');
+      podiumData = [
+        { rank: 1, name: finalPair.winner },
+        { rank: 2, name: finalPair.loser || '' },
+        { rank: 3, name: rank3 },
+      ].filter(d => d.name);
+    }
+  }
+
   Audience.show({
     title: S.eventName || 'Throwdown 1v1',
-    moduleTag: S.bracket ? (S.bracket.phase === 'done' ? '🏆 Final' : 'Live') : '',
+    moduleTag,
     histHTML,
+    podium: podiumData,
   });
 }
 
@@ -1137,6 +1170,7 @@ function bind() {
   on('savejsonbtn','click',() => exportJSON());
   on('loadjsonbtn','click',() => importJSON());
   on('audbtn','click',() => showAudience());
+  on('podiumBtn','click',() => Audience.showPodium());
 
   // Tabs
   document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click',()=>{S.tab=b.dataset.tab;render();}));

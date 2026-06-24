@@ -179,37 +179,6 @@ input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--
 .sc-tot-n{font-size:34px;line-height:1.1;font-weight:700}
 .sc-tot-n.t1{color:var(--am)}.sc-tot-n.t2{color:var(--bl)}
 .sc-tot-sub{font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.1em;font-weight:600}
-/* Audience overlay */
-#aud-overlay{display:none;position:fixed;inset:0;z-index:998;background:#faf7f1;overflow:hidden;flex-direction:column}
-#aud-overlay.show{display:flex}
-.aud-banner{display:flex;align-items:center;gap:14px;padding:.9rem 2rem;background:#fff;border-bottom:3px solid #b45309;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-.aud-ac{width:4px;height:42px;background:#b45309;border-radius:2px;flex-shrink:0}
-.aud-sub{font-size:10px;color:#b45309;letter-spacing:.25em;text-transform:uppercase;margin-bottom:3px;font-weight:700}
-.aud-title{font-size:20px;color:#211a14;font-weight:700;letter-spacing:-.01em}
-.aud-ts{margin-left:auto;text-align:right;font-size:11px;color:#8a7f73;line-height:1.7;font-weight:600}
-.aud-close{background:#f3efe8;border:1.5px solid #e5ddd0;color:#4d443c;font-size:12px;font-weight:700;padding:7px 16px;border-radius:6px;cursor:pointer;flex-shrink:0;text-transform:uppercase;letter-spacing:.08em}
-.aud-close:hover{background:#b45309;color:#fff;border-color:#b45309}
-.aud-body{display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden}
-.aud-panel{overflow-y:auto;padding:1.5rem 1.75rem;background:#faf7f1}
-.aud-panel:first-child{border-right:2px solid #efe9de}
-.aud-panel::-webkit-scrollbar{width:3px}
-.aud-panel::-webkit-scrollbar-thumb{background:#e5ddd0;border-radius:2px}
-.aud-sec-title{font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:#b45309;margin-bottom:1rem;padding-bottom:.6rem;border-bottom:2px solid #b45309;font-weight:700}
-.aud-lb-row{display:flex;align-items:center;gap:12px;padding:.9rem 1.1rem;border-radius:8px;margin-bottom:8px;border:1.5px solid #efe9de;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.aud-lb-row.qf{background:#e6f6ee;border-color:#8fd9b8;border-left:4px solid #0b7a52}
-.aud-rnk{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
-.aud-name{flex:1;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#211a14;font-weight:700}
-.aud-lb-row.qf .aud-name{color:#0b7a52}
-.aud-rec{text-align:center;font-size:12px;color:#8a7f73;flex-shrink:0;line-height:1.5;font-weight:600}
-.aud-pts-wrap{text-align:right;flex-shrink:0}
-.aud-pts{font-size:28px;color:#b45309;line-height:1;font-weight:700}
-.aud-ptsl{font-size:9px;color:#8a7f73;text-transform:uppercase;letter-spacing:.12em;text-align:right;font-weight:700}
-.aud-qf-pill{font-size:10px;background:#e6f6ee;border:1.5px solid #8fd9b8;color:#0b7a52;border-radius:4px;padding:3px 9px;white-space:nowrap;flex-shrink:0;font-weight:700}
-.aud-cut{display:flex;align-items:center;gap:8px;padding:.35rem 0;margin:.25rem 0;font-size:9px;color:#8a7f73;letter-spacing:.15em;text-transform:uppercase;font-weight:700}
-.aud-cut::before,.aud-cut::after{content:'';flex:1;height:2px;background:#efe9de}
-.aud-h-row{display:flex;align-items:center;gap:8px;padding:.75rem 1rem;background:#fff;border:1.5px solid #efe9de;border-radius:8px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.aud-h-rb{font-size:9px;background:#f3efe8;border:1.5px solid #efe9de;color:#8a7f73;border-radius:4px;padding:2px 8px;flex-shrink:0;white-space:nowrap;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
-.aud-h-time{font-size:10px;background:#f3efe8;border:1.5px solid #efe9de;color:#8a7f73;border-radius:4px;padding:2px 8px;flex-shrink:0;white-space:nowrap;font-weight:600}
 /* PDF overlay */
 #pdf-overlay{display:none;position:fixed;inset:0;z-index:1000;background:#efe9de;overflow-y:auto;flex-direction:column}
 #pdf-overlay.show{display:flex}
@@ -288,15 +257,26 @@ input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--
 
 <!-- Audience -->
 <div id="aud-overlay">
-  <div class="aud-banner">
-    <div class="aud-ac"></div>
-    <div><div class="aud-sub">Seduh Score</div><div class="aud-title">Barista Team Championship</div></div>
-    <div class="aud-ts" id="aud-ts"></div>
-    <button class="aud-close" id="aud-close">✕ Close</button>
+  <div class="aud-hdr">
+    <div class="aud-hdr-left">
+      <img id="aud-logo" src="" alt="" style="display:none">
+      <div>
+        <div class="aud-hdr-sub" id="aud-tag" style="display:none"></div>
+        <div class="aud-hdr-name" id="aud-ts"></div>
+      </div>
+    </div>
+    <div class="aud-hdr-right">
+      <button class="aud-toggle-btn" id="aud-theme-toggle">☀︎</button>
+      <button class="aud-close-btn" id="aud-close">✕</button>
+    </div>
   </div>
-  <div class="aud-body">
-    <div class="aud-panel"><div class="aud-sec-title">Preliminary Standings</div><div id="aud-lb"></div></div>
-    <div class="aud-panel"><div class="aud-sec-title">Match Results</div><div id="aud-hist"></div></div>
+  <div class="aud-content">
+    <div class="aud-lb-panel"><div id="aud-lb"></div></div>
+    <div class="aud-hist-panel"><div id="aud-hist"></div></div>
+  </div>
+  <div id="aud-podium-panel">
+    <button class="aud-podium-back-btn" id="aud-podium-back">← Back</button>
+    <div class="aud-podium-stage"></div>
   </div>
 </div>
 
@@ -314,6 +294,7 @@ input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--
 <script src="../shared/sound.js"></script>
 <script src="../shared/timer.js"></script>
 <script src="../shared/gates.js"></script>
+<script src="../shared/audience.js"></script>
 <script>
 const RC={
   preliminary:   {label:'Preliminary',   drinks:15,time:'10 min',maxJ:45},
@@ -606,29 +587,56 @@ function generateCSV(){
 }
 
 /* ── Audience ── */
-function showAudience(){
+function rAudienceLbHTML(){
   const lb=calcPrelimLB();
-  const done=[...S.matches.filter(m=>m.done)].reverse();
-  const now=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  document.getElementById('aud-ts').innerHTML='Audience view<br>'+now;
-  const rnkSt=i=>i===0?'background:#d97706;color:#fff':i===1?'background:#9ca3af;color:#fff':i===2?'background:#92400e;color:#fff':'background:#f3efe8;color:#8a7f73;border:1.5px solid #efe9de';
-  document.getElementById('aud-lb').innerHTML=lb.length?lb.map((s,i)=>{
+  if(!lb.length)return '<div class="aud-empty">No teams yet.</div>';
+  const rnkBg=i=>i===0?'#d97706':i===1?'#9ca3af':i===2?'#92400e':null;
+  return lb.map((s,i)=>{
     const isQF=(i+1)<=S.qfSlots,showCut=i===S.qfSlots-1&&S.qfSlots<lb.length;
-    return '<div class="aud-lb-row'+(isQF?' qf':'')+'"><div class="aud-rnk" style="'+rnkSt(i)+'">'+(i+1)+'</div><div class="aud-name">'+s.t+'</div>'+(s.played>0?'<div class="aud-rec">'+s.wins+'W/'+( s.played-s.wins)+'L<br><span style="font-size:10px">'+s.played+' played</span></div>':'')+'<div class="aud-pts-wrap"><div class="aud-pts">'+s.pts+'</div><div class="aud-ptsl">pts</div></div>'+(isQF?'<div class="aud-qf-pill">QF ✓</div>':'<div style="width:48px"></div>')+'</div>'+(showCut?'<div class="aud-cut">QF cut — top '+S.qfSlots+' advance</div>':'');
-  }).join(''):'<div style="text-align:center;padding:2.5rem;color:#8a7f73">No teams yet.</div>';
-  const roundStyle={
-    preliminary: {rb:'background:#f3efe8;border-color:#efe9de;color:#8a7f73', row:'background:#fff;border-color:#efe9de'},
-    quarterfinals:{rb:'background:#eaf1fe;border-color:#a9c6f7;color:#1d4ed8', row:'background:#eaf1fe;border-color:#a9c6f7'},
-    semifinals:   {rb:'background:#fbf0df;border-color:#e09a36;color:#b45309', row:'background:#fbf0df;border-color:#e09a36'},
-    finals:       {rb:'background:#e6f6ee;border-color:#8fd9b8;color:#0b7a52', row:'background:#e6f6ee;border-color:#8fd9b8'},
-  };
-  document.getElementById('aud-hist').innerHTML=done.length?done.map(m=>{
+    const bg=rnkBg(i);
+    const rnkStyle=bg?'background:'+bg+';color:#fff':'background:#f3efe8;color:#8a7f73;border:1.5px solid #efe9de';
+    const border=isQF?'#8fd9b8':'#efe9de',rowBg=isQF?'#e6f6ee':'#fff',extra=isQF?';border-left:4px solid #0b7a52':'';
+    return '<div style="display:flex;align-items:center;gap:12px;padding:.9rem 1.1rem;border-radius:8px;margin-bottom:8px;border:1.5px solid '+border+';background:'+rowBg+extra+';box-shadow:0 1px 4px rgba(0,0,0,.06)">'
+      +'<div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;'+rnkStyle+'">'+(i+1)+'</div>'
+      +'<div style="flex:1;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:'+(isQF?'#0b7a52':'#211a14')+';font-weight:700">'+s.t+'</div>'
+      +(s.played>0?'<div style="text-align:center;font-size:12px;color:#8a7f73;flex-shrink:0;line-height:1.5;font-weight:600">'+s.wins+'W/'+(s.played-s.wins)+'L<br><span style="font-size:10px">'+s.played+' played</span></div>':'')
+      +'<div style="text-align:right;flex-shrink:0"><div style="font-size:28px;color:#b45309;line-height:1;font-weight:700">'+s.pts+'</div><div style="font-size:9px;color:#8a7f73;text-transform:uppercase;letter-spacing:.12em;font-weight:700">pts</div></div>'
+      +(isQF?'<div style="font-size:10px;background:#e6f6ee;border:1.5px solid #8fd9b8;color:#0b7a52;border-radius:4px;padding:3px 9px;white-space:nowrap;flex-shrink:0;font-weight:700">QF ✓</div>':'<div style="width:48px"></div>')
+      +'</div>'
+      +(showCut?'<div style="display:flex;align-items:center;gap:8px;padding:.35rem 0;margin:.25rem 0;font-size:9px;color:#8a7f73;letter-spacing:.15em;text-transform:uppercase;font-weight:700"><div style="flex:1;height:2px;background:#efe9de"></div>QF cut — top '+S.qfSlots+' advance<div style="flex:1;height:2px;background:#efe9de"></div></div>':'');
+  }).join('');
+}
+
+function rAudienceHistHTML(){
+  const done=[...S.matches.filter(m=>m.done)].reverse();
+  if(!done.length)return '<div class="aud-empty">No results yet.</div>';
+  const rcls={preliminary:'pre',quarterfinals:'qf',semifinals:'sf',finals:'fin'};
+  return done.map(m=>{
     const v1=t1Tot(m),v2=t2Tot(m),w=v1>v2?1:v2>v1?2:0;
     const c1=w===1?'#b45309':'#4d443c',c2=w===2?'#b45309':'#4d443c';
-    const rs=roundStyle[m.round]||roundStyle.preliminary;
-    return '<div class="aud-h-row" style="'+rs.row+';border:1.5px solid;border-radius:8px;margin-bottom:8px"><div class="aud-h-rb" style="'+rs.rb+';border:1.5px solid;border-radius:4px;font-size:9px;padding:2px 8px;white-space:nowrap;flex-shrink:0;text-transform:uppercase;letter-spacing:.06em;font-weight:700">'+RC[m.round].label+'</div><div style="flex:1;font-size:14px;font-weight:'+(w===1?700:500)+';color:'+c1+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+m.t1+'</div><div style="font-size:23px;font-weight:700;color:'+c1+';flex-shrink:0">'+v1+'</div><div style="font-size:11px;color:#8a7f73;padding:0 4px;flex-shrink:0">'+(w===0?'draw':'vs')+'</div><div style="font-size:23px;font-weight:700;color:'+c2+';flex-shrink:0">'+v2+'</div><div style="flex:1;font-size:14px;font-weight:'+(w===2?700:500)+';color:'+c2+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">'+m.t2+'</div>'+((m.t1time||m.t2time)?'<div class="aud-h-time">⏱ '+(m.t1time||'—')+' / '+(m.t2time||'—')+'</div>':'')+'</div>';
-  }).join(''):'<div style="text-align:center;padding:2.5rem;color:#8a7f73">No results yet.</div>';
-  document.getElementById('aud-overlay').classList.add('show');
+    return '<div style="display:flex;align-items:center;gap:8px;padding:.75rem 1rem;background:#fff;border:1.5px solid #efe9de;border-radius:8px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.05)">'
+      +'<div class="aud-round-'+(rcls[m.round]||'pre')+'" style="font-size:9px;border-radius:4px;padding:2px 8px;flex-shrink:0;white-space:nowrap;text-transform:uppercase;letter-spacing:.06em;font-weight:700">'+RC[m.round].label+'</div>'
+      +'<div style="flex:1;font-size:14px;font-weight:'+(w===1?700:500)+';color:'+c1+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+m.t1+'</div>'
+      +'<div style="font-size:23px;font-weight:700;color:'+c1+';flex-shrink:0">'+v1+'</div>'
+      +'<div style="font-size:11px;color:#8a7f73;padding:0 4px;flex-shrink:0">'+(w===0?'draw':'vs')+'</div>'
+      +'<div style="font-size:23px;font-weight:700;color:'+c2+';flex-shrink:0">'+v2+'</div>'
+      +'<div style="flex:1;font-size:14px;font-weight:'+(w===2?700:500)+';color:'+c2+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right">'+m.t2+'</div>'
+      +((m.t1time||m.t2time)?'<div style="font-size:10px;background:#f3efe8;border:1.5px solid #efe9de;color:#8a7f73;border-radius:4px;padding:2px 8px;white-space:nowrap;flex-shrink:0;font-weight:600">⏱ '+(m.t1time||'—')+' / '+(m.t2time||'—')+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+function showAudience(){
+  const active=S.matches.find(m=>!m.done);
+  const last=S.matches.filter(m=>m.done).pop();
+  const curRound=(active||last)?.round||'preliminary';
+  Audience.show({
+    title:'Barista Team Championship',
+    moduleTag:RC[curRound]?.label||'Live',
+    lbHTML:rAudienceLbHTML(),
+    histHTML:rAudienceHistHTML(),
+    podium:null,
+  });
 }
 
 /* ── Render ── */
@@ -760,13 +768,13 @@ function bind(){
   // Overlays
   on('homebtn','click',()=>{window.location.href='../index.html';});
   on('pubview','click',()=>showAudience());
-  on('aud-close','click',()=>document.getElementById('aud-overlay').classList.remove('show'));
   on('exportbtn','click',()=>generatePDF());
   on('pdf-close','click',()=>document.getElementById('pdf-overlay').classList.remove('show'));
   on('pdf-print','click',()=>window.print());
   on('csvbtn','click',()=>generateCSV());
 
-  // Timer — shared module (shared/timer.js). init() is idempotent.
+  // Shared modules — init() is idempotent on both
+  Audience.init();
   Timer.init();
   on('tmrbtn','click',()=>Timer.open());
 

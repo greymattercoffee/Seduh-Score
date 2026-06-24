@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seduh Score — Audience View</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="icon" href="../shared/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../shared/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="../shared/assets/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="../shared/assets/apple-touch-icon.png">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);min-height:100vh;font-family:var(--font-body)}
+.page{max-width:520px;margin:0 auto;padding:2rem 1.25rem 4rem}
+/* Header */
+.remote-hdr{display:flex;align-items:center;gap:10px;margin-bottom:2rem}
+.remote-mark{color:var(--am);flex-shrink:0;width:32px;height:32px}
+.remote-hdr-label{font-size:10px;font-weight:700;color:var(--am);letter-spacing:.18em;text-transform:uppercase;margin-bottom:2px}
+.remote-hdr-name{font-size:17px;font-weight:700;color:var(--txt);letter-spacing:-.01em}
+/* Updated pill */
+.remote-updated-wrap{display:flex;justify-content:flex-end;margin-bottom:.75rem;min-height:22px}
+#aud-remote-updated{display:none;font-size:11px;font-weight:600;color:var(--gn);background:var(--gn-bg);border:1.5px solid var(--gn-bd);border-radius:var(--rad-pill);padding:3px 10px}
+/* State card */
+.remote-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rad);padding:2rem 1.5rem;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.remote-icon{font-size:40px;margin-bottom:1rem}
+.remote-title{font-size:20px;font-weight:800;color:var(--txt);margin-bottom:.5rem;letter-spacing:-.01em}
+.remote-body{font-size:14px;color:var(--txt3);line-height:1.6;max-width:340px;margin:0 auto}
+/* Live badge */
+.remote-live-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--gn);background:var(--gn-bg);border:1.5px solid var(--gn-bd);border-radius:var(--rad-pill);padding:4px 12px;margin-bottom:1.25rem}
+.remote-live-dot{width:7px;height:7px;border-radius:50%;background:var(--gn);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+/* Results region (live / concluded) */
+.remote-results{margin-top:1.5rem;text-align:left}
+.remote-results-title{font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.14em;margin-bottom:.75rem;font-family:var(--font-mono)}
+.remote-results-empty{font-size:13px;color:var(--txt3);font-style:italic}
+/* Footer */
+.remote-footer{margin-top:2.5rem;text-align:center;font-size:11px;color:var(--txt3)}
+.remote-footer a{color:var(--am);text-decoration:none;font-weight:600}
+.remote-footer a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="remote-hdr">
+    <svg class="remote-mark" xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh"><circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"/><path d="M26 60 a24 24 0 0 1 48 0"/><path d="M35 60 a15 15 0 0 1 30 0"/><path d="M44 60 a6 6 0 0 1 12 0"/></svg>
+    <div>
+      <div class="remote-hdr-label">Seduh Score</div>
+      <div class="remote-hdr-name">Audience View</div>
+    </div>
+  </div>
+
+  <div class="remote-updated-wrap">
+    <!-- #aud-remote-updated: visible in State B (live) only; pre-Firebase: always hidden -->
+    <span id="aud-remote-updated">Updated just now</span>
+  </div>
+
+  <div id="aud-remote-state"></div>
+
+  <div class="remote-footer">
+    Powered by <a href="../index.html">Seduh Score</a>
+  </div>
+
+</div>
+
+<script src="../shared/gates.js"></script>
+<script>
+'use strict';
+
+// ── State determination — pre-Firebase ──────────────────────────────────────
+// Post-Firebase: read eventId from URL path; status from Firestore document.
+function getStubState() {
+  const p = new URLSearchParams(window.location.search);
+  const s = p.get('state');
+  if (s === 'live')      return 'live';
+  if (s === 'concluded') return 'concluded';
+  if (s === 'none')      return 'none';
+  return 'pre'; // default — show holding page
+}
+
+// ── State templates ──────────────────────────────────────────────────────────
+
+function renderPre() {
+  return '<div class="remote-card">'
+    + '<div class="remote-icon">🕐</div>'
+    + '<div class="remote-title">Event hasn\'t started yet</div>'
+    + '<div class="remote-body">Results will appear here when the event goes live. Check back soon.</div>'
+    + '</div>';
+}
+
+function renderLive() {
+  return '<div class="remote-card">'
+    + '<div class="remote-live-badge"><span class="remote-live-dot"></span>Live</div>'
+    + '<div class="remote-title">Event in progress</div>'
+    + '<div class="remote-body">Live results will appear here once the event host shares them.</div>'
+    + '<div class="remote-results">'
+    + '<div class="remote-results-title">Results</div>'
+    // TODO (v4.7 Firebase): replace with real-time snapshot render
+    + '<div class="remote-results-empty">Waiting for live data…</div>'
+    + '</div>'
+    + '</div>';
+}
+
+function renderConcluded() {
+  const access = Gates.canAccess('audience_links_concluded').allowed;
+  if (!access) {
+    return '<div class="remote-card">'
+      + '<div class="remote-icon">🏁</div>'
+      + '<div class="remote-title">Event concluded</div>'
+      + '<div class="remote-body">Results for this event are not publicly available.</div>'
+      + '</div>';
+  }
+  return '<div class="remote-card">'
+    + '<div class="remote-icon">🏁</div>'
+    + '<div class="remote-title">Event concluded</div>'
+    + '<div class="remote-body">The event has ended. Final results will appear below once published by the organiser.</div>'
+    + '<div class="remote-results">'
+    + '<div class="remote-results-title">Final results</div>'
+    // TODO (v4.7 Firebase): replace with concluded snapshot render
+    + '<div class="remote-results-empty">Results not yet published.</div>'
+    + '</div>'
+    + '</div>';
+}
+
+function renderNone() {
+  return '<div class="remote-card">'
+    + '<div class="remote-icon">📭</div>'
+    + '<div class="remote-title">No event configured</div>'
+    + '<div class="remote-body">This link doesn\'t point to an active event. If you received this URL from an organiser, it may have changed or expired.</div>'
+    + '</div>';
+}
+
+// ── Bootstrap ────────────────────────────────────────────────────────────────
+function boot() {
+  // TODO (v4.7 Firebase): read eventId from URL path or ?eventId= param
+  // const eventId = new URLSearchParams(window.location.search).get('eventId');
+  // const doc = await firebase.firestore().doc(`events/${eventId}`).get();
+  // renderState(doc.data()?.status, doc.data());
+
+  // TODO (audience_links_live gate): Firestore real-time listener
+  // if (Gates.canAccess('audience_links_live').allowed) {
+  //   firebase.firestore().doc(`events/${eventId}`).onSnapshot(snap => { ... });
+  // }
+
+  const state = getStubState();
+  const el = document.getElementById('aud-remote-state');
+  if (!el) return;
+
+  if      (state === 'live')      el.innerHTML = renderLive();
+  else if (state === 'concluded') el.innerHTML = renderConcluded();
+  else if (state === 'none')      el.innerHTML = renderNone();
+  else                            el.innerHTML = renderPre();
+
+  // #aud-remote-updated: always hidden pre-Firebase (no real timestamp available)
+  // TODO (v4.7 Firebase): show and start interval ticker when real-time listener is active
+  const updated = document.getElementById('aud-remote-updated');
+  if (updated) updated.style.display = 'none';
+}
+
+boot();
+</script>
+</body>
+</html>
