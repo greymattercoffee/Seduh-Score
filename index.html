@@ -126,6 +126,27 @@
     .fd-2col{grid-template-columns:1fr}
     .fd-deep-grid{grid-template-columns:1fr}
   }
+
+  /* ——— module info button + modal ——— */
+  .fd-row-wrap{position:relative}
+  .fd-dmod{position:relative}
+  .mod-info-btn{position:absolute;top:7px;right:7px;width:22px;height:22px;padding:0;border:none;background:transparent;color:var(--txt3);font-size:12px;cursor:pointer;border-radius:50%;display:grid;place-items:center;line-height:1;z-index:1}
+  .mod-info-btn:hover{color:var(--txt);background:var(--surface2)}
+  #mod-info-modal{display:none;position:fixed;inset:0;z-index:200}
+  #mod-info-modal.open{display:block}
+  .mod-info-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.4)}
+  .mod-info-panel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(480px,calc(100vw - 32px));max-height:80vh;background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);box-shadow:var(--shadow-md);display:flex;flex-direction:column;overflow:hidden}
+  .mod-info-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+  .mod-info-header h2{font-size:15px;font-weight:700;color:var(--txt);margin:0}
+  .mod-info-close{background:none;border:none;color:var(--txt3);font-size:20px;cursor:pointer;padding:0 2px;line-height:1}
+  .mod-info-close:hover{color:var(--txt)}
+  .mod-info-body{padding:18px 20px;overflow-y:auto;line-height:1.65;color:var(--txt);font-size:14px}
+  .mod-info-body h3{font-size:15px;font-weight:700;color:var(--txt);margin:20px 0 6px}
+  .mod-info-body h3:first-child{margin-top:0}
+  .mod-info-body h4{font-size:13.5px;font-weight:700;color:var(--txt);margin:14px 0 4px}
+  .mod-info-body p{margin:0 0 8px}
+  .mod-info-body p:last-child{margin-bottom:0}
+  .mod-info-body a{color:var(--am)}
 </style>
 </head>
 <body>
@@ -178,9 +199,9 @@
       <div class="fd-panel">
         <div class="fd-panel-hd">Jump straight in — free<em>No account</em></div>
         <div class="fd-panel-body">
-          <a class="fd-row" href="throwdown/index.html"><span class="ic">⚡</span><span class="tt"><b>Throwdown Basic</b><span>1v1 knockout · up to 16</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-          <a class="fd-row" href="liga/index.html"><span class="ic">🏆</span><span class="tt"><b>Liga Basic</b><span>Round robin · up to 8</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-          <a class="fd-row" href="cup-taster/index.html"><span class="ic">☕</span><span class="tt"><b>Cup Taster Basic</b><span>Blind trio · up to 8</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <div class="fd-row-wrap"><a class="fd-row" href="throwdown/index.html"><span class="ic">⚡</span><span class="tt"><b>Throwdown Basic</b><span>1v1 knockout · up to 16</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><button class="mod-info-btn" data-module-key="throwdown" data-module-name="Throwdown" aria-label="About Throwdown">ℹ</button></div>
+          <div class="fd-row-wrap"><a class="fd-row" href="liga/index.html"><span class="ic">🏆</span><span class="tt"><b>Liga Basic</b><span>Round robin · up to 8</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><button class="mod-info-btn" data-module-key="liga" data-module-name="Liga Seduh" aria-label="About Liga Seduh">ℹ</button></div>
+          <div class="fd-row-wrap"><a class="fd-row" href="cup-taster/index.html"><span class="ic">☕</span><span class="tt"><b>Cup Taster Basic</b><span>Blind trio · up to 8</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><button class="mod-info-btn" data-module-key="cup_taster" data-module-name="Cup Taster" aria-label="About Cup Taster">ℹ</button></div>
           <a class="fd-row" href="timer/index.html"><span class="ic">⏱</span><span class="tt"><b>Timer</b><span>5 / 7 / 10 / 15 min court timer</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
         </div>
       </div>
@@ -199,10 +220,10 @@
           <h2>The full platform, for organisations.</h2>
           <p class="fd-deep-sub">Unlimited fields, persistent data and branded exports across every module.</p>
           <div class="fd-dgrid">
-            <div class="fd-dmod"><b>⚡ Throwdown <small>— full</small></b><p>Unlimited brewers, redemption + revival draw, report.</p></div>
-            <div class="fd-dmod"><b>☕ BBTC <span class="fd-annual">Annual</span></b><p>Team championship · cup-by-cup token bracket.</p></div>
-            <div class="fd-dmod"><b>🏆 Liga Seduh <small>— full</small></b><p>Unlimited brewers, device tracking, CSV, report.</p></div>
-            <div class="fd-dmod"><b>☕ Cup Taster <small>— full</small></b><p>Unlimited sets, round analytics, report.</p></div>
+            <div class="fd-dmod"><b>⚡ Throwdown <small>— full</small></b><p>Unlimited brewers, redemption + revival draw, report.</p><button class="mod-info-btn" data-module-key="throwdown" data-module-name="Throwdown" aria-label="About Throwdown">ℹ</button></div>
+            <div class="fd-dmod"><b>☕ BBTC <span class="fd-annual">Annual</span></b><p>Team championship · cup-by-cup token bracket.</p><button class="mod-info-btn" data-module-key="btc" data-module-name="Barista Team Championship" aria-label="About Barista Team Championship">ℹ</button></div>
+            <div class="fd-dmod"><b>🏆 Liga Seduh <small>— full</small></b><p>Unlimited brewers, device tracking, CSV, report.</p><button class="mod-info-btn" data-module-key="liga" data-module-name="Liga Seduh" aria-label="About Liga Seduh">ℹ</button></div>
+            <div class="fd-dmod"><b>☕ Cup Taster <small>— full</small></b><p>Unlimited sets, round analytics, report.</p><button class="mod-info-btn" data-module-key="cup_taster" data-module-name="Cup Taster" aria-label="About Cup Taster">ℹ</button></div>
           </div>
         </div>
 
@@ -230,8 +251,20 @@
 
   <footer class="fd-foot">
     <div class="fd-credit">Built by <a href="https://instagram.com/mfosaminumkopi" target="_blank" rel="noreferrer">Firdaus Omar</a> · Grey Matter Coffee Werks, Brunei<br>Free tools save to this device.</div>
-    <span class="live-pill"><span class="dot"></span>Seduh Score · v4.5</span>
+    <span class="live-pill"><span class="dot"></span>Seduh Score · v4.6.1</span>
   </footer>
+
+  <!-- module info modal -->
+  <div id="mod-info-modal" role="dialog" aria-modal="true" aria-labelledby="mod-info-title">
+    <div class="mod-info-backdrop"></div>
+    <div class="mod-info-panel">
+      <div class="mod-info-header">
+        <h2 id="mod-info-title"></h2>
+        <button class="mod-info-close" aria-label="Close">×</button>
+      </div>
+      <div class="mod-info-body"></div>
+    </div>
+  </div>
 
 </div>
 
@@ -253,6 +286,78 @@
     var a = act.getAttribute("data-act");
     if(a === "signin"){ e.preventDefault(); setAuth("in"); }
     else if(a === "signout"){ setAuth("out"); }
+  });
+
+  // —— module info modal ——
+  var readmeCache = null;
+  var modModal = document.getElementById("mod-info-modal");
+  var modBody = modModal.querySelector(".mod-info-body");
+  var modTitle = modModal.querySelector("#mod-info-title");
+
+  function fetchReadme() {
+    if (readmeCache !== null) return Promise.resolve(readmeCache);
+    return fetch("README.md").then(function(r) {
+      if (!r.ok) throw new Error("not ok");
+      return r.text();
+    }).then(function(t) { readmeCache = t; return t; });
+  }
+
+  function extractModule(text, key) {
+    var open = "<!-- MODULE:" + key + " -->";
+    var close = "<!-- /MODULE:" + key + " -->";
+    var s = text.indexOf(open), e = text.indexOf(close);
+    if (s === -1 || e === -1) return null;
+    return text.slice(s + open.length, e).trim();
+  }
+
+  function esc(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+  function inlineMd(line) {
+    return esc(line).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  }
+
+  function renderMarkdown(text) {
+    var lines = text.split("\n"), out = [], buf = [];
+    function flush() {
+      var p = buf.join("<br>").trim();
+      if (p) out.push("<p>" + p + "</p>");
+      buf = [];
+    }
+    lines.forEach(function(line) {
+      if (/^\s*<!--/.test(line)) return;
+      if (/^## /.test(line))  { flush(); out.push("<h3>" + esc(line.slice(3).trim()) + "</h3>"); return; }
+      if (/^### /.test(line)) { flush(); out.push("<h4>" + esc(line.slice(4).trim()) + "</h4>"); return; }
+      if (/^\s*$/.test(line)) { flush(); return; }
+      buf.push(inlineMd(line));
+    });
+    flush();
+    return out.join("");
+  }
+
+  var FALLBACK = "<p>Module information is available at <a href=\"https://greymattercoffee.github.io/Seduh-Score\" target=\"_blank\" rel=\"noreferrer\">greymattercoffee.github.io/Seduh-Score</a>.</p>";
+
+  function openModInfo(key, name) {
+    modTitle.textContent = name;
+    modBody.innerHTML = "<p style=\"color:var(--txt3)\">Loading…</p>";
+    modModal.classList.add("open");
+    fetchReadme().then(function(text) {
+      var block = extractModule(text, key);
+      modBody.innerHTML = block ? renderMarkdown(block) : FALLBACK;
+    }).catch(function() {
+      modBody.innerHTML = FALLBACK;
+    });
+  }
+
+  function closeModInfo() { modModal.classList.remove("open"); }
+
+  document.addEventListener("click", function(e) {
+    var btn = e.target.closest(".mod-info-btn");
+    if (btn) { e.preventDefault(); e.stopPropagation(); openModInfo(btn.dataset.moduleKey, btn.dataset.moduleName); return; }
+    if (e.target.closest(".mod-info-backdrop") || e.target.closest(".mod-info-close")) closeModInfo();
+  });
+
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") closeModInfo();
   });
 })();
 </script>
