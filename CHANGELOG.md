@@ -32,6 +32,18 @@
 
 ---
 
+## [4.6.1] — Dashboard module info modal · June 2026
+
+### index.html
+- **feat: module info modal** — ℹ button added to each module card (Throwdown, Barista Team Championship, Liga Seduh, Cup Taster) in both the free quick-launch panel and the org platform grid. Clicking opens a modal panel showing organiser-facing module information.
+- **feat: README-driven content** — modal fetches `README.md` on first open (one request, cached). Extracts the anchored `<!-- MODULE:key --> … <!-- /MODULE:key -->` block for the clicked module and renders it as HTML. No external parser.
+- **feat: minimal markdown renderer** — inline renderer handles `##` → `<h3>`, `###` → `<h4>`, `**bold**` → `<strong>`, blank lines → paragraph breaks. HTML comment lines stripped.
+- **feat: offline fallback** — fetch failure or missing anchor shows fallback link to `greymattercoffee.github.io/Seduh-Score`.
+- **feat: modal close** — × button, backdrop click, and Escape key all dismiss the modal.
+- **fix: version line** — footer version tag updated from `v4.5` to `v4.6.1`.
+
+---
+
 ## [4.6.0] — Audience view rebuild · POA-16 · June 2026
 
 ### shared/audience.js (full rebuild)
@@ -75,18 +87,6 @@
 
 ### audience/index.html (new file)
 - **feat: remote viewer stub** — new `audience/` page with four URL states: `?state=pre` (holding page), `?state=live` (event in progress), `?state=concluded` (final results), `?state=none` (no event). Default: `pre`. Firebase TODO hooks planted at all three integration points. `#aud-remote-updated` present in DOM; always hidden pre-Firebase. Light/paper base, mobile-first, single-panel layout.
-
----
-
-## [4.6.1] — Dashboard module info modal · June 2026
-
-### index.html
-- **feat: module info modal** — ℹ button added to each module card (Throwdown, Barista Team Championship, Liga Seduh, Cup Taster) in both the free quick-launch panel and the org platform grid. Clicking opens a modal panel showing organiser-facing module information.
-- **feat: README-driven content** — modal fetches `README.md` on first open (one request, cached). Extracts the anchored `<!-- MODULE:key --> … <!-- /MODULE:key -->` block for the clicked module and renders it as HTML. No external parser.
-- **feat: minimal markdown renderer** — inline renderer handles `##` → `<h3>`, `###` → `<h4>`, `**bold**` → `<strong>`, blank lines → paragraph breaks. HTML comment lines stripped.
-- **feat: offline fallback** — fetch failure or missing anchor shows fallback link to `greymattercoffee.github.io/Seduh-Score`.
-- **feat: modal close** — × button, backdrop click, and Escape key all dismiss the modal.
-- **fix: version line** — footer version tag updated from `v4.5` to `v4.6.1`.
 
 ---
 
