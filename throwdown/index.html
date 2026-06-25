@@ -147,6 +147,7 @@
 
 <script src="../shared/storage.js"></script>
 <script src="../shared/gates.js"></script>
+<script src="../shared/eventconfig.js"></script>
 <script src="../shared/timer.js"></script>
 <script src="../shared/audience.js"></script>
 <script>
@@ -877,7 +878,8 @@ function rSetup() {
       : '<button class="btn-p" id="gen-bracket"'+(canGen?'':' disabled')+'>▶ Generate bracket &amp; start</button>'
         + (canGen ? '<span class="hint">'+S.participants.length+' participants · '+Math.ceil(S.participants.length/2)+' matches in round 1'+(S.participants.length%2?' + 1 bye':'')+'</span>' : '<span class="hint">Add at least 2 participants.</span>')
     )
-    + '</div>';
+    + '</div>'
+    + '<div id="event-config-slot"></div>';
 }
 
 function rBracket() {
@@ -1066,6 +1068,7 @@ function roundColour(label, phase) {
 
 /* ── Audience ── */
 function showAudience() {
+  EventConfig.writeHandoff();
   const revivedNames = S.bracket ? (S.bracket.revivedNames || []) : [];
 
   // Saturated hex per CONVENTIONS — boosted for projector output
@@ -1166,6 +1169,7 @@ function bind() {
 
   Timer.init();
   Audience.init();
+  EventConfig.mount('#event-config-slot');
   on('tmrbtn','click',() => Timer.open());
   on('savejsonbtn','click',() => exportJSON());
   on('loadjsonbtn','click',() => importJSON());

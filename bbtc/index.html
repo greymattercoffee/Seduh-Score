@@ -294,6 +294,7 @@ input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--
 <script src="../shared/sound.js"></script>
 <script src="../shared/timer.js"></script>
 <script src="../shared/gates.js"></script>
+<script src="../shared/eventconfig.js"></script>
 <script src="../shared/audience.js"></script>
 <script>
 const RC={
@@ -627,6 +628,7 @@ function rAudienceHistHTML(){
 }
 
 function showAudience(){
+  EventConfig.writeHandoff();
   const active=S.matches.find(m=>!m.done);
   const last=S.matches.filter(m=>m.done).pop();
   const curRound=(active||last)?.round||'preliminary';
@@ -656,7 +658,8 @@ function rMain(){
 function rSetup(){
   return '<div class="card"><div class="ch">Event info <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:9px">(optional)</span></div><div class="cb"><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label class="cf-lbl">Date</label><input id="evdate" type="text" value="'+S.eventDate+'" placeholder="e.g. 14 June 2025"/></div><div><label class="cf-lbl">Venue</label><input id="evvenue" type="text" value="'+S.eventVenue+'" placeholder="e.g. Hua Ho Mall Manggis"/></div></div></div></div>'
   +'<div class="card"><div class="ch">Teams — '+S.teams.length+' registered</div><div class="cb"><div class="ir"><input id="tinp" type="text" placeholder="Team name…" style="width:auto"/><button class="btn-p" id="addt">Add</button></div>'+(S.teams.length?'<div class="chips">'+S.teams.map((t,i)=>'<div class="chip"><span class="cn">'+(i+1)+'</span><span>'+t+'</span><button class="cx" data-rmt="'+t+'">×</button></div>').join('')+'</div>':'<p class="hint" style="margin-top:10px">No teams yet.</p>')+'</div></div>'
-  +'<div class="card"><div class="ch">Judge pool — '+S.judges.length+' judges</div><div class="cb"><div class="ir"><input id="jinp" type="text" placeholder="Judge name…" style="width:auto"/><button class="btn-p" id="addj">Add</button></div>'+(S.judges.length?'<div class="chips" style="margin-top:10px">'+S.judges.map(j=>'<div class="chip"><span>'+j.name+'</span><button class="cx" data-rmj="'+j.id+'">×</button></div>').join('')+'</div>':'<p class="hint" style="margin-top:10px">No judges yet.</p>')+(S.judges.length>0&&S.judges.length<3?'<p class="hint" style="margin-top:10px;color:var(--rd)">Add at least 3 judges.</p>':'')+'</div></div>'+'<div style="margin-top:.5rem;padding:.9rem 1rem;background:#F5F3FF;border:2px dashed #C4B5FD;border-radius:var(--rad);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">'+'<div><div style="font-size:13px;font-weight:700;color:#6D28D9;margin-bottom:2px">🎮 Demo mode</div>'+'<p class="hint">8 teams &middot; 12 prelim matches &middot; QF in progress. Safe to explore.</p></div>'+'<button style="padding:7px 16px;border-radius:var(--rad-s);border:1.5px solid #C4B5FD;background:#6D28D9;color:#fff;font-size:12px;font-weight:700;cursor:pointer" id="load-demo">Load Demo</button></div>';
+  +'<div class="card"><div class="ch">Judge pool — '+S.judges.length+' judges</div><div class="cb"><div class="ir"><input id="jinp" type="text" placeholder="Judge name…" style="width:auto"/><button class="btn-p" id="addj">Add</button></div>'+(S.judges.length?'<div class="chips" style="margin-top:10px">'+S.judges.map(j=>'<div class="chip"><span>'+j.name+'</span><button class="cx" data-rmj="'+j.id+'">×</button></div>').join('')+'</div>':'<p class="hint" style="margin-top:10px">No judges yet.</p>')+(S.judges.length>0&&S.judges.length<3?'<p class="hint" style="margin-top:10px;color:var(--rd)">Add at least 3 judges.</p>':'')+'</div></div>'+'<div style="margin-top:.5rem;padding:.9rem 1rem;background:#F5F3FF;border:2px dashed #C4B5FD;border-radius:var(--rad);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">'+'<div><div style="font-size:13px;font-weight:700;color:#6D28D9;margin-bottom:2px">🎮 Demo mode</div>'+'<p class="hint">8 teams &middot; 12 prelim matches &middot; QF in progress. Safe to explore.</p></div>'+'<button style="padding:7px 16px;border-radius:var(--rad-s);border:1.5px solid #C4B5FD;background:#6D28D9;color:#fff;font-size:12px;font-weight:700;cursor:pointer" id="load-demo">Load Demo</button></div>'
++'<div id="event-config-slot"></div>';
 }
 
 function rPrelims(){
@@ -775,6 +778,7 @@ function bind(){
 
   // Shared modules — init() is idempotent on both
   Audience.init();
+  EventConfig.mount('#event-config-slot');
   Timer.init();
   on('tmrbtn','click',()=>Timer.open());
 

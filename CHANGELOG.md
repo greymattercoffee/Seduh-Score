@@ -2,6 +2,36 @@
 
 ---
 
+## [4.7.0] — Organiser customisation engine · POA-17 Phase A · June 2026
+
+### shared/eventconfig.js (new file)
+- **feat: EventConfig.mount()** — renders accent picker and logo upload into a module-provided `#event-config-slot` element. CSS injected once per session via `<style id="ec-styles">` injection guard.
+- **feat: EventConfig.writeHandoff()** — writes `{ v:1, accent, logoUrl }` to sessionStorage key `seduh_handoff` at audience-show time. Silent; no return value.
+- **feat: accent palette** — 10 accents: Seduh Amber (default), Espresso, Slate, Cobalt, Emerald, Ruby, Midnight, Copper, Matcha, Alien. Exact hex values locked in ACCENTS constant.
+- **feat: logo upload** — FileReader base64 conversion, 350KB post-encoding size cap, inline error message, preview with clear button. Session-only — not persisted to localStorage.
+- **feat: CSS injection guard** — styles injected once per session regardless of how many modules mount the component.
+
+### shared/audience.js
+- **feat: _applyHandoff()** — reads `seduh_handoff` from sessionStorage at `Audience.show()` call time. Applies accent and logoUrl to `_cfg`. Version-checked (`v:1`), try/catch guarded. Silent on missing or malformed handoff.
+- **feat: event logo in overlay header** — `_cfg.logoUrl` rendered as `<img id="aud-logo">` in `.aud-hdr-right` when present (enhanced gate). Hidden when null. `#aud-logo` element confirmed present in all four module overlays.
+
+### throwdown/index.html
+- **feat: event config integration** — `eventconfig.js` loaded after `gates.js`; `#event-config-slot` mounted at end of Setup tab; `EventConfig.mount()` called in `bind()` after `Audience.init()`; `EventConfig.writeHandoff()` called as first line of `showAudience()`.
+
+### liga/index.html
+- **feat: event config integration** — `eventconfig.js` loaded after `gates.js`; `#event-config-slot` mounted at end of `rSetup()`; `EventConfig.mount()` called in `bind()` after `Audience.init()`; `EventConfig.writeHandoff()` called as first line of `showAudience()`.
+
+### cup-taster/index.html
+- **feat: event config integration** — `eventconfig.js` loaded after `gates.js`; `#event-config-slot` mounted at end of `rSetup()`; `EventConfig.mount()` called in `bind()` after `Audience.init()`; `EventConfig.writeHandoff()` called as first line of `showAudience()`.
+
+### bbtc/index.html
+- **feat: event config integration** — `eventconfig.js` loaded after `gates.js`; `#event-config-slot` mounted at end of `rSetup()`; `EventConfig.mount()` called in `bind()` after `Audience.init()`; `EventConfig.writeHandoff()` called as first line of `showAudience()`.
+
+### CONVENTIONS.md
+- **docs: eventconfig.js documented** — approved second post-B1 shared file; API, handoff contract, and mount pattern documented in Shared component APIs section.
+
+---
+
 ## [4.6.0] — Audience view rebuild · POA-16 · June 2026
 
 ### shared/audience.js (full rebuild)
