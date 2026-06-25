@@ -155,6 +155,20 @@
   --container:1080px;       /* dashboard / page max width */
   --container-narrow:900px; /* module app width */
   --focus-ring:0 0 0 3px var(--accent-bg);
+
+  /* —— v4.5 deep surface (org zone + future audience view) —— */
+  --surface-deep: #1c1510;   /* warm near-black — café at night */
+  --deep-card:    #26201a;   /* card on deep surface */
+  --deep-bd:      #3a2c20;   /* border on deep surface */
+  --deep-bd2:     #4a3a2c;   /* border secondary */
+  --deep-ink:     #faf7f1;   /* primary text on deep */
+  --deep-ink2:    #c8b6a4;   /* secondary text on deep */
+  --deep-sub:     #b9aa9a;   /* subdued text on deep */
+  --deep-ink3:    #9a8b7c;   /* tertiary text on deep */
+  --deep-ink4:    #7d6e60;   /* quaternary / placeholder on deep */
+
+  /* —— v4.6 audience accent (organiser-overridable per event) —— */
+  --aud-accent: var(--accent);
 }
 
 
@@ -486,6 +500,107 @@ a.tool:hover{border-color:var(--accent);background:var(--surface3)}
 .aud-panel:first-child{border-right:2px solid var(--border2)}
 .aud-sec-title{font-family:var(--font-mono);font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--am);margin-bottom:1rem;padding-bottom:.6rem;border-bottom:2px solid var(--am);font-weight:700}
 @media(max-width:720px){.aud-body{grid-template-columns:1fr}.aud-panel:first-child{border-right:none;border-bottom:2px solid var(--border2)}}
+
+/* ── Audience round-colour chips (BTC histHTML rows) ── */
+.aud-round-pre  { background-color: var(--surface2);  color: var(--txt3); }
+.aud-round-qf   { background-color: var(--bl-bg);     color: var(--bl);   }
+.aud-round-sf   { background-color: var(--am-bg);     color: var(--am);   }
+.aud-round-fin  { background-color: var(--gn-bg);     color: var(--gn);   }
+
+/* ════════ Audience overlay v4.6 — new architecture (POA-16) ════════ */
+/* Base structural CSS already in old block above (#aud-overlay display:none etc.) */
+/* These rules add theme, layout, and component classes applied by audience.js */
+
+/* ── Themes ── */
+#aud-overlay.aud-light{background:var(--bg);color:var(--txt)}
+#aud-overlay.aud-dark {background:var(--surface-deep);color:var(--deep-ink)}
+
+/* ── Header ── */
+.aud-hdr{display:flex;align-items:center;gap:14px;padding:.75rem 1.5rem;flex-shrink:0;border-bottom:2px solid}
+#aud-overlay.aud-light .aud-hdr{background:var(--surface);border-color:var(--border);box-shadow:var(--shadow-sm)}
+#aud-overlay.aud-dark  .aud-hdr{background:var(--deep-card);border-color:var(--deep-bd)}
+.aud-hdr-left {display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.aud-hdr-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.aud-hdr-sub  {font-family:var(--font-mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;color:var(--aud-accent);margin-bottom:1px}
+.aud-hdr-name {font-family:var(--font-display);font-size:clamp(14px,2vw,20px);font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#aud-overlay.aud-light .aud-hdr-name{color:var(--ink)}
+#aud-overlay.aud-dark  .aud-hdr-name{color:var(--deep-ink)}
+
+/* ── Module tag ── */
+#aud-tag{font-family:var(--font-mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;padding:3px 9px;border-radius:var(--rad-pill);border:1.5px solid var(--aud-accent);color:var(--aud-accent);flex-shrink:0;white-space:nowrap}
+
+/* ── Logo ── */
+#aud-logo{height:48px;max-width:150px;object-fit:contain;border-radius:var(--rad-s)}
+@media(max-width:640px){#aud-logo{display:none!important}}
+
+/* ── Theme toggle ── */
+.aud-toggle-btn{width:38px;height:38px;border-radius:var(--rad-s);border:1.5px solid;background:transparent;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+#aud-overlay.aud-light .aud-toggle-btn{border-color:var(--border);color:var(--txt2)}
+#aud-overlay.aud-light .aud-toggle-btn:hover{background:var(--surface3)}
+#aud-overlay.aud-dark  .aud-toggle-btn{border-color:var(--deep-bd);color:var(--deep-ink2)}
+#aud-overlay.aud-dark  .aud-toggle-btn:hover{background:rgba(255,255,255,.06)}
+#aud-overlay.aud-lite  .aud-toggle-btn{display:none}
+
+/* ── Close ── */
+.aud-close-btn{padding:8px 16px;border-radius:var(--rad-s);border:1.5px solid;background:transparent;cursor:pointer;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;flex-shrink:0}
+#aud-overlay.aud-light .aud-close-btn{border-color:var(--border);color:var(--txt2)}
+#aud-overlay.aud-light .aud-close-btn:hover{background:var(--am);border-color:var(--am);color:#fff}
+#aud-overlay.aud-dark  .aud-close-btn{border-color:var(--deep-bd);color:var(--deep-ink2)}
+#aud-overlay.aud-dark  .aud-close-btn:hover{background:var(--am);border-color:var(--am);color:#fff}
+
+/* ── Content area ── */
+.aud-content{display:flex;flex:1;overflow:hidden}
+.aud-lb-panel,.aud-hist-panel{overflow-y:auto;padding:1.5rem 1.75rem}
+#aud-overlay.aud-light .aud-lb-panel,
+#aud-overlay.aud-light .aud-hist-panel{background:var(--bg)}
+#aud-overlay.aud-dark  .aud-lb-panel,
+#aud-overlay.aud-dark  .aud-hist-panel{background:var(--surface-deep)}
+
+/* Dual panel: 42 / 58 */
+#aud-overlay.aud-dual .aud-lb-panel  {flex:0 0 42%;border-right:2px solid}
+#aud-overlay.aud-dual .aud-hist-panel{flex:0 0 58%}
+#aud-overlay.aud-light.aud-dual .aud-lb-panel{border-color:var(--border2)}
+#aud-overlay.aud-dark.aud-dual  .aud-lb-panel{border-color:var(--deep-bd)}
+/* Single panel */
+#aud-overlay.aud-single .aud-hist-panel{flex:1}
+
+/* Empty state */
+.aud-empty{text-align:center;padding:2.5rem 1rem;font-size:14px}
+#aud-overlay.aud-light .aud-empty{color:var(--txt3)}
+#aud-overlay.aud-dark  .aud-empty{color:var(--deep-ink3)}
+
+/* ── Mobile stack (≤640px) ── */
+@media(max-width:640px){
+  #aud-overlay.aud-dual .aud-content{flex-direction:column-reverse}
+  #aud-overlay.aud-dual .aud-lb-panel,
+  #aud-overlay.aud-dual .aud-hist-panel{flex:none;width:100%;border-right:none}
+  #aud-overlay.aud-light.aud-dual .aud-lb-panel{border-top:2px solid var(--border2)}
+  #aud-overlay.aud-dark.aud-dual  .aud-lb-panel{border-top:2px solid var(--deep-bd)}
+}
+
+/* ── Podium panel ── */
+#aud-podium-panel{display:none;position:absolute;inset:0;background:var(--surface-deep);color:var(--deep-ink);flex-direction:column;align-items:center;justify-content:center;z-index:10;padding:2rem}
+#aud-overlay.aud-podium-active #aud-podium-panel{display:flex}
+.aud-podium-back-btn{position:absolute;top:1.25rem;left:1.5rem;padding:8px 16px;border-radius:var(--rad-s);border:1.5px solid var(--deep-bd);background:transparent;color:var(--deep-ink2);font-size:13px;font-weight:700;cursor:pointer}
+.aud-podium-back-btn:hover{background:var(--deep-card)}
+.aud-podium-stage{display:flex;align-items:flex-end;justify-content:center;gap:2rem;width:100%;max-width:900px}
+.aud-podium-tile{display:flex;flex-direction:column;align-items:center;gap:.75rem;padding:2rem 1.5rem;border-radius:var(--rad);background:var(--deep-card);border:2px solid var(--deep-bd);min-width:200px;text-align:center}
+.aud-podium-rank-1{border-color:var(--rank-1);transform:translateY(-24px)}
+.aud-podium-rank-2{border-color:var(--rank-2)}
+.aud-podium-rank-3{border-color:var(--rank-3)}
+.aud-podium-empty{opacity:.4}
+.aud-podium-label{font-family:var(--font-mono);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--deep-ink3)}
+.aud-podium-rank-1 .aud-podium-label{color:var(--rank-1)}
+.aud-podium-rank-2 .aud-podium-label{color:var(--rank-2)}
+.aud-podium-rank-3 .aud-podium-label{color:var(--rank-3)}
+.aud-podium-name{font-family:var(--font-display);font-weight:800;color:var(--deep-ink)}
+.aud-podium-rank-1 .aud-podium-name{font-size:clamp(20px,3vw,32px)}
+.aud-podium-rank-2 .aud-podium-name,
+.aud-podium-rank-3 .aud-podium-name{font-size:clamp(16px,2.2vw,24px)}
+@media(max-width:640px){
+  .aud-podium-stage{flex-direction:column;align-items:center}
+  .aud-podium-tile{min-width:min(80vw,320px);transform:none!important}
+}
 
 /* ── Print (PDF export) ── */
 @media print{

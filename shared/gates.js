@@ -1,12 +1,10 @@
 // shared/gates.js — feature gate stub (v4.3+)
-// Stub: all canAccess() calls return { allowed: true } until Firebase auth lands in v4.6.
+// Stub: all canAccess() calls return { allowed: true } until Firebase auth lands in v4.7.
 // Modules call ONLY Gates.canAccess() — never getTier(), isEnabled(), or tierRank() directly.
 
 const FEATURES = {
   // Module access — routing layer
   'btc':                  { minTier: 'annual' },
-  'liga':                 { minTier: 'per_event' },
-  'cup_taster':           { minTier: 'per_event' },
 
   // Throwdown
   'throwdown_redemption': { minTier: 'per_event' },
@@ -25,22 +23,29 @@ const FEATURES = {
   'cup_taster_unlimited': { minTier: 'per_event' }, // >8 contestants or >3 sets
 
   // Audience
-  'audience_enhanced':    { minTier: 'per_event' },
-  'audience_links':       { minTier: 'per_event' },
+  'audience_enhanced':          { minTier: 'per_event' },
+  // Presentation mode: dual panel, dark theme, branding, podium, live toggle
+
+  'audience_links_concluded':   { minTier: 'community' },
+  // Concluded results page — static snapshot, all tiers, no live data
+
+  'audience_links_snapshot':    { minTier: 'per_event' },
+  // Live snapshot URL + last-updated timestamp — post-Firebase; almost-confirmed
 
   // Platform switches — minTier: null means tier-independent (super admin only)
   // Feature hidden for ALL orgs regardless of tier until super admin enables it
-  'cup_taster_module':    { minTier: null },
-  'audience_links_live':  { minTier: null },
+  'cup_taster_module':          { minTier: null },
+  'audience_links_live':        { minTier: null },
+  // Real-time push — Annual minimum; platform switch only; super admin enables
 };
 
-// STUB: returns 'annual' — replaced by Firebase custom claims read in v4.6
+// STUB: returns 'annual' — replaced by Firebase custom claims read in v4.7
 // Never call from modules.
 function getTier() {
   return 'annual';
 }
 
-// STUB: returns true for all keys — replaced by Firestore platform-switch document read in v4.6
+// STUB: returns true for all keys — replaced by Firestore platform-switch document read in v4.7
 // Never call from modules.
 function isEnabled(featureKey) {
   return true;

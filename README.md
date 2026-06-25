@@ -1,6 +1,6 @@
 # Seduh Score ☕
 
-**Coffee competition platform for organizers.** Single-folder web app — no server, no build step, no dependencies.
+**Coffee competition platform for organisers.** Single-folder web app — no server, no build step, no dependencies.
 
 Built by [Firdaus Omar](https://github.com/mfosa7222) · [Grey Matter Coffee Werks](https://greymattercoffee.github.io), Brunei
 
@@ -10,11 +10,14 @@ Built by [Firdaus Omar](https://github.com/mfosa7222) · [Grey Matter Coffee Wer
 
 ## Modules
 
-| Module | Status | Format |
-|---|---|---|
-| **BBTC** | ✅ Live | Barista Team Championship — head-to-head team scoring with seeded knockout bracket |
-| **Throwdown 1v1** | ✅ Live | Individual knockout bracket with randomized seeding, redemption round, revival draw |
-| **Liga Seduh** | ✅ Live | Round robin league — season standings, match scheduling, judged Final |
+| Module | Status | Tier | Format |
+|---|---|---|---|
+| **Throwdown** | ✅ Live | Community / Org | Individual knockout bracket with randomized seeding, redemption round, revival draw |
+| **Barista Team Championship** | ✅ Live | Org · Annual | Team head-to-head scoring with seeded knockout bracket |
+| **Liga Seduh** | ✅ Live | Community / Org | Round robin league — season standings, match scheduling, judged Final |
+| **Cup Taster** | ✅ Live | Community / Org | Sensory identification — blind trio format, timed heats, configurable stages |
+
+Community modules are accessible without an account. Org modules require an organisational login.
 
 ---
 
@@ -41,55 +44,85 @@ Download the folder and open `index.html` in any modern browser. No internet req
 
 ---
 
-## BBTC — Barista Team Championship
+## Throwdown
 
-Team head-to-head competition. The secretary enters cup-by-cup token scores for each match.
+<!-- MODULE:throwdown -->
+Individual knockout bracket. Two competitors face off per match — judges vote for a winner.
 
-**Scoring:** 3 judges · 1 token each · max 3 tokens per cup shared between both teams  
-**Rounds:** Preliminary (15 drinks, 10 min) · QF/SF/Final (20 drinks, 15 min)  
-**Bracket seeding (8 teams):** QF1: 1v8 · QF2: 3v6 · QF3: 4v5 · QF4: 2v7
+**Format:** Randomised seeding · majority vote per match · configurable rounds (R1 → QF → SF → Final)
 
-**Workflow:** Setup → Prelims → Standings (set QF spots) → Bracket → Score → Export PDF/CSV
+**Community (up to 16 participants)**
+Standard knockout bracket. Run a clean single-elimination event with no account required.
 
-**Features:** Judge selection per match · PDF export with round headers · Audience view with colour-coded match rows · Demo mode · JSON save/load · Home navigation
+**Org (unlimited participants)**
+Adds a redemption round — losers re-enter in groups for a second chance. Optional revival draw revives one additional loser per round. Full report export at the end.
+
+**Limits:** Community tier caps at 16 participants. Redemption and revival draw require an org account.
+<!-- /MODULE:throwdown -->
+
+**Technical:** Variable judge count · colour-coded rounds · revival markers (⬆ R) · judge list record-keeping · audience overlay · demo mode · JSON save/load
 
 ---
 
-## Throwdown 1v1
+## Barista Team Championship
 
-Individual knockout bracket. Judges vote for a winner per match.
+<!-- MODULE:btc -->
+Follows the format of the ASEAN Barista Team Championship by ASEAN Coffee Federation.
 
-**Scoring:** Variable judge count · majority vote per match  
-**Rounds:** Configurable · Round 1 → QF → SF → Final  
-**Redemption:** Optional pool — losers re-enter in 1v1v1 groups, capped per round  
-**Revival draw:** Optional per-round random revival of one loser
+Team head-to-head competition. Two teams of baristas compete per match — judges award tokens cup by cup.
 
-**Workflow:** Setup → Bracket → Score matches → Audience view → Export
+**Format:** 3 judges · 1 token each per cup · up to 3 tokens per cup shared between both teams
+**Rounds:** Preliminary (15 drinks) · Quarterfinal / Semifinal / Final (20 drinks)
 
-**Features:** Colour-coded rounds (grey / blue / amber / green / purple) · Revival markers (⬆ R) · Judge list record-keeping · Audience overlay with single-panel results · Demo mode · JSON save/load · Home navigation
+**Org · Annual only**
+This module requires an annual organisational account.
+
+**Limits:** Scoring structure follows standard BTC format — not configurable.
+<!-- /MODULE:btc -->
+
+**Technical:** Judge selection per match · PDF export · audience view with colour-coded match rows · demo mode · JSON save/load
 
 ---
 
 ## Liga Seduh
 
-Round robin brewing league. Every brewer plays a defined number of matches in triads (1v1v1). Live cumulative standings update after each result. Top 3 advance to a judged Final.
+<!-- MODULE:liga -->
+Round robin brewing league. Every brewer competes in small groups across multiple rounds. Live standings update after each result. Top 3 advance to a judged Final.
 
-**Scoring:** Self-adjudicating — each brewer casts 1 vote per match; tiebreaker judge resolves deadlocks  
-**Rounds:** Configurable · automatic no-repeat schedule generation  
+**Format:** Groups of 3 (1v1v1) · self-adjudicating votes · tiebreaker judge for deadlocks
 **Final:** Top 3 brewers + 2 external judges · 5-vote pool
 
-**Workflow:** Setup → Schedule → Score matches → Standings → Final → Report
+**Community (up to 8 brewers)**
+Full round robin with automatic no-repeat schedule and judged Final.
 
-**Features:** No-repeat schedule generator · Live league table · Device usage tracking · CSV export · Audience view · Demo mode · JSON save/load · Home navigation
+**Org (unlimited brewers)**
+Adds device usage tracking and CSV export.
+
+**Limits:** Community tier caps at 8 brewers. Match schedule is auto-generated to ensure no two brewers meet twice — manual ordering is not supported.
+<!-- /MODULE:liga -->
+
+**Technical:** No-repeat schedule generator · live league table · audience overlay · demo mode · JSON save/load
 
 ---
 
-## Platform Roadmap
+## Cup Taster
 
-| Phase | Versions | Focus |
-|---|---|---|
-| **Foundation** | v1.0 → v4.0 | Three solid modules tested in real events ✅ |
-| **Brand & Commercial** | v4.1 → v4.5 | Grey Matter Coffee Werks branding, custom domain, Firebase, licensing |
+<!-- MODULE:cup_taster -->
+Sensory identification competition. Contestants identify the odd cup in blind trios — scored on accuracy, timed as tiebreaker.
+
+**Format:** Trios (2 identical cups, 1 different) · configurable trios per stage · configurable stage structure
+**Timing:** Master countdown for each heat · individual stop per contestant · timeout assigns maximum time
+
+**Community (up to 8 contestants, up to 3 sets)**
+Single or multi-stage event. Prelims-only format supported for smaller events.
+
+**Org (unlimited contestants and sets)**
+Adds per-trio difficulty analytics, score distribution, and CSV export.
+
+**Limits:** Community tier caps at 8 contestants and 3 sets. Multi-stage advancement (Prelims → Semis → Finals) is supported at both tiers.
+<!-- /MODULE:cup_taster -->
+
+**Technical:** Multi-heat partitioning · score distribution · avg time per set · hardest trio callout · audience overlay · demo mode · JSON save/load
 
 ---
 
@@ -119,4 +152,4 @@ Organizational licensing available for coffee associations, competition bodies, 
 - `CONVENTIONS.md` — code patterns, token names, git workflow
 - `CHANGELOG.md` — version history, what changed and when
 
-**Current version:** v4.2.5
+**Current version:** v4.6.1

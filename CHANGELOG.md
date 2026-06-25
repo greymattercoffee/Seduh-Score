@@ -2,6 +2,188 @@
 
 ---
 
+## [4.6.0] — Audience view rebuild · POA-16 · June 2026
+
+### shared/audience.js (full rebuild)
+- **feat: `audInited` guard** — `Audience.init()` is now idempotent; safe to call on every render cycle. Mirrors `Timer.init()` pattern.
+- **feat: dark/light theme toggle** — `_toggleTheme()` toggles `.aud-dark`/`.aud-light` on `#aud-overlay`. Choice persisted to `seduh_aud_config_v1` localStorage key; restored on next session.
+- **feat: `projectionMode` + `accentColour` persistence** — `_saveConfig()`/`_loadConfig()` write/read `{ projectionMode, accentColour }` to `seduh_aud_config_v1`. `logoUrl` intentionally excluded (blob URLs are ephemeral).
+- **feat: podium mode** — `Audience.showPodium()` triggers full-screen podium takeover (dark locked). Champion centred, 1st Runner Up left, 2nd Runner Up right. `#aud-podium-back` returns to `_lastState`. Enhanced tier only.
+- **feat: `moduleTag` param** — `Audience.show()` accepts `moduleTag` string for round/stage badge in overlay header.
+- **feat: `podium` param** — `Audience.show()` accepts podium data array; stored as `_podiumData` for `showPodium()`. Does not auto-trigger podium mode.
+- **feat: dual/single panel logic** — `lbHTML` present → dual panel (42/58 split); absent/null/empty → single panel (results fills full width).
+- **feat: overlay state tracking** — `_currentState` tracks one of `hidden`, `lite`, `enh-dark`, `enh-light`, `enh-single-dark`, `enh-single-light`, `podium`.
+- **feat: `Audience.setEventConfig()`** — merges partial config into `_cfg`; persists `projectionMode` + `accentColour`.
+
+### shared/theme.css
+- **feat: `--aud-accent` token** — added to `:root`. Default `var(--accent)`; overridden per-event via inline style on `#aud-overlay`.
+- **feat: `.aud-round-pre/qf/sf/fin` classes** — round-colour badge classes for audience history rows.
+- **feat: v4.6 audience overlay CSS** — full layout block: `.aud-hdr`, `.aud-content`, `.aud-lb-panel`, `.aud-hist-panel`, `.aud-toggle-btn`, `.aud-close-btn`, `#aud-podium-panel`, `.aud-podium-tile`, `.aud-podium-rank-1/2/3`. Dark/light theming via `.aud-dark`/`.aud-light` on `#aud-overlay`. Dual/single panel via `.aud-dual`/`.aud-single`. Responsive: ≤640px collapses to single column, results above standings.
+
+### shared/gates.js
+- **feat: audience link gate split** — `audience_links` key replaced by `audience_links_concluded` (`minTier: 'community'`) and `audience_links_snapshot` (`minTier: 'per_event'`). `audience_links_live` (`minTier: null`) retained as platform switch.
+
+### throwdown/index.html (migration)
+- **feat: new overlay markup** — replaced old banner/body structure with v4.6 markup (`aud-hdr`, `aud-content`, `aud-hist-panel`, `aud-podium-panel`).
+- **feat: podium data** — `showAudience()` builds podium array from final/SF results when bracket is complete; passes to `Audience.show()`.
+- **feat: podium button** — "🏆 Podium" button added to header when `audience_enhanced` gate passes and bracket is done; calls `Audience.showPodium()`.
+
+### liga/index.html (migration)
+- **feat: new overlay markup** — replaced old banner/body structure with v4.6 markup (dual panel: `aud-lb-panel` + `aud-hist-panel`, plus `aud-podium-panel`).
+- **feat: podium data** — `showAudience()` builds podium from Liga Final result when available, falls back to live standings.
+- **feat: podium button** — "🏆 Podium" button added when `audience_enhanced` gate passes and at least one match is done; calls `Audience.showPodium()`.
+
+### bbtc/index.html (migration — POA-09)
+- **feat: migrate to shared audience.js** — removed self-contained `#aud-overlay` HTML block, local audience CSS, and local audience JS. Now loads `shared/audience.js` and calls `Audience.init()` / `Audience.show()`.
+- **feat: `rAudienceLbHTML()`** — preliminary standings rendered as lbHTML string (inline hex per CONVENTIONS.md exception).
+- **feat: `rAudienceHistHTML()`** — match history with `.aud-round-*` round-colour classes.
+- **note: BTC podium deferred** — `Audience.showPodium()` not wired in this build. Podium data model documented in AUDIENCE-SPEC.md §5.3b.
+
+### cup-taster/index.html (migration)
+- **fix: overlay markup** — replaced old banner/body structure (`aud-banner`, `aud-title-block`, `aud-module-tag`) with v4.6 markup (`aud-hdr`, `aud-content`, `aud-podium-panel`).
+- **fix: remove dead `aud-lb-panel` visibility code** — `bind()` no longer manually toggles the LB panel by ID; `Audience.show()` owns panel visibility.
+
+### audience/index.html (new file)
+- **feat: remote viewer stub** — new `audience/` page with four URL states: `?state=pre` (holding page), `?state=live` (event in progress), `?state=concluded` (final results), `?state=none` (no event). Default: `pre`. Firebase TODO hooks planted at all three integration points. `#aud-remote-updated` present in DOM; always hidden pre-Firebase. Light/paper base, mobile-first, single-panel layout.
+
+---
+
+## [4.6.1] — Dashboard module info modal · June 2026
+
+### index.html
+- **feat: module info modal** — ℹ button added to each module card (Throwdown, Barista Team Championship, Liga Seduh, Cup Taster) in both the free quick-launch panel and the org platform grid. Clicking opens a modal panel showing organiser-facing module information.
+- **feat: README-driven content** — modal fetches `README.md` on first open (one request, cached). Extracts the anchored `<!-- MODULE:key --> … <!-- /MODULE:key -->` block for the clicked module and renders it as HTML. No external parser.
+- **feat: minimal markdown renderer** — inline renderer handles `##` → `<h3>`, `###` → `<h4>`, `**bold**` → `<strong>`, blank lines → paragraph breaks. HTML comment lines stripped.
+- **feat: offline fallback** — fetch failure or missing anchor shows fallback link to `greymattercoffee.github.io/Seduh-Score`.
+- **feat: modal close** — × button, backdrop click, and Escape key all dismiss the modal.
+- **fix: version line** — footer version tag updated from `v4.5` to `v4.6.1`.
+
+---
+
+## [4.5.1] — Changelog cleanup · June 2026
+
+### CHANGELOG.md
+- **fix(changelog): Firebase milestone `v4.6` → `v4.7` in v4.3.2 stub-behaviour line; v4.5.0 entry completed** — missing `feat(theme)`, `fix(gates)`, and Firebase milestone items added.
+
+---
+
+## [4.5.0] — Platform front door · Jerudong · June 2026
+
+### index.html (replaced — dashboard launcher → platform front door)
+- **feat: platform front door** — `index.html` replaces the old dashboard launcher with the new public-facing platform front door. Single-file, no build step (CONVENTIONS B1). Loads `shared/theme.css` + `shared/gates.js` only.
+- **feat: four free tools** — Throwdown Basic, Liga Basic, Cup Taster Basic, Timer. All four links in the free quick-launch panel; no account required.
+- **feat: org platform zone** — warm dark section (`--surface-deep`) with module cards (Throwdown full, BBTC Annual, Liga Seduh full, Cup Taster full) and embedded login UI. Firebase v4.7 will wire up real auth.
+- **feat: featured event ribbon** — full-bleed upcoming event showcase (architectural slot — update copy per event).
+- **feat: auth state simulation** — `[data-auth]` visitor/org toggle on `<html>`. Default state: visitor (`data-auth="out"`). Clicking Sign in sets `data-auth="in"` — org chip appears, login form replaced by signed-in confirmation. Sign out returns to visitor state. No persistence pre-Firebase (by design).
+
+### CONVENTIONS.md
+- **fix(conventions): Firebase Auth milestone corrected to v4.7** — Gates section comment previously said "v4.6"; corrected to "v4.7". v4.6 = custom domain + Firebase Hosting (still static); v4.7 = Firebase Auth + admin panel. Comment text only — no logic changed.
+
+### shared/theme.css
+- **feat(theme): `--surface-deep` token suite** — warm near-black palette addition for the org platform zone.
+
+### shared/gates.js
+- **fix(gates): remove `liga` + `cup_taster` module-access keys** — Option A free tier; module entry free for all tiers, only in-module premium features gated.
+- **fix: Firebase Auth milestone corrected to v4.7** — stub-behaviour comment in `gates.js` updated (`v4.6` → `v4.7`); also in CONVENTIONS.md and CHANGELOG v4.3.2 entry.
+
+---
+
+## [4.4.4] — Module entry gate removal · June 2026
+
+### liga/index.html
+- **Remove module entry gate** — `Gates.canAccess('liga')` call was already absent (never added to this file). Liga Basic is free to enter for all users. Premium feature gates (`liga_unlimited`, `liga_device_tracking`, `liga_csv_export`) remain intact inside the module.
+
+### cup-taster/index.html
+- **Remove module entry gate** — removed `Gates.canAccess('cup_taster_module')` check from `init()` that rendered a "coming soon" placeholder and blocked render. Cup Taster Basic is now free to enter for all users. Internal feature gates (`cup_taster_unlimited`, `cup_taster_report`, `cup_taster_analytics`) remain intact.
+
+---
+
+## [4.4.3] — gates.js cleanup · June 2026
+
+### shared/gates.js
+- **Remove `liga` + `cup_taster` module-access keys** — Option A free tier decision: module entry is free for all tiers; only premium features within each module are gated. Removing these keys means `Gates.canAccess('liga')` and `Gates.canAccess('cup_taster')` now return `{ allowed: false, reason: 'disabled' }` (unknown key). Expected and temporary — Session 3 removes those calls from the module files before this merges to main.
+- **Fix Firebase milestone comments: v4.6 → v4.7** — v4.6 = custom domain + Firebase Hosting (still static); v4.7 = Firebase Auth + admin panel (when the stub is actually replaced). Three comment occurrences updated; no logic changed.
+
+---
+
+## [4.4.2] — Deep surface token suite · June 2026
+
+### shared/theme.css
+- **`--surface-deep` token suite** — nine additive tokens for warm near-black palette: `--surface-deep`, `--deep-card`, `--deep-bd`, `--deep-bd2`, `--deep-ink`, `--deep-ink2`, `--deep-sub`, `--deep-ink3`, `--deep-ink4`. Warm near-black palette addition for org zone and future audience view. No existing token renamed or removed.
+
+---
+
+## [4.4.1] — Cup Taster analytics additions · June 2026
+
+### cup-taster/index.html
+- **Score distribution panel** — new card in Report tab (inside `cup_taster_analytics` gate),
+  above per-contestant breakdown. Shows frequency and share % for each correct-count score,
+  derived from prelims heats only (full-field view). Hidden if no prelims heats are confirmed.
+- **Avg time/set** — per-contestant breakdown table now shows `~Xs/set` as a second line
+  within each stage cell. Computed as `Math.round(elapsedSecs / trioCount)`. Blank for
+  contestants who maxed out (timer expired).
+- **Hardest trio callout** — a `.hint` paragraph below each per-trio difficulty table
+  identifies the trio with the lowest identification rate. Ties named explicitly:
+  "Hardest sets: Trio 2, Trio 5 — both at 33%".
+- **CSV export additions** — standings section gains `Avg/set(s)` column (`max` for timed-out
+  contestants); a `Score Distribution (Prelims — full field)` section appended after standings,
+  before trio difficulty. Trio difficulty section unchanged.
+- **`rankStandings()` bug fix** — `prev._pos` was read from the unmapped input array (always
+  undefined beyond the first tied row). Fixed by tracking `lastPos` in a closure; all
+  contestants in a tie now correctly inherit the shared position.
+
+---
+
+## [4.4.0] — Cup Taster module · June 2026
+
+### cup-taster/index.html (new module)
+- **Cup Taster** — blind trio sensory identification competition. Contestants taste
+  three cups (2 identical, 1 different origin or lot) per trio and identify the odd cup.
+- **Gate check** — `Gates.canAccess('cup_taster_module')` called before any UI renders;
+  "coming soon" placeholder shown if `allowed: false`. Module-level IIFE, render never
+  called unless gate passes.
+- **State:** `DEFAULT_STATE()` factory; storage key `seduh_cup_taster_v1`;
+  `_module:'cup_taster'` guard on JSON import.
+- **Heat partition algorithm** — `partitionField(N)`: `Math.ceil(N/4)` heats, distributed
+  as evenly as possible (4+4=8, 4+3=7, 3+3=6, etc.). Verified against the spec table.
+- **Local heat timer surface** — full-width master countdown + per-contestant stop buttons.
+  Shared `Timer.open()` NOT used for heat timing. `heatTimerInterval` survives re-renders;
+  restarted in `bind()` if active heat is still in timing mode. Timeout auto-maxes all
+  untapped contestants. Warning colour activates at ≤60 s remaining.
+- **Scoring entry** — trio toggle buttons (✓/✗, cycling true/false) per contestant.
+  Confirm active when every contestant has at least one trio entered. Edit link re-opens
+  confirmed heat for correction (times preserved, `done` cleared).
+- **`resolveHeat(heat)`** — pure function, single source of truth for all standings,
+  analytics, report, and audience views. Never stores derived data.
+- **`calcStandings(stage)`** — sorts by correct desc → time asc. `rankStandings()` assigns
+  shared positions to tied rows.
+- **Stage tabs** — dynamic: `Setup · Heats · Standings · [Semis] · [Finals] · Report`.
+  Semis and Finals tabs unlock progressively as heats are generated for those stages.
+- **Advancement** — `computeAdvancement()` includes all tied rows at the cutoff position.
+  Tied cutoff flagged with amber ⚠ badge. Confirmation generates next-stage heats and
+  switches to the new stage tab.
+- **Audience view** — `Audience.show()` with dual-panel (enhanced gate) or single-panel
+  (community). Inline hex throughout both `rAudienceLbHTML()` and `rAudienceHeatHTML()`.
+- **Gates checked:** `cup_taster_module` (module visibility), `cup_taster_analytics`
+  (per-contestant + per-trio breakdown), `cup_taster_report` (report tab),
+  `cup_taster_unlimited` (8-contestant cap), `audience_enhanced` (dual-panel audience).
+- **Report tab** — champion banner, event summary (identification rate, stages run),
+  per-contestant breakdown (Analytics A), per-trio difficulty ordered easy→hard (Analytics B),
+  CSV export (standings + difficulty). Gated behind `cup_taster_report`.
+- **Demo mode** — `buildCupTasterDemo()` / `loadCupTasterDemo()`. 7 contestants (Amir,
+  Bella, Cyrus, Dana, Elena, Faris, Greta). Prelims: 2 heats, all confirmed; Cyrus maxed
+  on time; Faris + Greta tie. All 7 advance to semis (N < cutoff). Semis Heat 1 confirmed;
+  Semis Heat 2 active in scoring entry mode with partial trio results.
+- **Conventions:** `Timer.init()` first line of `bind()`; `Audience.init()` in `bind()`;
+  no hardcoded hex in module CSS (audience overlay excepted); gate pattern hidden not
+  disabled; sentence case copy throughout.
+
+### index.html (dashboard)
+- Cup Taster card added: `live: false`, `href: 'cup-taster/index.html'`. Set to
+  `live: true` when `cup_taster_module` platform switch is confirmed on.
+
+---
+
 ## [4.3.2] — shared/gates.js stub · canAccess() API · feature registry · June 2026
 
 ### shared/gates.js (new file)
@@ -15,7 +197,7 @@
 - **Internal stubs** — `getTier()` returns `'annual'`, `isEnabled()` returns `true`,
   `tierRank()` maps tier strings to rank integers. None exported — gates.js internal use only.
 - **Stub behaviour** — all `canAccess()` calls return `{ allowed: true }` through v4.5.
-  Replaced by Firebase custom claims + Firestore platform-switch reads in v4.6.
+  Replaced by Firebase custom claims + Firestore platform-switch reads in v4.7.
 - No user-facing changes.
 
 ### All modules (index.html, throwdown, liga, bbtc)

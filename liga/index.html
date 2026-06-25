@@ -88,21 +88,27 @@
 
 <!-- Audience overlay (shared) -->
 <div id="aud-overlay">
-  <div class="aud-banner">
-    <div class="aud-ac"></div>
-    <div class="aud-title-block">
-      <div class="aud-sub">Seduh Score</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div class="aud-title">Liga Seduh Bawah Tanah</div>
-        <span class="aud-module-tag badge badge-pu" id="aud-module-tag"></span>
-      </div>
-    </div>
-    <div class="aud-ts" id="aud-ts"></div>
-    <button class="aud-close" id="aud-close">✕ Close</button>
+  <div id="aud-podium-panel">
+    <button id="aud-podium-back" class="aud-podium-back-btn">← Back</button>
   </div>
-  <div class="aud-body">
-    <div class="aud-panel"><div class="aud-sec-title">Standings</div><div id="aud-lb"></div></div>
-    <div class="aud-panel"><div class="aud-sec-title">Current round</div><div id="aud-hist"></div></div>
+  <div class="aud-hdr">
+    <div class="aud-hdr-left">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width:28px;height:28px;flex-shrink:0;color:var(--aud-accent)"><circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"/><path d="M26 60 a24 24 0 0 1 48 0"/><path d="M35 60 a15 15 0 0 1 30 0"/><path d="M44 60 a6 6 0 0 1 12 0"/></svg>
+      <div>
+        <div class="aud-hdr-sub">Seduh Score</div>
+        <div class="aud-hdr-name" id="aud-ts"></div>
+      </div>
+      <span id="aud-tag" style="display:none"></span>
+    </div>
+    <div class="aud-hdr-right">
+      <img id="aud-logo" class="aud-logo" style="display:none" alt="">
+      <button id="aud-theme-toggle" class="aud-toggle-btn" title="Toggle dark/light">☀</button>
+      <button id="aud-close" class="aud-close-btn">✕ Close</button>
+    </div>
+  </div>
+  <div class="aud-content">
+    <div class="aud-lb-panel" id="aud-lb"></div>
+    <div class="aud-hist-panel" id="aud-hist"></div>
   </div>
 </div>
 
@@ -547,6 +553,7 @@ function rMain() {
     + '<div class="hdr-btns">'
     + '<button class="hdr-btn btn-gn-lg" id="tmrbtn">⏱ Timer</button>'
     + '<button class="hdr-btn btn-gn-lg" id="audbtn">📺 Audience</button>'
+    + (Gates.canAccess('audience_enhanced').allowed && S.matches.some(m => m.done) ? '<button class="hdr-btn btn-pu" id="podiumBtn">🏆 Podium</button>' : '')
     + '<button class="hdr-btn btn-gn-lg" id="savebtn">⬇ Save</button>'
     + '<button class="hdr-btn btn-gn-lg" id="loadbtn">⬆ Load</button>'
     + '<button class="hdr-btn btn-pu-lg" id="demobtn">⚗ Demo</button>'
@@ -1413,11 +1420,29 @@ function showAudience() {
       : Math.max(...reg.map(m => m.round));
     moduleTag = 'Round ' + cur;
   }
+
+  // Podium data — Final result is authoritative; fall back to live standings
+  const finalDone = S.matches.find(m => m.isFinal && m.done);
+  let podiumData = null;
+  if (finalDone?.result) {
+    podiumData = finalDone.result.placements
+      .slice(0, 3)
+      .map((id, i) => ({ rank: i + 1, name: brewerName(id) }));
+  } else if (reg.some(m => m.done)) {
+    const st = calcStandings();
+    podiumData = [
+      { rank: 1, name: st[0]?.name || '' },
+      { rank: 2, name: st[1]?.name || '' },
+      { rank: 3, name: st[2]?.name || '' },
+    ].filter(d => d.name);
+  }
+
   Audience.show({
     title: S.eventName || 'Liga Seduh Bawah Tanah',
     moduleTag,
     lbHTML: rAudienceLbHTML(),
     histHTML: rAudienceHistHTML(),
+    podium: podiumData,
   });
 }
 
@@ -1427,6 +1452,7 @@ function bind() {
   on('tmrbtn', 'click', () => Timer.open());
   Audience.init();
   on('audbtn', 'click', showAudience);
+  on('podiumBtn', 'click', () => Audience.showPodium());
 
   // Tabs
   document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { S.tab = b.dataset.tab; render(); }));
