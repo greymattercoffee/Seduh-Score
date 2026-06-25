@@ -146,7 +146,6 @@ Organizational licensing available for coffee associations, competition bodies, 
 **Stack:** Pure HTML, CSS, JavaScript — no framework, no build step  
 **Repo:** `github.com/greymattercoffee/Seduh-Score`  
 **Live:** `greymattercoffee.github.io/Seduh-Score`  
-**Local path:** `C:\Users\mfosa\OneDrive\Documents\Seduh-Score`
 
 **Documentation:**
 - `CONVENTIONS.md` — code patterns, token names, git workflow
