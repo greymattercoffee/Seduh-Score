@@ -1564,6 +1564,9 @@ function bind() {
 }
 
 init();
+window.addEventListener('seduh:gates-ready', () => render(), { once: true });
 </script>
+<script type="module" src="../shared/firebase.js"></script>
+<script type="module" src="../shared/auth.js"></script>
 </body>
 </html>

@@ -242,6 +242,25 @@
     <p>Seduh Score · Super admin · Internal tool</p>
   </div>
 
+  <!-- ══ Create Org ══ -->
+  <div class="adm-section">
+    <div class="adm-section-title">Create Org</div>
+    <div class="adm-card">
+      <div class="adm-row">
+        <span class="adm-row-label">Email</span>
+        <input id="create-email" type="email" placeholder="organiser@cafe.com" autocomplete="off">
+      </div>
+      <div class="adm-row">
+        <span class="adm-row-label">Password</span>
+        <input id="create-password" type="password" autocomplete="new-password">
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-am" id="create-btn">Create Account</button>
+      </div>
+      <div class="adm-status" id="create-status"></div>
+    </div>
+  </div>
+
   <!-- ══ Org Management ══ -->
   <div class="adm-section">
     <div class="adm-section-title">Org Management</div>
@@ -313,7 +332,7 @@
 
 <script type="module">
 import { auth, db }      from '../shared/firebase.js';
-import { onAuthStateChanged }
+import { onAuthStateChanged, createUserWithEmailAndPassword }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFunctions, httpsCallable }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
@@ -338,6 +357,23 @@ onAuthStateChanged(auth, async user => {
   }
   document.getElementById('panel').style.display = 'block';
   loadSwitches();
+});
+
+// ── Create Org ──
+document.getElementById('create-btn').addEventListener('click', () => {
+  const email    = document.getElementById('create-email').value.trim();
+  const password = document.getElementById('create-password').value;
+  if (!email || !password) { setStatus('create-status', 'Email and password required.', 'error'); return; }
+  setStatus('create-status', 'Creating…', 'muted');
+  createUserWithEmailAndPassword(auth, email, password)
+    .then(cred => {
+      setStatus('create-status', 'Account created. UID: ' + cred.user.uid, 'ok');
+      document.getElementById('create-email').value    = '';
+      document.getElementById('create-password').value = '';
+      document.getElementById('find-email').value = email;
+      setTimeout(findOrg, 1000);
+    })
+    .catch(err => setStatus('create-status', err.message, 'error'));
 });
 
 // ── Org Management ──
