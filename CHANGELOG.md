@@ -2,6 +2,106 @@
 
 ---
 
+## [4.8.0] — Firebase Auth + Admin Panel · June 2026
+
+### shared/firebase.js (new file)
+- **feat: Firebase app init** — Firebase JS SDK v10 modular; initialises app, auth, and Firestore instances
+- **feat: IndexedDB persistence** — `enableIndexedDbPersistence()` enabled for offline competition-day reliability; graceful fallback on unsupported browsers or multiple tabs
+
+### shared/auth.js (new file)
+- **feat: onAuthStateChanged** — drives `[data-auth]` attribute on `<html>`; replaces simulated toggle; org chip populated with `user.email` on login
+- **feat: Gates.init() call** — called after login and after every token refresh via `onIdTokenChanged`; dispatches `seduh:gates-ready` custom event on `window` after init resolves
+- **feat: cold-start offline banner** — 5s timeout on page load; non-blocking, dismissible; cleared immediately when auth state resolves
+- **feat: expiry soft warning** — 60s interval checks `Gates.isExpired()`; amber banner on expiry; session continues uninterrupted; clears interval after firing
+- **feat: redirect hook** — Option A (stay on front door) active; hook comment planted for future Option B migration
+
+### shared/gates.js
+- **feat: Gates.init(user)** — new public method; reads `subscription_tier` and `subscription_expiry` from Firebase token claims; reads `platform/switches` from Firestore `platform/switches` document; caches both for session; called by `auth.js` only
+- **feat: Gates.isExpired()** — new public method; returns true if `_expiry` is set and in the past; called by `auth.js` expiry monitor
+- **feat: getTier()** — stub replaced; reads `_tier` from claims; returns `'community'` if expired
+- **feat: isEnabled()** — stub replaced; reads `_switches` from Firestore cache; platform-switch-only features require explicit `true`; tier-gated features enabled unless explicitly `false`
+- **fix: offline default** — `_tier` defaults to `'community'`, `_switches` to `{}`; unauthenticated users get Community access only; fail-open for cached sessions
+- **canAccess() API unchanged** — zero module changes required
+
+### index.html
+- **feat: real Firebase auth** — Email/Password login wired to existing `[data-auth]` markup; login form live; sign out functional
+- **feat: session persistence** — Firebase default `local` persistence; session survives tab close and browser restart; explicit sign-out only
+- **feat: inline login errors** — five error states mapped to plain-language messages; no `alert()` calls; form fields retain values on error
+
+### throwdown/index.html
+- **feat: firebase.js + auth.js loaded** — module-scoped `<script type="module">` tags added before `</body>`
+- **feat: seduh:gates-ready listener** — `{ once: true }` re-render listener added after module-init `render()` call; ensures gated features reflect auth state on fresh navigation without manual refresh
+- **feat: throwdown_redemption gate** — `Gates.canAccess('throwdown_redemption')` added to `rSetup()` and `rBracket()`; redemption card and lucky loser bracket UI hidden for community tier
+- **feat: throwdown_revival gate** — `Gates.canAccess('throwdown_revival')` added to `rSetup()` and `rBracket()`; revival draw card and bracket UI hidden for community tier
+
+### admin/index.html (new file)
+- **feat: super_admin access control** — `onAuthStateChanged` checks `super_admin` custom claim on load; redirects to front door if not super admin
+- **feat: org management** — find org by email via `getOrgByEmail` Cloud Function; displays UID, current tier, expiry in BNT (UTC+8)
+- **feat: set access window** — tier selector (Community / Per-Event / Annual) + date range inputs; writes via `setOrgClaims` Cloud Function
+- **feat: revoke now** — sets `subscription_expiry` to current Unix timestamp minus one second
+- **feat: platform switches** — reads `platform/switches` Firestore document; toggle buttons for `cup_taster_module` and `audience_links_live`; writes on toggle with inline "Saved." confirmation
+
+### Firebase Cloud Functions (new — backend, us-central1 Gen 2)
+- **feat: setOrgClaims** — HTTPS callable; verifies `super_admin` claim; sets `subscription_tier` + `subscription_expiry` custom claims via Admin SDK
+- **feat: getOrgByEmail** — HTTPS callable; verifies `super_admin` claim; returns UID + current claims for a given email
+
+### Firestore
+- **feat: platform/switches document** — created with initial state `cup_taster_module: true`, `audience_links_live: false`
+- **feat: security rules** — authenticated read on `platform/switches`; super_admin write only; all other collections denied
+
+### Known issues (non-blocking for August — tracked for follow-up)
+- `seduh:gates-ready` pattern not yet applied to `liga/index.html` or `cup-taster/index.html`
+- `cup_taster_module` platform switch displaying inverted in admin panel
+- Create org account not present in admin panel — use Firebase Console → Add user as workaround
+- Free tools panel visible when org is logged in
+- Org zone module cards do not reflect actual tier access
+- Gated features may persist mid-session after token revoke (next cold start enforces correctly)
+- Report tab not yet built in Throwdown
+
+---
+
+## [4.7.0] — Organiser customisation engine · POA-17 Phase A · June 2026
+
+### shared/eventconfig.js (new file)
+- **feat: EventConfig.mount()** — renders accent picker and logo upload into a module-provided `#event-config-slot` element. CSS injected once per session via `<style id="ec-styles">` injection guard.
+- **feat: EventConfig.writeHandoff()** — writes `{ v:1, accent, logoUrl }` to sessionStorage key `seduh_handoff` at audience-show time. Silent; no return value.
+- **feat: accent palette** — 10 accents: Seduh Amber (default), Espresso, Slate, Cobalt, Emerald, Ruby, Midnight, Copper, Matcha, Alien. Exact hex values locked in ACCENTS constant.
+- **feat: logo upload** — FileReader base64 conversion, 350KB post-encoding size cap, inline error message, preview with clear button. Session-only — not persisted to localStorage.
+- **feat: CSS injection guard** — styles injected once per session regardless of how many modules mount the component.
+
+### shared/audience.js
+- **feat: _applyHandoff()** — reads `seduh_handoff` from sessionStorage at `Audience.show()` call time. Applies accent and logoUrl to `_cfg`. Version-checked (`v:1`), try/catch guarded. Silent on missing or malformed handoff.
+- **feat: event logo in overlay header** — `_cfg.logoUrl` rendered as `<img id="aud-logo">` in `.aud-hdr-right` when present (enhanced gate). Hidden when null. `#aud-logo` element confirmed present in all four module overlays.
+
+### throwdown/index.html
+- **feat: event config integration** — `eventconfig.js` loaded after `gates.js`; `#event-config-slot` mounted at end of Setup tab; `EventConfig.mount()` called in `bind()` after `Audience.init()`; `EventConfig.writeHandoff()` called as first line of `showAudience()`.
+
+### liga/index.html
+- **feat: event config integration** — `eventconfig.js` loaded after `gates.js`; `#event-config-slot` mounted at end of `rSetup()`; `EventConfig.mount()` called in `bind()` after `Audience.init()`; `EventConfig.writeHandoff()` called as first line of `showAudience()`.
+
+### cup-taster/index.html
+- **feat: event config integration** — `eventconfig.js` loaded after `gates.js`; `#event-config-slot` mounted at end of `rSetup()`; `EventConfig.mount()` called in `bind()` after `Audience.init()`; `EventConfig.writeHandoff()` called as first line of `showAudience()`.
+
+### bbtc/index.html
+- **feat: event config integration** — `eventconfig.js` loaded after `gates.js`; `#event-config-slot` mounted at end of `rSetup()`; `EventConfig.mount()` called in `bind()` after `Audience.init()`; `EventConfig.writeHandoff()` called as first line of `showAudience()`.
+
+### CONVENTIONS.md
+- **docs: eventconfig.js documented** — approved second post-B1 shared file; API, handoff contract, and mount pattern documented in Shared component APIs section.
+
+---
+
+## [4.6.1] — Dashboard module info modal · June 2026
+
+### index.html
+- **feat: module info modal** — ℹ button added to each module card (Throwdown, Barista Team Championship, Liga Seduh, Cup Taster) in both the free quick-launch panel and the org platform grid. Clicking opens a modal panel showing organiser-facing module information.
+- **feat: README-driven content** — modal fetches `README.md` on first open (one request, cached). Extracts the anchored `<!-- MODULE:key --> … <!-- /MODULE:key -->` block for the clicked module and renders it as HTML. No external parser.
+- **feat: minimal markdown renderer** — inline renderer handles `##` → `<h3>`, `###` → `<h4>`, `**bold**` → `<strong>`, blank lines → paragraph breaks. HTML comment lines stripped.
+- **feat: offline fallback** — fetch failure or missing anchor shows fallback link to `greymattercoffee.github.io/Seduh-Score`.
+- **feat: modal close** — × button, backdrop click, and Escape key all dismiss the modal.
+- **fix: version line** — footer version tag updated from `v4.5` to `v4.6.1`.
+
+---
+
 ## [4.6.0] — Audience view rebuild · POA-16 · June 2026
 
 ### shared/audience.js (full rebuild)
@@ -45,18 +145,6 @@
 
 ### audience/index.html (new file)
 - **feat: remote viewer stub** — new `audience/` page with four URL states: `?state=pre` (holding page), `?state=live` (event in progress), `?state=concluded` (final results), `?state=none` (no event). Default: `pre`. Firebase TODO hooks planted at all three integration points. `#aud-remote-updated` present in DOM; always hidden pre-Firebase. Light/paper base, mobile-first, single-panel layout.
-
----
-
-## [4.6.1] — Dashboard module info modal · June 2026
-
-### index.html
-- **feat: module info modal** — ℹ button added to each module card (Throwdown, Barista Team Championship, Liga Seduh, Cup Taster) in both the free quick-launch panel and the org platform grid. Clicking opens a modal panel showing organiser-facing module information.
-- **feat: README-driven content** — modal fetches `README.md` on first open (one request, cached). Extracts the anchored `<!-- MODULE:key --> … <!-- /MODULE:key -->` block for the clicked module and renders it as HTML. No external parser.
-- **feat: minimal markdown renderer** — inline renderer handles `##` → `<h3>`, `###` → `<h4>`, `**bold**` → `<strong>`, blank lines → paragraph breaks. HTML comment lines stripped.
-- **feat: offline fallback** — fetch failure or missing anchor shows fallback link to `greymattercoffee.github.io/Seduh-Score`.
-- **feat: modal close** — × button, backdrop click, and Escape key all dismiss the modal.
-- **fix: version line** — footer version tag updated from `v4.5` to `v4.6.1`.
 
 ---
 

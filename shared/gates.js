@@ -1,6 +1,6 @@
-// shared/gates.js — feature gate stub (v4.3+)
-// Stub: all canAccess() calls return { allowed: true } until Firebase auth lands in v4.7.
-// Modules call ONLY Gates.canAccess() — never getTier(), isEnabled(), or tierRank() directly.
+// shared/gates.js — feature gate v4.8.0
+// Public API: Gates.canAccess(featureKey) — signature and return shape unchanged.
+// Gates.init(user) and Gates.isExpired() are new; called by auth.js only, never by modules.
 
 const FEATURES = {
   // Module access — routing layer
@@ -24,47 +24,68 @@ const FEATURES = {
 
   // Audience
   'audience_enhanced':          { minTier: 'per_event' },
-  // Presentation mode: dual panel, dark theme, branding, podium, live toggle
-
   'audience_links_concluded':   { minTier: 'community' },
-  // Concluded results page — static snapshot, all tiers, no live data
-
   'audience_links_snapshot':    { minTier: 'per_event' },
-  // Live snapshot URL + last-updated timestamp — post-Firebase; almost-confirmed
 
-  // Platform switches — minTier: null means tier-independent (super admin only)
-  // Feature hidden for ALL orgs regardless of tier until super admin enables it
-  'cup_taster_module':          { minTier: null },
-  'audience_links_live':        { minTier: null },
-  // Real-time push — Annual minimum; platform switch only; super admin enables
+  // Platform switches — minTier: null = tier-independent, super admin enables only
+  'cup_taster_module':   { minTier: null },
+  'audience_links_live': { minTier: null },
 };
 
-// STUB: returns 'annual' — replaced by Firebase custom claims read in v4.7
-// Never call from modules.
+let _tier     = 'community'; // 'community' | 'per_event' | 'annual'
+let _expiry   = null;        // Unix timestamp (seconds) or null
+let _switches = {};          // { featureKey: boolean }
+
 function getTier() {
-  return 'annual';
+  if (!_tier || _tier === 'community') return 'community';
+  if (Gates.isExpired()) return 'community'; // expired = community access
+  return _tier;
 }
 
-// STUB: returns true for all keys — replaced by Firestore platform-switch document read in v4.7
-// Never call from modules.
 function isEnabled(featureKey) {
-  return true;
-}
-
-// Helper for tier comparison
-function tierRank(tier) {
-  return tier === 'annual' ? 2 : tier === 'per_event' ? 1 : 0;
-}
-
-function canAccess(featureKey) {
   const feature = FEATURES[featureKey];
-  if (!feature) return { allowed: false, reason: 'disabled' };
+  if (!feature) return false;
   if (feature.minTier === null) {
-    return isEnabled(featureKey) ? { allowed: true } : { allowed: false, reason: 'disabled' };
+    // Platform-switch-only — must be explicitly true in switches doc
+    return _switches[featureKey] === true;
   }
-  if (!isEnabled(featureKey)) return { allowed: false, reason: 'disabled' };
-  if (tierRank(getTier()) < tierRank(feature.minTier)) return { allowed: false, reason: 'tier' };
-  return { allowed: true };
+  // Tier-gated features: enabled unless explicitly false; absence means enabled
+  return _switches[featureKey] !== false;
 }
 
-const Gates = { canAccess };
+function tierRank(tier) {
+  return { community: 0, per_event: 1, annual: 2 }[tier] ?? -1;
+}
+
+const Gates = {
+  canAccess: function(featureKey) {
+    const feature = FEATURES[featureKey];
+    if (!feature) return { allowed: false, reason: 'disabled' };
+    if (!isEnabled(featureKey)) return { allowed: false, reason: 'disabled' };
+    if (feature.minTier === null) return { allowed: true }; // passed isEnabled
+    const rank = tierRank(getTier());
+    const required = tierRank(feature.minTier);
+    if (rank < required) return { allowed: false, reason: 'tier' };
+    return { allowed: true };
+  },
+
+  init: async function(user) {
+    const result = await user.getIdTokenResult();
+    _tier   = result.claims.subscription_tier   || 'community';
+    _expiry = result.claims.subscription_expiry || null;
+
+    try {
+      const { getDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDoc(doc(window._sdDb, 'platform', 'switches'));
+      _switches = snap.exists() ? snap.data() : {};
+    } catch (e) {
+      // Firestore unreachable — _switches stays {}
+      // Platform-switch-only features stay hidden (safe default)
+      console.warn('Platform switches unavailable:', e);
+    }
+  },
+
+  isExpired: function() {
+    return _expiry !== null && (Date.now() / 1000) > _expiry;
+  }
+};

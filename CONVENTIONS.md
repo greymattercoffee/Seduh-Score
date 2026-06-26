@@ -376,6 +376,20 @@ const FEATURES = {
 
 `minTier: null` = platform switch only. No tier entitles an org to this feature until the switch is on.
 
+### eventconfig.js — v4.7.0+
+
+Approved second post-B1 shared file (strategy chat, June 2026).
+Organiser event config component — accent colour picker and logo upload. Mounts into a module-provided `#event-config-slot` element.
+
+Public API (three methods only — never call internals from modules):
+```javascript
+EventConfig.mount(selector, options?)  // render component
+EventConfig.writeHandoff()             // write seduh_handoff to sessionStorage
+EventConfig.getAccent()               // read current accent hex
+```
+
+Handoff contract: sessionStorage key `seduh_handoff`, shape `{ v:1, accent, logoUrl }`. `v:` field is version sentinel — check before reading. Consumed by `audience.js` `_applyHandoff()` inside `Audience.show()`.
+
 ---
 
 ## CSS conventions

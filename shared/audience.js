@@ -84,6 +84,19 @@ function _exitPodium() {
   ovl.classList.remove('aud-podium-active');
 }
 
+// ── Handoff ──────────────────────────────────────────────────────
+
+function _applyHandoff() {
+  try {
+    const raw = sessionStorage.getItem('seduh_handoff');
+    if (!raw) return;
+    const h = JSON.parse(raw);
+    if (!h || h.v !== 1) return;
+    if (h.accent)  _cfg.accentColour = h.accent;
+    if (h.logoUrl) _cfg.logoUrl      = h.logoUrl;
+  } catch(e) { /* malformed handoff — ignore */ }
+}
+
 // ── Public API ───────────────────────────────────────────────────
 
 const Audience = {};
@@ -114,6 +127,7 @@ Audience.init = function() {
 };
 
 Audience.show = function({ title = '', moduleTag = '', lbHTML, histHTML = '', podium } = {}) {
+  _applyHandoff();
   const ovl = document.getElementById('aud-overlay');
   if (!ovl) return;
 
