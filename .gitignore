@@ -22,3 +22,13 @@ handoff_*.md
 
 # Handoff and spec documents
 Handoff and Spec Files/
+
+# Firebase
+firebase-debug.log
+public/
+functions/node_modules/
+
+# Claude Code
+.agents/
+.claude/
+skills-lock.json

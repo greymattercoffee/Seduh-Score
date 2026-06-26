@@ -798,6 +798,8 @@ function rMain() {
 function rSetup() {
   const maxR = S.bracket ? 'QF and below' : 'all rounds';
   const canGen = S.participants.length >= 2;
+  const rdAccess = Gates.canAccess('throwdown_redemption');
+  const wcAccess = Gates.canAccess('throwdown_revival');
   return '<div class="card"><div class="card-hdr">Event info <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:9px">(optional)</span></div><div class="card-body">'
     + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
     + '<div><label class="field-lbl">Event name</label><input id="ev-name" type="text" value="'+S.eventName+'" placeholder="e.g. Throwdown Night #3"/></div>'
@@ -811,33 +813,37 @@ function rSetup() {
     + '<p class="hint" style="margin-top:8px">'+(S.judges%2===0?'⚠️ Even number — tie is possible. The extra judge acts as tiebreaker.':'Odd number — no tie possible.')+'</p>'
     + '</div></div>'
 
-    + '<div class="card"><div class="card-hdr">Redemption round</div><div class="card-body">'
-    + '<div class="redemption-row"><input type="checkbox" class="big-check" id="rd-enable"'+(S.redemption?' checked':'')+'>'
-    + '<div><div style="font-size:13px;font-weight:700;margin-bottom:4px">Enable redemption round</div>'
-    + '<p class="hint">Losers from selected rounds get a second chance. Redemption winners are randomized back into the main bracket. No redemption from QF and above.</p>'
-    + '<div class="round-checks" id="rd-rounds" style="'+(S.redemption?'':'opacity:.35;pointer-events:none')+'">'
-    + '<label class="round-check-item"><input type="checkbox" id="rd-r1"'+(S.redemptionRounds.r1?' checked':'')+'> Round 1</label>'
-    + '<label class="round-check-item"><input type="checkbox" id="rd-r2"'+(S.redemptionRounds.r2?' checked':'')+'> Round 2</label>'
-    + '</div>'
-    + '<div id="rd-cap-row" style="display:flex;align-items:center;gap:10px;margin-top:10px;'+(S.redemption?'':'opacity:.35;pointer-events:none')+'">'
-    + '<label class="field-lbl" style="margin-bottom:0;white-space:nowrap;font-size:11px">Max revived from redemption:</label>'
-    + '<input type="number" id="rd-cap" min="0" max="50" value="'+S.redemptionCap+'" style="width:64px;text-align:center;font-size:15px;font-weight:700"/>'
-    + '<span class="hint">(0 = no limit)</span>'
-    + '</div>'
-    + '<div id="rd-group-row" style="display:flex;align-items:center;gap:10px;margin-top:8px;'+(S.redemption?'':'opacity:.35;pointer-events:none')+'">'
-    + '<label class="field-lbl" style="margin-bottom:0;white-space:nowrap;font-size:11px">Brewers per group:</label>'
-    + '<input type="number" id="rd-group" min="2" max="4" value="'+(S.redemptionGroupSize||3)+'" style="width:64px;text-align:center;font-size:15px;font-weight:700"/>'
-    + '<span class="hint">(2–4, default 3)</span>'
-    + '</div>'
-    + '</div></div>'
-    + '</div></div>'
+    + (rdAccess.allowed
+      ? '<div class="card"><div class="card-hdr">Redemption round</div><div class="card-body">'
+      + '<div class="redemption-row"><input type="checkbox" class="big-check" id="rd-enable"'+(S.redemption?' checked':'')+'>'
+      + '<div><div style="font-size:13px;font-weight:700;margin-bottom:4px">Enable redemption round</div>'
+      + '<p class="hint">Losers from selected rounds get a second chance. Redemption winners are randomized back into the main bracket. No redemption from QF and above.</p>'
+      + '<div class="round-checks" id="rd-rounds" style="'+(S.redemption?'':'opacity:.35;pointer-events:none')+'">'
+      + '<label class="round-check-item"><input type="checkbox" id="rd-r1"'+(S.redemptionRounds.r1?' checked':'')+'> Round 1</label>'
+      + '<label class="round-check-item"><input type="checkbox" id="rd-r2"'+(S.redemptionRounds.r2?' checked':'')+'> Round 2</label>'
+      + '</div>'
+      + '<div id="rd-cap-row" style="display:flex;align-items:center;gap:10px;margin-top:10px;'+(S.redemption?'':'opacity:.35;pointer-events:none')+'">'
+      + '<label class="field-lbl" style="margin-bottom:0;white-space:nowrap;font-size:11px">Max revived from redemption:</label>'
+      + '<input type="number" id="rd-cap" min="0" max="50" value="'+S.redemptionCap+'" style="width:64px;text-align:center;font-size:15px;font-weight:700"/>'
+      + '<span class="hint">(0 = no limit)</span>'
+      + '</div>'
+      + '<div id="rd-group-row" style="display:flex;align-items:center;gap:10px;margin-top:8px;'+(S.redemption?'':'opacity:.35;pointer-events:none')+'">'
+      + '<label class="field-lbl" style="margin-bottom:0;white-space:nowrap;font-size:11px">Brewers per group:</label>'
+      + '<input type="number" id="rd-group" min="2" max="4" value="'+(S.redemptionGroupSize||3)+'" style="width:64px;text-align:center;font-size:15px;font-weight:700"/>'
+      + '<span class="hint">(2–4, default 3)</span>'
+      + '</div>'
+      + '</div></div>'
+      + '</div></div>'
+      : '')
 
-    + '<div class="card"><div class="card-hdr">Revival draw</div><div class="card-body">'
-    + '<div class="redemption-row"><input type="checkbox" class="big-check" id="wc-enable"'+(S.wildCard?' checked':'')+'>'
-    + '<div><div style="font-size:13px;font-weight:700;margin-bottom:4px">Enable revival draw</div>'
-    + '<p class="hint">After each completed round a <strong>🃏 Revival Draw</strong> button appears. Tap it to randomly revive one loser from that round — they rejoin the next pool. Skip to continue without a revival. Can be skipped per round.</p>'
-    + '</div></div>'
-    + '</div></div>'
+    + (wcAccess.allowed
+      ? '<div class="card"><div class="card-hdr">Revival draw</div><div class="card-body">'
+      + '<div class="redemption-row"><input type="checkbox" class="big-check" id="wc-enable"'+(S.wildCard?' checked':'')+'>'
+      + '<div><div style="font-size:13px;font-weight:700;margin-bottom:4px">Enable revival draw</div>'
+      + '<p class="hint">After each completed round a <strong>🃏 Revival Draw</strong> button appears. Tap it to randomly revive one loser from that round — they rejoin the next pool. Skip to continue without a revival. Can be skipped per round.</p>'
+      + '</div></div>'
+      + '</div></div>'
+      : '')
 
     + '<div class="card"><div class="card-hdr">3rd place match</div><div class="card-body">'
     + '<div class="redemption-row"><input type="checkbox" class="big-check" id="tp-enable"'+(S.thirdPlace?' checked':'')+'>'
@@ -886,6 +892,8 @@ function rBracket() {
   if (!S.bracket) return '<div class="empty">No bracket yet. Go to Setup and generate one.</div>';
   const b = S.bracket;
   let out = '';
+  const rdAccess = Gates.canAccess('throwdown_redemption');
+  const wcAccess = Gates.canAccess('throwdown_revival');
 
   // Manual bracket assignment mode
   if (b.phase === 'manual-setup') {
@@ -960,7 +968,7 @@ function rBracket() {
   });
 
   // Revival draw pending — show draw interface
-  if (b.pendingWildCard) {
+  if (wcAccess.allowed && b.pendingWildCard) {
     const losers = b.pendingWildCardLosers || [];
     out += '<div style="padding:1.25rem;background:var(--pu-bg);border:2px solid var(--pu-bd);border-radius:var(--rad);margin-bottom:1rem">'
       + '<div style="font-size:11px;font-weight:700;color:var(--pu);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px">🃏 Revival Draw</div>'
@@ -972,7 +980,7 @@ function rBracket() {
   }
 
   // Revival draw just drawn — show reveal
-  if (S.wildCard && b.wildCards) {
+  if (wcAccess.allowed && S.wildCard && b.wildCards) {
     const latest = Object.entries(b.wildCards).filter(([,v])=>v).slice(-1)[0];
     if (latest && b.rounds.length > 0) {
       const drawnRound = +latest[0];
@@ -990,7 +998,7 @@ function rBracket() {
   }
 
   // Lucky loser pending — show draw interface
-  if (b.pendingLuckyLoser && !b.pendingLuckyLoser.done) {
+  if (rdAccess.allowed && b.pendingLuckyLoser && !b.pendingLuckyLoser.done) {
     const pending = b.pendingLuckyLoser;
     const drawn = b.luckyLosers || [];
     out += '<div style="padding:1.25rem;background:var(--pu-bg);border:2px solid var(--pu-bd);border-radius:var(--rad);margin-bottom:1rem">'
@@ -1003,7 +1011,7 @@ function rBracket() {
   }
 
   // Lucky loser all drawn — show continue
-  if (b.pendingLuckyLoser && b.pendingLuckyLoser.done) {
+  if (rdAccess.allowed && b.pendingLuckyLoser && b.pendingLuckyLoser.done) {
     const drawn = b.luckyLosers || [];
     out += '<div style="padding:1.25rem;background:var(--pu-bg);border:2px solid var(--pu-bd);border-radius:var(--rad);margin-bottom:1rem;text-align:center">'
       + '<div style="font-size:11px;font-weight:700;color:var(--pu);letter-spacing:.15em;text-transform:uppercase;margin-bottom:6px">🎲 Lucky Losers Drawn!</div>'
@@ -1367,6 +1375,9 @@ function loadThrowdownDemo(){
 }
 
 render();
+window.addEventListener('seduh:gates-ready', () => render(), { once: true });
 </script>
+<script type="module" src="../shared/firebase.js"></script>
+<script type="module" src="../shared/auth.js"></script>
 </body>
 </html>

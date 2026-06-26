@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seduh Score — Admin</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:    #1c1510;
+    --card:  #26201a;
+    --bd:    #3a2c20;
+    --bd2:   #4a3a2c;
+    --ink:   #faf7f1;
+    --ink2:  #c8b6a4;
+    --ink3:  #9a8b7c;
+    --ink4:  #7d6e60;
+    --gn:    #0b7a52;
+    --rd:    #a52121;
+    --am:    #b45309;
+    --am-bd: #e09a36;
+    --rad:   9px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  #panel {
+    display: none;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 36px 20px 72px;
+  }
+
+  /* ── Header ── */
+  .adm-hdr {
+    margin-bottom: 36px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--bd);
+  }
+  .adm-hdr h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+  }
+  .adm-hdr p {
+    font-size: 10px;
+    color: var(--ink4);
+    margin-top: 5px;
+    font-family: ui-monospace, monospace;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+
+  /* ── Section ── */
+  .adm-section { margin-bottom: 40px; }
+  .adm-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--am-bd);
+    margin-bottom: 12px;
+    font-family: ui-monospace, monospace;
+  }
+
+  /* ── Card ── */
+  .adm-card {
+    background: var(--card);
+    border: 1px solid var(--bd);
+    border-radius: var(--rad);
+    padding: 18px 20px;
+    margin-bottom: 10px;
+  }
+
+  /* ── Find row ── */
+  .find-row { display: flex; gap: 8px; }
+  .find-row input { flex: 1; }
+
+  /* ── Inputs / Select ── */
+  input[type="email"],
+  input[type="datetime-local"],
+  select {
+    background: var(--bg);
+    border: 1.5px solid var(--bd2);
+    border-radius: var(--rad);
+    color: var(--ink);
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .14s;
+    width: 100%;
+  }
+  input:focus, select:focus { border-color: var(--am-bd); }
+  select option { background: var(--card); }
+
+  /* ── Buttons ── */
+  .btn {
+    padding: 9px 18px;
+    border-radius: var(--rad);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity .14s;
+  }
+  .btn:hover:not(:disabled) { opacity: .82; }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn-am  { background: var(--am); color: #fff; }
+  .btn-rd  { background: var(--rd); color: #fff; }
+
+  /* ── Status text ── */
+  .adm-status {
+    font-size: 12px;
+    min-height: 18px;
+    margin-top: 10px;
+    font-family: ui-monospace, monospace;
+  }
+
+  /* ── Divider ── */
+  .adm-divider { height: 1px; background: var(--bd); margin: 16px 0; }
+
+  /* ── Org result fields ── */
+  .adm-result { display: none; }
+  .adm-field {
+    display: flex;
+    gap: 14px;
+    align-items: baseline;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--bd);
+  }
+  .adm-field:last-child { border-bottom: none; }
+  .adm-field .k {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink4);
+    font-family: ui-monospace, monospace;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    width: 52px;
+    flex-shrink: 0;
+  }
+  .adm-field .v {
+    font-size: 13px;
+    color: var(--ink);
+    font-family: ui-monospace, monospace;
+    word-break: break-all;
+  }
+
+  /* ── Set access form ── */
+  .set-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink4);
+    font-family: ui-monospace, monospace;
+    margin-bottom: 14px;
+  }
+  .adm-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .adm-row:last-of-type { margin-bottom: 0; }
+  .adm-row-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink4);
+    font-family: ui-monospace, monospace;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    width: 40px;
+    flex-shrink: 0;
+  }
+  .btn-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+
+  /* ── Platform switches ── */
+  .sw-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--bd);
+  }
+  .sw-row:last-child { border-bottom: none; }
+  .sw-key {
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  .sw-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sw-btn {
+    width: 58px;
+    padding: 6px 0;
+    text-align: center;
+    border-radius: var(--rad);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: ui-monospace, monospace;
+    letter-spacing: .08em;
+    border: none;
+    cursor: pointer;
+    transition: background .14s, color .14s;
+  }
+  .sw-saved {
+    font-size: 11px;
+    color: var(--gn);
+    font-family: ui-monospace, monospace;
+    opacity: 0;
+    transition: opacity .3s;
+    min-width: 36px;
+  }
+</style>
+</head>
+<body>
+
+<div id="panel">
+
+  <div class="adm-hdr">
+    <h1>Admin Panel</h1>
+    <p>Seduh Score · Super admin · Internal tool</p>
+  </div>
+
+  <!-- ══ Org Management ══ -->
+  <div class="adm-section">
+    <div class="adm-section-title">Org Management</div>
+
+    <div class="adm-card">
+      <div class="find-row">
+        <input id="find-email" type="email" placeholder="organiser@cafe.com" autocomplete="off">
+        <button class="btn btn-am" id="find-btn">Find</button>
+      </div>
+      <div class="adm-status" id="find-status"></div>
+
+      <div class="adm-result" id="org-result">
+        <div class="adm-divider"></div>
+        <div class="adm-field"><span class="k">Email</span><span  class="v" id="res-email"></span></div>
+        <div class="adm-field"><span class="k">UID</span><span    class="v" id="res-uid"></span></div>
+        <div class="adm-field"><span class="k">Tier</span><span   class="v" id="res-tier"></span></div>
+        <div class="adm-field"><span class="k">Expiry</span><span class="v" id="res-expiry"></span></div>
+      </div>
+    </div>
+
+    <div class="adm-card adm-result" id="org-set">
+      <div class="set-label">Set access</div>
+      <div class="adm-row">
+        <span class="adm-row-label">Tier</span>
+        <select id="set-tier">
+          <option value="community">Community</option>
+          <option value="per_event">Per-Event</option>
+          <option value="annual">Annual</option>
+        </select>
+      </div>
+      <div class="adm-row">
+        <span class="adm-row-label">Start</span>
+        <input type="datetime-local" id="set-start">
+      </div>
+      <div class="adm-row">
+        <span class="adm-row-label">End</span>
+        <input type="datetime-local" id="set-end">
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-am" id="set-btn">Set Window</button>
+        <button class="btn btn-rd" id="revoke-btn">Revoke Now</button>
+      </div>
+      <div class="adm-status" id="set-status"></div>
+    </div>
+  </div>
+
+  <!-- ══ Platform Switches ══ -->
+  <div class="adm-section">
+    <div class="adm-section-title">Platform Switches</div>
+    <div class="adm-card">
+      <div class="sw-row">
+        <span class="sw-key">cup_taster_module</span>
+        <div class="sw-right">
+          <span class="sw-saved" id="saved-cup_taster_module"></span>
+          <button class="sw-btn" id="sw-cup_taster_module" data-key="cup_taster_module" data-on="0">OFF</button>
+        </div>
+      </div>
+      <div class="sw-row">
+        <span class="sw-key">audience_links_live</span>
+        <div class="sw-right">
+          <span class="sw-saved" id="saved-audience_links_live"></span>
+          <button class="sw-btn" id="sw-audience_links_live" data-key="audience_links_live" data-on="0">OFF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+import { auth, db }      from '../shared/firebase.js';
+import { onAuthStateChanged }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFunctions, httpsCallable }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
+import { getDoc, setDoc, doc, serverTimestamp }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getApp }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+
+const fns             = getFunctions(getApp());
+const getOrgByEmailFn = httpsCallable(fns, 'getOrgByEmail');
+const setOrgClaimsFn  = httpsCallable(fns, 'setOrgClaims');
+
+let currentOrg = null;
+
+// ── Auth gate — first thing, before any UI is shown ──
+onAuthStateChanged(auth, async user => {
+  if (!user) { window.location.href = '../index.html'; return; }
+  const result = await user.getIdTokenResult();
+  if (!result.claims.super_admin) {
+    window.location.href = '../index.html';
+    return;
+  }
+  document.getElementById('panel').style.display = 'block';
+  loadSwitches();
+});
+
+// ── Org Management ──
+document.getElementById('find-btn').addEventListener('click', findOrg);
+document.getElementById('find-email').addEventListener('keydown', e => { if (e.key === 'Enter') findOrg(); });
+document.getElementById('set-btn').addEventListener('click', setWindow);
+document.getElementById('revoke-btn').addEventListener('click', revokeNow);
+
+function findOrg() {
+  const email = document.getElementById('find-email').value.trim();
+  if (!email) return;
+  setStatus('find-status', 'Looking up…', 'muted');
+  document.getElementById('org-result').style.display = 'none';
+  document.getElementById('org-set').style.display    = 'none';
+  currentOrg = null;
+
+  getOrgByEmailFn({ email })
+    .then(r => {
+      currentOrg = r.data;
+      renderOrgResult(currentOrg);
+      setStatus('find-status', '', '');
+    })
+    .catch(err => setStatus('find-status', err.message || 'Not found.', 'error'));
+}
+
+function renderOrgResult(org) {
+  document.getElementById('res-email').textContent  = org.email;
+  document.getElementById('res-uid').textContent    = org.uid;
+  document.getElementById('res-tier').textContent   = org.claims.subscription_tier   ?? 'community';
+  document.getElementById('res-expiry').textContent = org.claims.subscription_expiry
+    ? new Date(org.claims.subscription_expiry * 1000)
+        .toLocaleString('en-BN', { timeZone: 'Asia/Brunei' }) + ' BNT'
+    : '— none';
+  document.getElementById('set-tier').value = org.claims.subscription_tier ?? 'community';
+  document.getElementById('org-result').style.display = 'block';
+  document.getElementById('org-set').style.display    = 'block';
+  setStatus('set-status', '', '');
+}
+
+function setWindow() {
+  if (!currentOrg) return;
+  const tier   = document.getElementById('set-tier').value;
+  const endVal = document.getElementById('set-end').value;
+  const expiry = endVal ? Math.floor(new Date(endVal).getTime() / 1000) : null;
+  setOrgClaimsFn({ uid: currentOrg.uid, subscription_tier: tier, subscription_expiry: expiry })
+    .then(() => {
+      currentOrg.claims.subscription_tier   = tier;
+      currentOrg.claims.subscription_expiry = expiry;
+      renderOrgResult(currentOrg);
+      setStatus('set-status', 'Claims updated.', 'success');
+    })
+    .catch(err => setStatus('set-status', err.message, 'error'));
+}
+
+function revokeNow() {
+  if (!currentOrg) return;
+  const expiry = Math.floor(Date.now() / 1000) - 1;
+  const tier   = currentOrg.claims.subscription_tier ?? 'community';
+  setOrgClaimsFn({ uid: currentOrg.uid, subscription_tier: tier, subscription_expiry: expiry })
+    .then(() => {
+      currentOrg.claims.subscription_expiry = expiry;
+      renderOrgResult(currentOrg);
+      setStatus('set-status', 'Access revoked.', 'error');
+    })
+    .catch(err => setStatus('set-status', err.message, 'error'));
+}
+
+// ── Platform Switches ──
+async function loadSwitches() {
+  try {
+    const snap = await getDoc(doc(db, 'platform', 'switches'));
+    const data = snap.exists() ? snap.data() : {};
+    ['cup_taster_module', 'audience_links_live'].forEach(key => setSwitchUI(key, !!data[key]));
+  } catch (e) {
+    console.warn('Could not load platform switches:', e);
+  }
+}
+
+function setSwitchUI(key, on) {
+  const btn = document.getElementById('sw-' + key);
+  if (!btn) return;
+  btn.textContent       = on ? 'ON' : 'OFF';
+  btn.dataset.on        = on ? '1' : '0';
+  btn.style.background  = on ? '#0b7a52' : '#4a3a2c';
+  btn.style.color       = on ? '#fff'    : '#9a8b7c';
+}
+
+document.querySelectorAll('.sw-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const key    = btn.dataset.key;
+    const newVal = btn.dataset.on !== '1';
+    setSwitchUI(key, newVal);
+    try {
+      await setDoc(
+        doc(db, 'platform', 'switches'),
+        { [key]: newVal, _updated: serverTimestamp() },
+        { merge: true }
+      );
+      const saved = document.getElementById('saved-' + key);
+      if (saved) {
+        saved.textContent   = 'Saved.';
+        saved.style.opacity = '1';
+        setTimeout(() => { saved.style.opacity = '0'; }, 2000);
+      }
+    } catch (e) {
+      setSwitchUI(key, !newVal); // revert on error
+      console.error('Switch update failed:', e);
+    }
+  });
+});
+
+// ── Util ──
+function setStatus(id, msg, type) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = type === 'error'   ? '#a52121'
+                 : type === 'success' ? '#0b7a52'
+                 :                      '#9a8b7c';
+}
+</script>
+</body>
+</html>

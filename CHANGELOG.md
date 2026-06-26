@@ -2,6 +2,64 @@
 
 ---
 
+## [4.8.0] — Firebase Auth + Admin Panel · June 2026
+
+### shared/firebase.js (new file)
+- **feat: Firebase app init** — Firebase JS SDK v10 modular; initialises app, auth, and Firestore instances
+- **feat: IndexedDB persistence** — `enableIndexedDbPersistence()` enabled for offline competition-day reliability; graceful fallback on unsupported browsers or multiple tabs
+
+### shared/auth.js (new file)
+- **feat: onAuthStateChanged** — drives `[data-auth]` attribute on `<html>`; replaces simulated toggle; org chip populated with `user.email` on login
+- **feat: Gates.init() call** — called after login and after every token refresh via `onIdTokenChanged`; dispatches `seduh:gates-ready` custom event on `window` after init resolves
+- **feat: cold-start offline banner** — 5s timeout on page load; non-blocking, dismissible; cleared immediately when auth state resolves
+- **feat: expiry soft warning** — 60s interval checks `Gates.isExpired()`; amber banner on expiry; session continues uninterrupted; clears interval after firing
+- **feat: redirect hook** — Option A (stay on front door) active; hook comment planted for future Option B migration
+
+### shared/gates.js
+- **feat: Gates.init(user)** — new public method; reads `subscription_tier` and `subscription_expiry` from Firebase token claims; reads `platform/switches` from Firestore `platform/switches` document; caches both for session; called by `auth.js` only
+- **feat: Gates.isExpired()** — new public method; returns true if `_expiry` is set and in the past; called by `auth.js` expiry monitor
+- **feat: getTier()** — stub replaced; reads `_tier` from claims; returns `'community'` if expired
+- **feat: isEnabled()** — stub replaced; reads `_switches` from Firestore cache; platform-switch-only features require explicit `true`; tier-gated features enabled unless explicitly `false`
+- **fix: offline default** — `_tier` defaults to `'community'`, `_switches` to `{}`; unauthenticated users get Community access only; fail-open for cached sessions
+- **canAccess() API unchanged** — zero module changes required
+
+### index.html
+- **feat: real Firebase auth** — Email/Password login wired to existing `[data-auth]` markup; login form live; sign out functional
+- **feat: session persistence** — Firebase default `local` persistence; session survives tab close and browser restart; explicit sign-out only
+- **feat: inline login errors** — five error states mapped to plain-language messages; no `alert()` calls; form fields retain values on error
+
+### throwdown/index.html
+- **feat: firebase.js + auth.js loaded** — module-scoped `<script type="module">` tags added before `</body>`
+- **feat: seduh:gates-ready listener** — `{ once: true }` re-render listener added after module-init `render()` call; ensures gated features reflect auth state on fresh navigation without manual refresh
+- **feat: throwdown_redemption gate** — `Gates.canAccess('throwdown_redemption')` added to `rSetup()` and `rBracket()`; redemption card and lucky loser bracket UI hidden for community tier
+- **feat: throwdown_revival gate** — `Gates.canAccess('throwdown_revival')` added to `rSetup()` and `rBracket()`; revival draw card and bracket UI hidden for community tier
+
+### admin/index.html (new file)
+- **feat: super_admin access control** — `onAuthStateChanged` checks `super_admin` custom claim on load; redirects to front door if not super admin
+- **feat: org management** — find org by email via `getOrgByEmail` Cloud Function; displays UID, current tier, expiry in BNT (UTC+8)
+- **feat: set access window** — tier selector (Community / Per-Event / Annual) + date range inputs; writes via `setOrgClaims` Cloud Function
+- **feat: revoke now** — sets `subscription_expiry` to current Unix timestamp minus one second
+- **feat: platform switches** — reads `platform/switches` Firestore document; toggle buttons for `cup_taster_module` and `audience_links_live`; writes on toggle with inline "Saved." confirmation
+
+### Firebase Cloud Functions (new — backend, us-central1 Gen 2)
+- **feat: setOrgClaims** — HTTPS callable; verifies `super_admin` claim; sets `subscription_tier` + `subscription_expiry` custom claims via Admin SDK
+- **feat: getOrgByEmail** — HTTPS callable; verifies `super_admin` claim; returns UID + current claims for a given email
+
+### Firestore
+- **feat: platform/switches document** — created with initial state `cup_taster_module: true`, `audience_links_live: false`
+- **feat: security rules** — authenticated read on `platform/switches`; super_admin write only; all other collections denied
+
+### Known issues (non-blocking for August — tracked for follow-up)
+- `seduh:gates-ready` pattern not yet applied to `liga/index.html` or `cup-taster/index.html`
+- `cup_taster_module` platform switch displaying inverted in admin panel
+- Create org account not present in admin panel — use Firebase Console → Add user as workaround
+- Free tools panel visible when org is logged in
+- Org zone module cards do not reflect actual tier access
+- Gated features may persist mid-session after token revoke (next cold start enforces correctly)
+- Report tab not yet built in Throwdown
+
+---
+
 ## [4.7.0] — Organiser customisation engine · POA-17 Phase A · June 2026
 
 ### shared/eventconfig.js (new file)
