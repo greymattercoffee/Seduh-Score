@@ -27,6 +27,7 @@ Handoff and Spec Files/
 firebase-debug.log
 public/
 functions/node_modules/
+.firebase/
 
 # Claude Code
 .agents/
