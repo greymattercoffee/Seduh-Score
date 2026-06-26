@@ -4,7 +4,19 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "Thumbs.db",
+      "Desktop.ini",
+      "uploads/**",
+      "Roadmap.pdf",
+      "roadmap.md",
+      "PLAN_OF_ACTION.md",
+      "Strategy.md",
+      "handoff_*.md",
+      "Handoff and Spec Files/**",
+      "firebase-debug.log",
+      "public/**",
+      "skills-lock.json"
     ]
   },
   "functions": {
