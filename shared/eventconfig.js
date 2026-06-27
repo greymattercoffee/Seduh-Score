@@ -59,8 +59,8 @@
       + '<label class="ec-upload-btn btn-o" role="button">Upload logo'
       + '<input type="file" accept=".png,.jpg,.jpeg,.svg" hidden>'
       + '</label>'
-      + '<div class="ec-logo-preview" hidden>'
-      + '<img class="ec-logo-img" src="" alt="Event logo preview">'
+      + '<div class="ec-logo-preview"' + (_logoUrl ? '' : ' hidden') + '>'
+      + '<img class="ec-logo-img"' + (_logoUrl ? ' src="' + _logoUrl + '"' : '') + ' alt="Event logo preview" style="' + (_logoUrl ? 'display:inline-block' : 'display:none') + '">'
       + '<button class="ec-logo-clear btn-o btn-rd" type="button">Remove</button>'
       + '</div>'
       + '<p class="ec-logo-error" hidden></p>'
@@ -75,6 +75,8 @@
         container.querySelectorAll('.ec-swatch').forEach(function(b) {
           b.classList.toggle('ec-swatch--active', b.dataset.hex === _accent);
         });
+        EventConfig.applyToModule();
+        EventConfig.writeHandoff();
       });
     });
 
@@ -99,7 +101,10 @@
         errorEl.hidden = true;
         _logoUrl = result;
         img.src = result;
+        img.style.display = 'inline-block';
         preview.hidden = false;
+        EventConfig.applyToModule();
+        EventConfig.writeHandoff();
       };
       reader.readAsDataURL(file);
     });
@@ -107,9 +112,12 @@
     clearBtn.addEventListener('click', function() {
       _logoUrl = null;
       img.src = '';
+      img.style.display = 'none';
       preview.hidden = true;
       fileInput.value = '';
       errorEl.hidden = true;
+      EventConfig.applyToModule();
+      EventConfig.writeHandoff();
     });
   }
 
@@ -120,10 +128,18 @@
       if (!container) return;
       _accent  = options.defaultAccent || '#b45309';
       _logoUrl = null;
+      try {
+        const h = JSON.parse(sessionStorage.getItem('seduh_handoff') || '{}');
+        if (h.v === 1) {
+          if (h.accent)  _accent  = h.accent;
+          if (h.logoUrl) _logoUrl = h.logoUrl;
+        }
+      } catch(e) {}
       _injectStyles();
       _render(container);
       _bindEvents(container);
       _mounted = true;
+      EventConfig.applyToModule();
     },
 
     writeHandoff: function() {
@@ -139,5 +155,19 @@
     getAccent: function() {
       return _accent;
     }
+  };
+
+  window.EventConfig.applyToModule = function() {
+    if (_accent) {
+      document.documentElement.style.setProperty('--accent', _accent);
+      document.documentElement.style.setProperty('--am', _accent);
+    } else {
+      document.documentElement.style.removeProperty('--accent');
+      document.documentElement.style.removeProperty('--am');
+    }
+    // Logo slot deferred to Design session — remove for now
+    // const logo = document.getElementById('mod-org-logo');
+    // const divider = document.getElementById('mod-org-divider');
+    // if (logo) { ... }
   };
 })();

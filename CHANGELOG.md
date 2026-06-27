@@ -2,6 +2,19 @@
 
 ---
 
+## [4.9.0] — Customisation Engine Phase B · Module UI accent · June 2026
+
+### shared/eventconfig.js
+- **feat: EventConfig.applyToModule()** — new public method; overrides `--accent` and `--am` CSS variables on `:root` with organiser's chosen accent colour; reverts to theme defaults when accent is cleared
+- **feat: live accent updates** — swatch click, logo upload, and logo clear each call `applyToModule()` then `writeHandoff()`; module UI updates instantly on every organiser change
+- **feat: sessionStorage restore on mount** — `EventConfig.mount()` reads existing `seduh_handoff` from sessionStorage before rendering; restores `_accent` so accent branding survives page reload within the same browser session
+- **deferred: org logo in module header** — logo slot implementation deferred to a dedicated Design session; `applyToModule()` logo block commented out; no logo markup in module headers
+
+### throwdown/index.html · liga/index.html · cup-taster/index.html · bbtc/index.html
+- No changes — logo slot markup was added then removed in this session; files unchanged from v4.8.1
+
+---
+
 ## [4.8.1] — Front door slideshow · Slideshow Manager · Firebase Storage · June 2026
 
 ### shared/firebase.js
@@ -27,7 +40,7 @@
 - **fix: `seduh:gates-ready` listener added** — same pattern as Liga; listener added after `init()` call (which calls `render()` internally); `firebase.js` and `auth.js` loaded before `</body>`
 
 ### Known issues (still open)
-- `cup_taster_module` platform switch displaying inverted in admin panel — investigated, no code inversion found on static analysis; deferred pending live verification
+- `cup_taster_module` platform switch — confirmed working correctly on live site after Firestore rules fix; no code change required. Closed.
 
 ---
 
