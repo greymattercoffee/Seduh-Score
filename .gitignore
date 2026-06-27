@@ -33,3 +33,7 @@ functions/node_modules/
 .agents/
 .claude/
 skills-lock.json
+
+# npm artefacts (no dependencies — ignore any auto-generated lockfile)
+package-lock.json
+node_modules/
