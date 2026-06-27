@@ -5,6 +5,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFirestore, enableIndexedDbPersistence }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getStorage } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDwlaPgB_5g3xXDTq539JN09aWBpdHM6e4",
@@ -16,9 +17,10 @@ const firebaseConfig = {
   measurementId:     "G-GTFF3TYD37"
 };
 
-const app  = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+const app     = initializeApp(firebaseConfig);
+const auth    = getAuth(app);
+const db      = getFirestore(app);
+const storage = getStorage(app);
 window._sdDb = db; // exposed for gates.js (classic script cannot import ES modules)
 
 // Enable offline persistence for competition-day reliability
@@ -28,4 +30,4 @@ enableIndexedDbPersistence(db).catch(err => {
   console.warn('Firestore persistence unavailable:', err.code);
 });
 
-export { auth, db };
+export { auth, db, storage };

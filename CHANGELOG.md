@@ -2,22 +2,29 @@
 
 ---
 
-## [4.8.1] — v4.8.x follow-up fixes · June 2026
+## [4.8.1] — Front door slideshow · Slideshow Manager · Firebase Storage · June 2026
+
+### shared/firebase.js
+- **feat: Firebase Storage added** — `getStorage()` imported and initialised alongside existing auth and Firestore instances; Storage instance exported for use by admin panel Slideshow Manager
+
+### admin/index.html
+- **feat: Create Org section** — new section above Org Management; email + password inputs; "Create Account" button calls `createUserWithEmailAndPassword`; shows UID on success; clears form and pre-fills Find field; triggers `findOrg()` after 1000ms delay to allow Admin SDK propagation
+- **feat: Slideshow Manager** — new section below platform switches; organiser can upload images to Firebase Storage, reorder slides via up/down controls, and delete slides; slide list reads from and writes to Firestore `platform/slideshow` collection; changes reflected on front door on next load
+- **fix: password input styling** — `input[type="password"]` added to the shared CSS selector group; now matches email and datetime-local field styling
+
+### index.html
+- **feat: front door slideshow** — full-bleed hero image carousel fed from Firestore `platform/slideshow` collection; images served from Firebase Storage; auto-rotates every 5 seconds with CSS crossfade transition; graceful fallback (container hidden) on fetch error or empty collection
+- **feat: secret admin link** — 5-click sequence on `.plat-hdr-logo` within 2 seconds navigates to `admin/index.html`; IIFE keeps click counter and timer out of global scope; no visual feedback on any click; `e.preventDefault()` suppresses default logo-link reload; works regardless of auth state
+- **fix: org zone cards reflect actual tier** — `data-gate` attributes added to all four `fd-dmod` cards (`throwdown_redemption`, `btc`, `liga_unlimited`, `cup_taster_unlimited`); `.fd-dmod.locked` CSS added (opacity 0.4, lock indicator via `::before`); `seduh:gates-ready` listener calls `Gates.canAccess()` per card and toggles `locked` class; cards default to locked state before auth resolves
+- **feat: org zone card navigation** — each `fd-dmod` card navigates to its respective module on click; BBTC card checks `Gates.canAccess('btc')` before navigating and shows an inline gate message if access is denied
+- **fix: free tools panel hidden when logged in** — `[data-auth="in"] .fd-panel { display: none }` added to local style block; CSS-only
+- **fix: header tagline spacing** — `.plat-hdr-sub { margin-left: 0.5rem }` added to local style block; breathing room between "Seduh Score" wordmark and "Coffee competition platform" tagline
 
 ### liga/index.html
 - **fix: `seduh:gates-ready` listener added** — `firebase.js` and `auth.js` loaded before `</body>`; `window.addEventListener('seduh:gates-ready', () => render(), { once: true })` added after initial `render()` call; gated features now reflect auth state on fresh navigation without manual refresh
 
 ### cup-taster/index.html
 - **fix: `seduh:gates-ready` listener added** — same pattern as Liga; listener added after `init()` call (which calls `render()` internally); `firebase.js` and `auth.js` loaded before `</body>`
-
-### admin/index.html
-- **feat: Create Org section** — new section above Org Management; email + password inputs; "Create Account" button calls `createUserWithEmailAndPassword`; shows UID on success; clears form and pre-fills Find field; triggers `findOrg()` after 1000ms delay to allow Admin SDK propagation
-- **fix: password input styling** — `input[type="password"]` added to the shared CSS selector group; now matches email and datetime-local field styling
-
-### index.html
-- **fix: free tools panel hidden when logged in** — `[data-auth="in"] .fd-panel { display: none }` added to local style block; CSS-only
-- **fix: org zone cards reflect actual tier** — `data-gate` attributes added to all four `fd-dmod` cards (`throwdown_redemption`, `btc`, `liga_unlimited`, `cup_taster_unlimited`); `.fd-dmod.locked` CSS added (opacity 0.4, lock indicator via `::before`); `seduh:gates-ready` listener calls `Gates.canAccess()` per card and toggles `locked` class
-- **fix: header tagline spacing** — `plat-hdr-sub { margin-left: 0.5rem }` added to local style block; breathing room between "Seduh Score" wordmark and "Coffee competition platform" tagline
 
 ### Known issues (still open)
 - `cup_taster_module` platform switch displaying inverted in admin panel — investigated, no code inversion found on static analysis; deferred pending live verification
