@@ -126,6 +126,15 @@
   [data-auth="in"] .when-out{display:none}
   [data-auth="in"] .fd-panel{display:none}
   [data-auth="out"] .fd-dmod{opacity:.4;cursor:default}
+
+  /* ——— front-door slideshow ——— */
+  [data-auth="out"] .fd-slideshow{display:none}
+  [data-auth="in"] .fd-slideshow{display:block}
+  .fd-slideshow{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:var(--rad);background:var(--surface-deep)}
+  .fd-slide{position:absolute;inset:0;opacity:0;transition:opacity 0.8s ease}
+  .fd-slide.active{opacity:1}
+  .fd-slide-img{width:100%;height:100%;object-fit:cover}
+  .fd-slide-caption{position:absolute;bottom:0;left:0;right:0;padding:1rem 1.25rem;background:linear-gradient(transparent,rgba(0,0,0,0.6));color:#fff;font-size:0.875rem;letter-spacing:0.04em}
   [data-auth="out"] .fd-dmod:hover{border-color:var(--deep-bd);background:var(--deep-card)}
 
   /* responsive — stack the two-column blocks (front door must work on a phone) */
@@ -203,13 +212,18 @@
           <a class="btn-o" href="#org-login">Org sign-in</a>
         </div>
       </div>
-      <div class="fd-panel">
-        <div class="fd-panel-hd">Jump straight in — free<em>No account</em></div>
-        <div class="fd-panel-body">
-          <div class="fd-row-wrap"><a class="fd-row" href="throwdown/index.html"><span class="ic">⚡</span><span class="tt"><b>Throwdown Basic</b><span>1v1 knockout · up to 16</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><button class="mod-info-btn" data-module-key="throwdown" data-module-name="Throwdown" aria-label="About Throwdown">ℹ</button></div>
-          <div class="fd-row-wrap"><a class="fd-row" href="liga/index.html"><span class="ic">🏆</span><span class="tt"><b>Liga Basic</b><span>Round robin · up to 8</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><button class="mod-info-btn" data-module-key="liga" data-module-name="Liga Seduh" aria-label="About Liga Seduh">ℹ</button></div>
-          <div class="fd-row-wrap"><a class="fd-row" href="cup-taster/index.html"><span class="ic">☕</span><span class="tt"><b>Cup Taster Basic</b><span>Blind trio · up to 8</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><button class="mod-info-btn" data-module-key="cup_taster" data-module-name="Cup Taster" aria-label="About Cup Taster">ℹ</button></div>
-          <a class="fd-row" href="timer/index.html"><span class="ic">⏱</span><span class="tt"><b>Timer</b><span>5 / 7 / 10 / 15 min court timer</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <div>
+        <div class="fd-panel">
+          <div class="fd-panel-hd">Jump straight in — free<em>No account</em></div>
+          <div class="fd-panel-body">
+            <div class="fd-row-wrap"><a class="fd-row" href="throwdown/index.html"><span class="ic">⚡</span><span class="tt"><b>Throwdown Basic</b><span>1v1 knockout · up to 16</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><button class="mod-info-btn" data-module-key="throwdown" data-module-name="Throwdown" aria-label="About Throwdown">ℹ</button></div>
+            <div class="fd-row-wrap"><a class="fd-row" href="liga/index.html"><span class="ic">🏆</span><span class="tt"><b>Liga Basic</b><span>Round robin · up to 8</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><button class="mod-info-btn" data-module-key="liga" data-module-name="Liga Seduh" aria-label="About Liga Seduh">ℹ</button></div>
+            <div class="fd-row-wrap"><a class="fd-row" href="cup-taster/index.html"><span class="ic">☕</span><span class="tt"><b>Cup Taster Basic</b><span>Blind trio · up to 8</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><button class="mod-info-btn" data-module-key="cup_taster" data-module-name="Cup Taster" aria-label="About Cup Taster">ℹ</button></div>
+            <a class="fd-row" href="timer/index.html"><span class="ic">⏱</span><span class="tt"><b>Timer</b><span>5 / 7 / 10 / 15 min court timer</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          </div>
+        </div>
+        <div class="fd-slideshow" id="fd-slideshow">
+          <!-- slides injected by JS -->
         </div>
       </div>
     </div>
@@ -359,9 +373,62 @@ window.addEventListener('seduh:gates-ready', function() {
     var access = Gates.canAccess(card.dataset.gate);
     card.classList.toggle('locked', !access.allowed);
   });
+  initSlideshow();
 }, { once: true });
+
+async function initSlideshow() {
+  var container = document.getElementById('fd-slideshow');
+  if (!container) return;
+  try {
+    var { getDocs, collection, orderBy, query } =
+      await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    var { db } = await import('./shared/firebase.js');
+    var q = query(collection(db, 'slideshow'), orderBy('order'));
+    var snap = await getDocs(q);
+    if (snap.empty) { container.style.display = 'none'; return; }
+    var slides = [];
+    snap.forEach(function(d) { slides.push(d.data()); });
+    container.innerHTML = slides.map(function(s, i) {
+      return '<div class="fd-slide' + (i === 0 ? ' active' : '') + '">' +
+        '<img src="' + s.photoUrl + '" alt="' + s.caption.replace(/"/g, '&quot;') + '" class="fd-slide-img">' +
+        '<div class="fd-slide-caption">' + s.caption + '</div>' +
+        '</div>';
+    }).join('');
+    if (slides.length > 1) {
+      var current = 0;
+      setInterval(function() {
+        var all = container.querySelectorAll('.fd-slide');
+        all[current].classList.remove('active');
+        current = (current + 1) % all.length;
+        all[current].classList.add('active');
+      }, 5000);
+    }
+  } catch (e) {
+    console.warn('Slideshow unavailable:', e);
+    container.style.display = 'none';
+  }
+}
 </script>
 <script type="module" src="shared/firebase.js"></script>
 <script type="module" src="shared/auth.js"></script>
+<script>
+(function() {
+  const logo = document.querySelector('.plat-hdr-logo');
+  if (!logo) return;
+  let clicks = 0;
+  let timer = null;
+  logo.addEventListener('click', function(e) {
+    e.preventDefault();
+    clicks++;
+    clearTimeout(timer);
+    if (clicks >= 5) {
+      clicks = 0;
+      window.location.href = 'admin/index.html';
+      return;
+    }
+    timer = setTimeout(function() { clicks = 0; }, 2000);
+  });
+})();
+</script>
 </body>
 </html>
