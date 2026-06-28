@@ -2,6 +2,151 @@
 
 ---
 
+## [5.1.2] — BBTC, Liga, Cup Taster chrome migrated to MUA toolbar · MUA-06c · June 2026
+
+### bbtc/index.html
+- **feat: `.mod-toolbar` replacing `.hdr-btns` action rail** — Timer and Audience as `.tb-pri` pill buttons; Export PDF, Export CSV as `.tb-sec` outline pills; Reset as `.tb-reset`; `fitToolbar()` overflow into `#more-sheet`
+- **feat: `#event-band`** — empty slot with `data-empty`; ready for MUA-07 event wiring
+- **feat: `.mod-tabs` sticky tab bar** — five tabs (Setup / Prelims / Bracket / History / Standings); `measure()` sets correct sticky offset; active tab scrolled into view
+- **feat: `doReset()` extracted** — resets via `localStorage.removeItem(STORE_KEY)` (BBTC uses raw localStorage, not `Store()` wrapper)
+- **refactor: `.app`** — added `container-type:inline-size`
+- **removed: `.plat-hdr` flex-wrap override** — superseded by shared rule in theme.css v4.9.1; local `.hdr-s`/`.hdr-t` title classes retained (deferred rename to POA-06)
+- **removed: `.hdr-btns` / `.hdr-btn` / `.btn-am` / `.btn-bl` / `.btn-gn` / `.btn-rd`** local CSS blocks
+
+### liga/index.html
+- **feat: `.mod-toolbar` replacing `.hdr-btns` action rail** — Timer/Audience as `.tb-pri`; Save/Load/Demo as `.tb-sec`; Podium as `.tb-sec-podium` (conditional on `Gates.canAccess('audience_enhanced')` + matches done); Reset as `.tb-reset`
+- **feat: `#event-band`** — empty slot with `data-empty`
+- **feat: `.mod-tabs` sticky tab bar** — five tabs (Setup / Schedule / Standings / Final / Report); active tab scrolled into view; long title "Liga Seduh Bawah Tanah" verified no overflow at 353px
+- **feat: `doReset()` extracted** — resets via `STORE.clear()`
+- **refactor: `.app`** — added `container-type:inline-size`
+- **removed: `.hdr-btns` / `.hdr-btn` / `.btn-gn-lg` / `.btn-pu-lg`** local CSS blocks
+
+### cup-taster/index.html
+- **feat: `.mod-toolbar` replacing `.hdr-btns` action rail** — Timer/Audience as `.tb-pri`; Save/Load/Demo as `.tb-sec`; Reset as `.tb-reset`; `fitToolbar()` overflow into `#more-sheet`
+- **feat: `#event-band`** — empty slot with `data-empty`
+- **feat: `.mod-tabs` sticky tab bar** — dynamic tab set (3–5 tabs: Setup / Heats / Standings / [Semis] / [Finals] / Report); `measure()` scrolls active tab into view when tabs appear/disappear across competition flow
+- **feat: `doReset()` extracted** — resets via `STORE.clear()`; restores `hid`/`cid` counters and clears heat timer interval
+- **refactor: `.app`** — added `container-type:inline-size`
+- **removed: `.hdr-btn` / `.hdr-btns`** local CSS
+
+### Verified at (all three modules)
+- Mobile (353px): Timer + Audience primary; secondary buttons overflow to More; correct count badge; sheet pre-populated with correct items
+- Tablet (768px): full toolbar fits inline, no More button
+- Desktop (1024px): full toolbar fits inline, no More button
+- Cup Taster: active tab scrolled into view with 5-tab layout (demo loaded to semis stage)
+
+### v5.1 complete
+MUA-06 (Chrome build) fully shipped: CSS (MUA-06a) + Throwdown (MUA-06b) + BBTC/Liga/Cup Taster (MUA-06c).
+
+---
+
+## [5.1.1] — Throwdown chrome migrated to MUA toolbar · MUA-06b · June 2026
+
+### throwdown/index.html
+- **feat: `.mod-toolbar` replacing `.hdr-btns` action rail** — Timer and Audience as always-visible `.tb-pri` pill buttons; Save, Load as `.tb-sec` outline pills; Reset as `.tb-reset` (red, inline); Podium as `.tb-sec-podium` (green, conditional on `Gates.canAccess('audience_enhanced')` + bracket done)
+- **feat: `fitToolbar()`** — measures available toolbar width on every bind/resize; hides overflow `.tb-sec` buttons and shows `⋯ More` badge with hidden-count; `chromeInited` guard prevents scroll/resize listener accumulation across re-renders
+- **feat: `#more-sheet` bottom sheet** — overflow actions rendered into `.ms-list` by `buildSheet()`; opens/closes via `openSheet()`/`closeSheet()`; scrim tap closes sheet
+- **feat: `#event-band`** — empty slot with `data-empty` (hidden); ready for MUA-07 event wiring
+- **feat: `.mod-tabs` sticky tab bar** — three tabs (Setup/Bracket/History); `measure()` sets `top` to `plat-hdr.offsetHeight` for correct sticky offset; active tab scrolled into view; `.stuck` shadow on scroll past header
+- **refactor: `doReset()`** — extracted from inline `onclick`; wired via `bind()`
+- **refactor: `.app`** — added `container-type:inline-size` (C2 spec; enables `.eb-logo` `cqw` units when event band is populated)
+- **removed: `.hdr-btns` / `.hdr-btn`** local CSS — superseded by shared `.mod-toolbar` rules; no visual regression
+
+### Verified at
+- Desktop (1024px): all toolbar items visible inline, Reset on right, no More button
+- Mobile (353px): Timer + Audience as primary pills; Save/Load/Reset collapsed to `⋯ 3` More button; no horizontal overflow
+
+---
+
+## [5.1.0] — MUA Chrome Components · CSS only — modules wired in MUA-06b/c · MUA-06a · June 2026
+
+### shared/theme.css
+- **feat: MUA Chrome Components section added** — new clearly-labelled section placed after the audience overlay v4.6 block and before print rules. Contains five component blocks:
+  - **`.event-band`** — top event identity strip; `.event-band[data-empty]` hides when no event is configured; `.eb-logo`, `.eb-text`, `.eb-name`, `.eb-sub`, `.eb-meta` sub-elements
+  - **`.mod-toolbar`** — primary + secondary action row; `.tb-primary` / `.tb-pri` pill buttons with amber accent; `.tb-secondary` / `.tb-sec` outline pills; `.tb-sec-podium` green variant; `.tb-reset` red destructive; `.tb-more` overflow menu button (default `display:none` — JS-controlled via `fitToolbar()`)
+  - **`.mod-tabs`** — sticky tab bar (`z-index:55`, scroll-shadow via `.stuck`); `.mtab` tab buttons with `.on` accent underline; `.mtab .cond` purple badge for conditional tabs
+  - **`.sheet-scrim` / `.more-sheet`** — bottom-sheet overflow menu with grab handle, `.ms-grab`; `.ms-list` / `.ms-item` / `.ms-ic` / `.ms-cap`; `.ms-divider` section label; `.ms-reset` red variant; `.ms-podium` green variant
+  - **C2 comment** — spec note that `container-type:inline-size` for `.eb-logo`'s `cqw` units is added per-module in MUA-06b/c
+- **C1 implemented** — `@media (min-width:600px)` block shows `.tb-more .word` label on wider viewports
+- No existing token, class, or overlay rule touched; regression guard confirmed (373/373 brace balance)
+
+### Deferred to MUA-06b / MUA-06c
+- `container-type:inline-size` on module outermost wrappers (per-module, reads actual markup)
+- MUA chrome markup wired into module HTML files
+
+---
+
+## [4.9.1] — MUA-01b Mobile touch targets and overflow patches · June 2026
+
+### shared/theme.css
+- **fix: `flex-wrap:wrap` on `.plat-hdr`** — header wraps on narrow viewports instead of overflowing; Throwdown, Liga, and Cup Taster benefit; BBTC already had this locally (no conflict)
+- **fix: `min-height:44px` on `.btn-p`** — primary button meets 44px minimum tap target; existing padding unchanged
+- **fix: `min-height:44px` on `.btn-o`** — outline button meets 44px minimum tap target; existing padding unchanged
+- **fix: `min-height:44px` on `.tbtn`** — tab buttons meet 44px minimum tap target
+- **fix: `.p-rm` touch target** — new rule in theme.css: `display:inline-flex; align-items:center; justify-content:center; min-height:44px; min-width:44px`; local module rules retain visual appearance (no `display` set locally, no conflict); applies to Throwdown, Liga, and Cup Taster remove buttons
+
+### throwdown/index.html
+- **fix: event info grid responsive** — replaced inline `grid-template-columns:1fr 1fr 1fr` with `.ev-info-grid` class; at ≥480px: 3 columns; at <480px: 2 columns (name + date on row 1, venue below)
+
+### liga/index.html
+- **fix: scoring row responsive** — at <480px: `.sc-row` collapses from `140px 1fr 1fr` to `1fr 1fr`; `.sc-label` spans full width as a row above the two inputs (`grid-column:1/-1`); label remains visible, no markup change
+
+### cup-taster/index.html
+- **fix: `.sc-trio-btn` height** — `height:38px` → `height:44px`; width stays 42px (horizontal button, height is the tap dimension)
+
+### bbtc/index.html
+- **fix: `.btn-rd` touch target** — `min-height:44px` added to local override
+- **fix: `.btn-sc` touch target** — `min-height:44px` added
+- **fix: `.btn-ed` touch target** — `min-height:44px` added
+- **fix: `.sb` score button** — `width:38px;height:34px` → `width:44px;height:44px`
+
+### index.html
+- **fix: `.mod-info-btn` tap area** — `width:22px;height:22px` → `width:44px;height:44px`; `display:grid;place-items:center` retains icon centring
+
+---
+
+## [4.9.0] — Customisation Engine Phase B · Module UI accent · June 2026
+
+### shared/eventconfig.js
+- **feat: EventConfig.applyToModule()** — new public method; overrides `--accent` and `--am` CSS variables on `:root` with organiser's chosen accent colour; reverts to theme defaults when accent is cleared
+- **feat: live accent updates** — swatch click, logo upload, and logo clear each call `applyToModule()` then `writeHandoff()`; module UI updates instantly on every organiser change
+- **feat: sessionStorage restore on mount** — `EventConfig.mount()` reads existing `seduh_handoff` from sessionStorage before rendering; restores `_accent` so accent branding survives page reload within the same browser session
+- **deferred: org logo in module header** — logo slot implementation deferred to a dedicated Design session; `applyToModule()` logo block commented out; no logo markup in module headers
+
+### throwdown/index.html · liga/index.html · cup-taster/index.html · bbtc/index.html
+- No changes — logo slot markup was added then removed in this session; files unchanged from v4.8.1
+
+---
+
+## [4.8.1] — Front door slideshow · Slideshow Manager · Firebase Storage · June 2026
+
+### shared/firebase.js
+- **feat: Firebase Storage added** — `getStorage()` imported and initialised alongside existing auth and Firestore instances; Storage instance exported for use by admin panel Slideshow Manager
+
+### admin/index.html
+- **feat: Create Org section** — new section above Org Management; email + password inputs; "Create Account" button calls `createUserWithEmailAndPassword`; shows UID on success; clears form and pre-fills Find field; triggers `findOrg()` after 1000ms delay to allow Admin SDK propagation
+- **feat: Slideshow Manager** — new section below platform switches; organiser can upload images to Firebase Storage, reorder slides via up/down controls, and delete slides; slide list reads from and writes to Firestore `slideshow` collection; changes reflected on front door on next load
+- **fix: password input styling** — `input[type="password"]` added to the shared CSS selector group; now matches email and datetime-local field styling
+
+### index.html
+- **feat: front door slideshow** — full-bleed hero image carousel fed from Firestore `slideshow` collection; images served from Firebase Storage; auto-rotates every 5 seconds with CSS crossfade transition; graceful fallback (container hidden) on fetch error or empty collection
+- **feat: secret admin link** — 5-click sequence on `.plat-hdr-logo` within 2 seconds navigates to `admin/index.html`; IIFE keeps click counter and timer out of global scope; no visual feedback on any click; `e.preventDefault()` suppresses default logo-link reload; works regardless of auth state
+- **fix: org zone cards reflect actual tier** — `data-gate` attributes added to all four `fd-dmod` cards (`throwdown_redemption`, `btc`, `liga_unlimited`, `cup_taster_unlimited`); `.fd-dmod.locked` CSS added (opacity 0.4, lock indicator via `::before`); `seduh:gates-ready` listener calls `Gates.canAccess()` per card and toggles `locked` class; cards default to locked state before auth resolves
+- **feat: org zone card navigation** — each `fd-dmod` card navigates to its respective module on click; BBTC card checks `Gates.canAccess('btc')` before navigating and shows an inline gate message if access is denied
+- **fix: free tools panel hidden when logged in** — `[data-auth="in"] .fd-panel { display: none }` added to local style block; CSS-only
+- **fix: header tagline spacing** — `.plat-hdr-sub { margin-left: 0.5rem }` added to local style block; breathing room between "Seduh Score" wordmark and "Coffee competition platform" tagline
+
+### liga/index.html
+- **fix: `seduh:gates-ready` listener added** — `firebase.js` and `auth.js` loaded before `</body>`; `window.addEventListener('seduh:gates-ready', () => render(), { once: true })` added after initial `render()` call; gated features now reflect auth state on fresh navigation without manual refresh
+
+### cup-taster/index.html
+- **fix: `seduh:gates-ready` listener added** — same pattern as Liga; listener added after `init()` call (which calls `render()` internally); `firebase.js` and `auth.js` loaded before `</body>`
+
+### Known issues (still open)
+- `cup_taster_module` platform switch — confirmed working correctly on live site after Firestore rules fix; no code change required. Closed.
+
+---
+
 ## [4.8.0] — Firebase Auth + Admin Panel · June 2026
 
 ### shared/firebase.js (new file)

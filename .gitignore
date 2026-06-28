@@ -27,8 +27,13 @@ Handoff and Spec Files/
 firebase-debug.log
 public/
 functions/node_modules/
+.firebase/
 
 # Claude Code
 .agents/
 .claude/
 skills-lock.json
+
+# npm artefacts (no dependencies — ignore any auto-generated lockfile)
+package-lock.json
+node_modules/

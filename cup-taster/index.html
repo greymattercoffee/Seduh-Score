@@ -11,9 +11,7 @@
 <link rel="apple-touch-icon" href="../shared/assets/apple-touch-icon.png">
 <style>
 /* ── Cup Taster module-local styles ── */
-.app{max-width:900px;margin:0 auto;padding:0 0 60px}
-.hdr-btn{display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:var(--rad-s);font-size:12px;cursor:pointer;font-weight:600;border:1.5px solid}
-.hdr-btns{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.app{max-width:900px;margin:0 auto;padding:0 0 60px;container-type:inline-size}
 .body{padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1rem}
 /* Contestant list */
 .p-list{display:flex;flex-direction:column;gap:5px;margin-top:8px;max-height:280px;overflow-y:auto}
@@ -62,7 +60,7 @@
 .sc-time-badge.maxed{background:var(--rd-bg);border-color:var(--rd-bd);color:var(--rd)}
 .sc-trio-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:.4rem}
 .sc-trio-label{font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;width:40px;font-family:var(--font-mono)}
-.sc-trio-btn{width:42px;height:38px;border-radius:var(--rad-s);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-size:16px;font-weight:700;color:var(--txt3);display:flex;align-items:center;justify-content:center}
+.sc-trio-btn{width:42px;height:44px;border-radius:var(--rad-s);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-size:16px;font-weight:700;color:var(--txt3);display:flex;align-items:center;justify-content:center}
 .sc-trio-btn:hover:not([disabled]){border-color:var(--txt3)}
 .sc-trio-btn.correct{border-color:var(--gn-bd);background:var(--gn-bg);color:var(--gn)}
 .sc-trio-btn.incorrect{border-color:var(--rd-bd);background:var(--rd-bg);color:var(--rd)}
@@ -192,6 +190,7 @@ const DEFAULT_STATE = () => ({
 let S = DEFAULT_STATE();
 let hid = 0;
 let cid = 0;
+let chromeInited = false;
 
 let heatTimerInterval = null;
 
@@ -519,16 +518,23 @@ function rMain() {
     + '<span class="plat-mark">' + SEDUH_SVG + '</span>'
     + '<div><div class="plat-hdr-sub" style="font-size:10px;color:var(--am);font-weight:700;letter-spacing:.15em;text-transform:uppercase">Seduh Score</div>'
     + '<div class="plat-hdr-name">' + esc(S.eventName || 'Cup Taster') + '</div></div>'
-    + '<div class="hdr-btns">'
-    + '<button class="hdr-btn btn-am" id="tmrbtn">⏱ Timer</button>'
-    + '<button class="hdr-btn btn-am" id="audbtn">📺 Audience</button>'
-    + '<button class="hdr-btn btn-o" id="savejsonbtn">⬇ Save</button>'
-    + '<button class="hdr-btn btn-o" id="loadjsonbtn">⬆ Load</button>'
-    + '<button class="hdr-btn btn-o" id="demobtn">Demo</button>'
-    + '<button class="hdr-btn btn-rd" id="resetbtn">Reset</button>'
-    + '</div></div>'
-    + '<div class="tabs">'
-    + tabs.map(([t,l]) => '<button class="tbtn' + (S.tab===t?' on':'') + '" data-tab="' + t + '">' + l + '</button>').join('')
+    + '</div>'
+    + '<div class="event-band" id="event-band" data-empty></div>'
+    + '<div class="mod-toolbar" id="mod-toolbar">'
+    + '<div class="tb-primary">'
+    + '<button class="tb-pri" id="tmrbtn"><span class="ic">⏱</span> Timer</button>'
+    + '<button class="tb-pri" id="audbtn"><span class="ic">📺</span> Audience</button>'
+    + '</div>'
+    + '<div class="tb-secondary">'
+    + '<button class="tb-sec" id="savejsonbtn" data-act="save"><span class="ic">⬇</span> Save</button>'
+    + '<button class="tb-sec" id="loadjsonbtn" data-act="load"><span class="ic">⬆</span> Load</button>'
+    + '<button class="tb-sec" id="demobtn" data-act="demo"><span class="ic">⚗</span> Demo</button>'
+    + '</div>'
+    + '<button class="tb-reset" id="resetbtn" data-act="reset">↺ Reset</button>'
+    + '<button class="tb-more" id="moreBtn"><span class="dots">···</span><span class="word">More</span><span class="ct">0</span></button>'
+    + '</div>'
+    + '<div class="mod-tabs" id="tabs">'
+    + tabs.map(([t,l]) => '<button class="mtab' + (S.tab===t?' on':'') + '" data-tab="' + t + '">' + l + '</button>').join('')
     + '</div>'
     + '<div class="body">';
 
@@ -1416,6 +1422,108 @@ function loadCupTasterDemo() {
   render();
 }
 
+/* ════════ Chrome ════════ */
+function doReset() {
+  if (confirm('Reset all Cup Taster data? This cannot be undone.')) {
+    STORE.clear();
+    clearInterval(heatTimerInterval);
+    heatTimerInterval = null;
+    hid = 0; cid = 0;
+    S = DEFAULT_STATE();
+    render();
+  }
+}
+
+function handleToolbarAction(act) {
+  if (act === 'save')        exportJSON();
+  else if (act === 'load')   { $('json-file-input').value = ''; $('json-file-input').click(); }
+  else if (act === 'demo')   loadCupTasterDemo();
+  else if (act === 'reset')  doReset();
+}
+
+function buildSheet(overflow, resetInMore) {
+  const meta = {
+    save:  { label: 'Save JSON',  icon: '⬇' },
+    load:  { label: 'Load JSON',  icon: '⬆' },
+    demo:  { label: 'Load Demo',  icon: '⚗' },
+    reset: { label: 'Reset data', icon: '↺' },
+  };
+  const list = document.getElementById('ms-list');
+  if (!list) return;
+  let html = '';
+  overflow.forEach(act => {
+    const m = meta[act] || { label: act, icon: '' };
+    html += '<button class="ms-item" data-act="' + act + '">'
+          + '<span class="ms-ic">' + m.icon + '</span>'
+          + '<span class="ms-label">' + m.label + '</span></button>';
+  });
+  if (resetInMore) {
+    html += '<div class="ms-divider">Danger zone</div>'
+          + '<button class="ms-item ms-item-danger" data-act="reset">'
+          + '<span class="ms-ic">↺</span><span class="ms-label">Reset data</span></button>';
+  }
+  list.innerHTML = html;
+  list.querySelectorAll('[data-act]').forEach(btn =>
+    btn.addEventListener('click', () => { closeSheet(); handleToolbarAction(btn.dataset.act); })
+  );
+}
+
+function fitToolbar() {
+  const tb = document.getElementById('mod-toolbar');
+  const moreBtn = document.getElementById('moreBtn');
+  if (!tb || !moreBtn) return;
+  const available = tb.offsetWidth - moreBtn.offsetWidth - 4;
+  const required = () => {
+    let w = 0;
+    tb.querySelectorAll('.tb-pri,.tb-sec,.tb-reset').forEach(el => {
+      if (el.style.display !== 'none') w += el.offsetWidth + 4;
+    });
+    return w;
+  };
+  const overflow = [];
+  let resetInMore = false;
+  const secBtns = [...tb.querySelectorAll('.tb-sec')];
+  const resetBtn = document.getElementById('resetbtn');
+  secBtns.forEach(b => b.style.display = 'flex');
+  if (resetBtn) resetBtn.style.display = 'flex';
+  moreBtn.style.display = 'none';
+  if (required() <= available) return;
+  if (resetBtn) { resetBtn.style.display = 'none'; resetInMore = true; }
+  for (let i = secBtns.length - 1; i >= 0; i--) {
+    if (required() <= available) break;
+    secBtns[i].style.display = 'none';
+    overflow.unshift(secBtns[i].dataset.act);
+  }
+  if (overflow.length || resetInMore) {
+    moreBtn.style.display = 'flex';
+    const ct = document.querySelector('#moreBtn .ct');
+    if (ct) ct.textContent = overflow.length + (resetInMore ? 1 : 0);
+    buildSheet(overflow, resetInMore);
+  }
+}
+
+function measure() {
+  const hdr = document.querySelector('.plat-hdr');
+  const tabs = document.getElementById('tabs');
+  if (hdr && tabs) tabs.style.top = hdr.offsetHeight + 'px';
+  const active = tabs && tabs.querySelector('.mtab.on');
+  if (active) active.scrollIntoView({ block: 'nearest', inline: 'center' });
+}
+
+function openSheet() {
+  const sheet = document.getElementById('more-sheet');
+  const scrim = document.getElementById('sheet-scrim');
+  if (sheet) sheet.classList.add('open');
+  if (scrim) scrim.classList.add('open');
+}
+
+function closeSheet() {
+  const sheet = document.getElementById('more-sheet');
+  const scrim = document.getElementById('sheet-scrim');
+  if (sheet) sheet.classList.remove('open');
+  if (scrim) scrim.classList.remove('open');
+}
+
 /* ════════ Bind ════════ */
 function bind() {
   Timer.init();
@@ -1429,21 +1537,23 @@ function bind() {
   on('json-file-input', 'change', e => { if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value=''; });
   on('demobtn', 'click', loadCupTasterDemo);
   on('load-demo', 'click', loadCupTasterDemo);
-  on('resetbtn', 'click', () => {
-    if (confirm('Reset all Cup Taster data? This cannot be undone.')) {
-      STORE.clear();
-      clearInterval(heatTimerInterval);
-      heatTimerInterval = null;
-      hid = 0; cid = 0;
-      S = DEFAULT_STATE();
-      render();
-    }
-  });
+  on('resetbtn', 'click', doReset);
 
   // Tabs
   document.querySelectorAll('[data-tab]').forEach(btn =>
     btn.addEventListener('click', () => { S.tab = btn.dataset.tab; render(); })
   );
+
+  // Chrome
+  on('moreBtn', 'click', openSheet);
+  on('sheet-scrim', 'click', closeSheet);
+  if (!chromeInited) {
+    chromeInited = true;
+    window.addEventListener('scroll', measure, { passive: true });
+    window.addEventListener('resize', () => { fitToolbar(); measure(); });
+  }
+  fitToolbar();
+  measure();
 
   // Setup: event info
   on('ev-name',  'input', () => { S.eventName  = $('ev-name').value;  save(); });
@@ -1566,6 +1676,12 @@ function bind() {
 init();
 window.addEventListener('seduh:gates-ready', () => render(), { once: true });
 </script>
+<div class="sheet-scrim" id="sheet-scrim" style="position:fixed"></div>
+<div class="more-sheet" id="more-sheet" style="position:fixed">
+  <div class="ms-grab"></div>
+  <div class="ms-title" id="ms-title">More actions</div>
+  <div class="ms-list" id="ms-list"></div>
+</div>
 <script type="module" src="../shared/firebase.js"></script>
 <script type="module" src="../shared/auth.js"></script>
 </body>

@@ -86,6 +86,7 @@
 
   /* ── Inputs / Select ── */
   input[type="email"],
+  input[type="password"],
   input[type="datetime-local"],
   select {
     background: var(--bg);
@@ -181,7 +182,7 @@
     font-family: ui-monospace, monospace;
     text-transform: uppercase;
     letter-spacing: .06em;
-    width: 40px;
+    min-width: 60px;
     flex-shrink: 0;
   }
   .btn-group {
@@ -231,6 +232,102 @@
     transition: opacity .3s;
     min-width: 36px;
   }
+
+  /* ── Slideshow Manager ── */
+  .adm-slide-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--bd);
+  }
+  .adm-slide-row:last-child { border-bottom: none; }
+  .adm-slide-thumb {
+    width: 80px;
+    height: 45px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+    background: var(--bd);
+  }
+  .adm-slide-caption {
+    flex: 1;
+    font-size: 13px;
+    color: var(--ink2);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .adm-slide-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .adm-slide-actions button {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--bd2);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--ink3);
+    font-size: 13px;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: background .12s, color .12s;
+  }
+  .adm-slide-actions button:hover { background: var(--bd2); color: var(--ink); }
+  .adm-slide-actions button.del-btn:hover { background: var(--rd); color: #fff; border-color: var(--rd); }
+  .adm-slide-confirm {
+    font-size: 12px;
+    color: var(--ink3);
+    font-family: ui-monospace, monospace;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+  }
+  .adm-slide-confirm button {
+    padding: 3px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--bd2);
+    background: transparent;
+    color: var(--ink2);
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .adm-slide-confirm button.confirm-yes { border-color: var(--rd); color: var(--rd); }
+  .adm-add-form {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--bd);
+  }
+  .adm-add-form.open { display: flex; }
+  .adm-add-form label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink4);
+    font-family: ui-monospace, monospace;
+    display: block;
+    margin-bottom: 5px;
+  }
+  .adm-add-form input[type="text"],
+  .adm-add-form input[type="file"] {
+    background: var(--bg);
+    border: 1.5px solid var(--bd2);
+    border-radius: var(--rad);
+    color: var(--ink);
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .14s;
+    width: 100%;
+  }
+  .adm-add-form input:focus { border-color: var(--am-bd); }
 </style>
 </head>
 <body>
@@ -328,16 +425,45 @@
     </div>
   </div>
 
+  <!-- ══ Slideshow ══ -->
+  <div class="adm-section">
+    <div class="adm-section-title">Slideshow</div>
+    <div class="adm-card">
+      <button class="btn btn-am" id="ss-add-btn">+ Add Slide</button>
+
+      <div class="adm-add-form" id="ss-add-form">
+        <div>
+          <label>Photo (JPG / PNG, max 2 MB)</label>
+          <input type="file" id="ss-file" accept="image/jpeg,image/png">
+        </div>
+        <div>
+          <label>Caption</label>
+          <input type="text" id="ss-caption" placeholder="e.g. Brunei Latte Art Open · March 2026">
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-am" id="ss-upload-btn">Upload</button>
+          <button class="btn" id="ss-cancel-btn" style="background:var(--bd2);color:var(--ink2)">Cancel</button>
+        </div>
+        <div class="adm-status" id="ss-upload-status"></div>
+      </div>
+
+      <div id="ss-list" style="margin-top:14px"></div>
+      <div class="adm-status" id="ss-list-status"></div>
+    </div>
+  </div>
+
 </div>
 
 <script type="module">
-import { auth, db }      from '../shared/firebase.js';
+import { auth, db, storage } from '../shared/firebase.js';
 import { onAuthStateChanged, createUserWithEmailAndPassword }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFunctions, httpsCallable }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
-import { getDoc, setDoc, doc, serverTimestamp }
+import { getDoc, setDoc, doc, serverTimestamp, collection, addDoc, getDocs, orderBy, query, updateDoc, deleteDoc }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 import { getApp }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 
@@ -357,6 +483,7 @@ onAuthStateChanged(auth, async user => {
   }
   document.getElementById('panel').style.display = 'block';
   loadSwitches();
+  loadSlides();
 });
 
 // ── Create Org ──
@@ -494,6 +621,156 @@ function setStatus(id, msg, type) {
                  : type === 'success' ? '#0b7a52'
                  :                      '#9a8b7c';
 }
+
+// ── Slideshow Manager ──
+async function loadSlides() {
+  const list = document.getElementById('ss-list');
+  const statusEl = document.getElementById('ss-list-status');
+  list.innerHTML = '';
+  setStatus('ss-list-status', '', '');
+  try {
+    const q = query(collection(db, 'slideshow'), orderBy('order'));
+    const snap = await getDocs(q);
+    if (snap.empty) { setStatus('ss-list-status', 'No slides yet.', 'muted'); return; }
+    const docs = [];
+    snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+    docs.forEach((slide, idx) => {
+      const storagePath = slide.storagePath || '';
+      const row = document.createElement('div');
+      row.className = 'adm-slide-row';
+      row.dataset.id = slide.id;
+      row.innerHTML =
+        '<img class="adm-slide-thumb" src="' + slide.photoUrl + '" alt="">' +
+        '<span class="adm-slide-caption">' + slide.caption + '</span>' +
+        '<div class="adm-slide-actions">' +
+          '<button title="Move up" data-dir="-1"' + (idx === 0 ? ' disabled' : '') + '>↑</button>' +
+          '<button title="Move down" data-dir="1"' + (idx === docs.length - 1 ? ' disabled' : '') + '>↓</button>' +
+          '<button class="del-btn" title="Delete">✕</button>' +
+        '</div>';
+
+      row.querySelector('[data-dir="-1"]').addEventListener('click', () => moveSlide(docs, idx, -1));
+      row.querySelector('[data-dir="1"]').addEventListener('click',  () => moveSlide(docs, idx,  1));
+      row.querySelector('.del-btn').addEventListener('click', () => showDeleteConfirm(row, slide.id, storagePath));
+
+      list.appendChild(row);
+    });
+  } catch (e) {
+    setStatus('ss-list-status', 'Failed to load slides: ' + e.message, 'error');
+  }
+}
+
+async function moveSlide(docs, idx, dir) {
+  const a = docs[idx];
+  const b = docs[idx + dir];
+  if (!b) return;
+  try {
+    await updateDoc(doc(db, 'slideshow', a.id), { order: b.order });
+    await updateDoc(doc(db, 'slideshow', b.id), { order: a.order });
+    loadSlides();
+  } catch (e) {
+    setStatus('ss-list-status', 'Reorder failed: ' + e.message, 'error');
+  }
+}
+
+function showDeleteConfirm(row, docId, storagePath) {
+  const existing = row.querySelector('.adm-slide-confirm');
+  if (existing) { existing.remove(); return; }
+  const confirm = document.createElement('div');
+  confirm.className = 'adm-slide-confirm';
+  confirm.innerHTML =
+    '<span>Delete this slide?</span>' +
+    '<button class="confirm-yes">Yes, delete</button>' +
+    '<button class="confirm-no">Cancel</button>';
+  confirm.querySelector('.confirm-yes').addEventListener('click', () => deleteSlide(docId, storagePath));
+  confirm.querySelector('.confirm-no').addEventListener('click',  () => confirm.remove());
+  row.insertAdjacentElement('afterend', confirm);
+}
+
+async function deleteSlide(docId, storagePath) {
+  setStatus('ss-list-status', 'Deleting…', 'muted');
+  try {
+    if (storagePath) await deleteObject(ref(storage, storagePath));
+    await deleteDoc(doc(db, 'slideshow', docId));
+    loadSlides();
+  } catch (e) {
+    setStatus('ss-list-status', 'Delete failed: ' + e.message, 'error');
+  }
+}
+
+function sanitiseFilename(name) {
+  return name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '');
+}
+
+// Add slide — toggle form
+document.getElementById('ss-add-btn').addEventListener('click', () => {
+  const form = document.getElementById('ss-add-form');
+  form.classList.toggle('open');
+  if (!form.classList.contains('open')) {
+    document.getElementById('ss-file').value    = '';
+    document.getElementById('ss-caption').value = '';
+    setStatus('ss-upload-status', '', '');
+  }
+});
+
+document.getElementById('ss-cancel-btn').addEventListener('click', () => {
+  document.getElementById('ss-add-form').classList.remove('open');
+  document.getElementById('ss-file').value    = '';
+  document.getElementById('ss-caption').value = '';
+  setStatus('ss-upload-status', '', '');
+});
+
+document.getElementById('ss-upload-btn').addEventListener('click', async () => {
+  const fileInput = document.getElementById('ss-file');
+  const caption   = document.getElementById('ss-caption').value.trim();
+  const file      = fileInput.files[0];
+
+  if (!file)    { setStatus('ss-upload-status', 'Choose a photo first.', 'error'); return; }
+  if (!caption) { setStatus('ss-upload-status', 'Caption is required.', 'error'); return; }
+  if (!['image/jpeg', 'image/png'].includes(file.type)) {
+    setStatus('ss-upload-status', 'Only JPG or PNG files allowed.', 'error'); return;
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    setStatus('ss-upload-status', 'File must be under 2 MB.', 'error'); return;
+  }
+
+  const storagePath = 'slideshow/' + Date.now() + '_' + sanitiseFilename(file.name);
+  const storageRef  = ref(storage, storagePath);
+  const uploadTask  = uploadBytesResumable(storageRef, file);
+
+  document.getElementById('ss-upload-btn').disabled = true;
+
+  uploadTask.on('state_changed',
+    snapshot => {
+      const pct = Math.round(snapshot.bytesTransferred / snapshot.totalBytes * 100);
+      setStatus('ss-upload-status', 'Uploading… ' + pct + '%', 'muted');
+    },
+    err => {
+      setStatus('ss-upload-status', 'Upload failed: ' + err.message, 'error');
+      document.getElementById('ss-upload-btn').disabled = false;
+    },
+    async () => {
+      try {
+        const photoUrl = await getDownloadURL(uploadTask.snapshot.ref);
+        const q        = query(collection(db, 'slideshow'), orderBy('order'));
+        const snap     = await getDocs(q);
+        const order    = snap.size + 1;
+        await addDoc(collection(db, 'slideshow'), {
+          photoUrl, caption, order, storagePath, dataUrl: null, createdAt: serverTimestamp()
+        });
+        setStatus('ss-upload-status', 'Slide added.', 'success');
+        document.getElementById('ss-file').value    = '';
+        document.getElementById('ss-caption').value = '';
+        document.getElementById('ss-upload-btn').disabled = false;
+        document.getElementById('ss-add-form').classList.remove('open');
+        loadSlides();
+      } catch (e) {
+        setStatus('ss-upload-status', 'Save failed: ' + e.message, 'error');
+        document.getElementById('ss-upload-btn').disabled = false;
+      }
+    }
+  );
+});
+
 </script>
 </body>
 </html>
