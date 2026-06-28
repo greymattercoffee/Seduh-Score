@@ -2,6 +2,24 @@
 
 ---
 
+## [5.1.0] — MUA Chrome Components (part 1 of 3) · MUA-06a · June 2026
+
+### shared/theme.css
+- **feat: MUA Chrome Components section added** — new clearly-labelled section placed after the audience overlay v4.6 block and before print rules. Contains five component blocks:
+  - **`.event-band`** — top event identity strip; `.event-band[data-empty]` hides when no event is configured; `.eb-logo`, `.eb-text`, `.eb-name`, `.eb-sub`, `.eb-meta` sub-elements
+  - **`.mod-toolbar`** — primary + secondary action row; `.tb-primary` / `.tb-pri` pill buttons with amber accent; `.tb-secondary` / `.tb-sec` outline pills; `.tb-sec-podium` green variant; `.tb-reset` red destructive; `.tb-more` overflow menu button (default `display:none` — JS-controlled via `fitToolbar()`)
+  - **`.mod-tabs`** — sticky tab bar (`z-index:55`, scroll-shadow via `.stuck`); `.mtab` tab buttons with `.on` accent underline; `.mtab .cond` purple badge for conditional tabs
+  - **`.sheet-scrim` / `.more-sheet`** — bottom-sheet overflow menu with grab handle, `.ms-grab`; `.ms-list` / `.ms-item` / `.ms-ic` / `.ms-cap`; `.ms-divider` section label; `.ms-reset` red variant; `.ms-podium` green variant
+  - **C2 comment** — spec note that `container-type:inline-size` for `.eb-logo`'s `cqw` units is added per-module in MUA-06b/c
+- **C1 implemented** — `@media (min-width:600px)` block shows `.tb-more .word` label on wider viewports
+- No existing token, class, or overlay rule touched; regression guard confirmed (373/373 brace balance)
+
+### Deferred to MUA-06b / MUA-06c
+- `container-type:inline-size` on module outermost wrappers (per-module, reads actual markup)
+- MUA chrome markup wired into module HTML files
+
+---
+
 ## [4.9.1] — MUA-01b Mobile touch targets and overflow patches · June 2026
 
 ### shared/theme.css
