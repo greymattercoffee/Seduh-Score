@@ -2,6 +2,26 @@
 
 ---
 
+## [docs] — CONVENTIONS.md audit pass · June 2026
+
+### CONVENTIONS.md
+- **docs: directory tree updated** — added admin/, audience/, cup-taster/ modules; added gates.js, auth.js, eventconfig.js, firebase.js to shared/ listing
+- **docs: B1 rule updated** — version horizon removed; approved post-B1 shared files listed
+- **docs: storage key table completed** — Cup Taster (seduh_cup_taster_v1) and Audience config (seduh_aud_config_v1) added
+- **docs: Audience BBTC row corrected** — ✅ reflecting POA-16 migration (v4.6.0); Cup Taster row added
+- **docs: audInited debt note removed** — POA-16 shipped audInited guard in v4.6.0
+- **docs: Audience.show() signature updated** — podium param and Audience.showPodium() documented
+- **docs: stub-behaviour bullet removed from gates.js** — Firebase live since v4.8.0
+- **docs: FEATURES registry corrected** — audience_links split into concluded/snapshot (v4.6.0); liga/cup_taster module-access keys removed (Option A, v4.4.3); audience_branding and pdf_branding added (pending MUA-04/07)
+- **docs: eventconfig.js handoff v1 + v2 shapes documented** — v2 is MUA-02 target shape
+- **docs: MUA chrome button classes documented** — .mod-toolbar / .tb-* / .ms-* classes added
+- **docs: Git section updated** — GitHub Pages → Firebase Hosting; live URL corrected to seduhscore.com
+- **docs: Firebase section rewritten** — live stack table, Cloud Functions, auth pattern, storage seam note
+- **docs: font-family follow-up removed** — POA-06 resolved in v4.3.0
+- **docs: footer last-updated line refreshed**
+
+---
+
 ## [5.2.0] — MUA-02 — Handoff v2 + EventConfig extension · June 2026
 
 ### shared/eventconfig.js

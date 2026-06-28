@@ -10,30 +10,40 @@ Seduh Score is a **static multi-file web app** — no build step, no bundler, no
 
 ```
 seduh-score/
-├── index.html              ← dashboard launcher only
-├── bbtc/index.html         ← fully self-contained module
-├── throwdown/index.html    ← fully self-contained module
-├── liga/index.html         ← fully self-contained module
-├── timer/index.html        ← standalone timer page
-└── shared/                 ← loaded by every module
+├── index.html                  ← platform front door
+├── admin/index.html            ← super admin panel (not pushed to public)
+├── audience/index.html         ← remote audience viewer stub
+├── bbtc/index.html             ← fully self-contained module
+├── cup-taster/index.html       ← fully self-contained module
+├── liga/index.html             ← fully self-contained module
+├── throwdown/index.html        ← fully self-contained module
+├── timer/index.html            ← standalone timer page
+└── shared/                     ← loaded by every module
     ├── theme.css
-    ├── timer.js
-    ├── audience.js
     ├── storage.js
-    └── assets/             ← seduh-mark.svg + favicons
+    ├── gates.js                ← v4.3+ tier/feature gating
+    ├── auth.js                 ← v4.8+ Firebase auth state + Gates.init()
+    ├── audience.js
+    ├── eventconfig.js          ← v4.7+ organiser customisation component
+    ├── firebase.js             ← v4.8+ Firebase SDK init (app/auth/Firestore/Storage)
+    ├── timer.js
+    └── assets/                 ← seduh-mark.svg + favicons
 ```
 
 Each module includes shared files like this:
 ```html
 <link rel="stylesheet" href="../shared/theme.css">
 <script src="../shared/storage.js"></script>
+<script src="../shared/gates.js"></script>
 <script src="../shared/timer.js"></script>
 <script src="../shared/audience.js"></script>
+<script src="../shared/eventconfig.js"></script>
+<!-- firebase.js + auth.js loaded as type="module" before </body> -->
 ```
 
 **Rule:** Never copy shared component code into a module file. Always reference from `../shared/`.
 
-**Rule (B1 — locked through v4.5):** Each module stays one self-contained `index.html`. The single-file pattern holds through v4.5. `shared/` expansion is the consistency mechanism. `gates.js` is the one new shared file mandated for the front door work (v4.3+). No other new shared files without explicit strategy-chat approval.
+**Rule (B1 — locked):** Each module stays one self-contained `index.html`. No build step, no bundler. `shared/` expansion is the consistency mechanism — new shared files must be explicitly approved in the strategy chat before creation. Approved post-B1 shared files: `gates.js` (v4.3), `eventconfig.js` (v4.7), `firebase.js` and `auth.js` (v4.8).
 
 ---
 
@@ -104,7 +114,9 @@ Store('seduh_bbtc_v3').clear();
 | BBTC | `seduh_bbtc_v3` |
 | Throwdown | `seduh_throwdown_v1` |
 | Liga Seduh | `seduh_liga_v1` |
+| Cup Taster | `seduh_cup_taster_v1` |
 | Dashboard | `seduh_event_v1` |
+| Audience config | `seduh_aud_config_v1` |
 
 **Rule:** Bump the key suffix when the state shape changes in a breaking way (e.g. `seduh_bbtc_v3` → `seduh_bbtc_v4`). This prevents old saved data from crashing the new version. Document the key change in CHANGELOG. When bumping a key, write a one-time load-path migration shim to copy data from the old key to the new one and delete the old key — run it before `loadState()` on the first boot after the key change.
 
@@ -267,13 +279,15 @@ Timer overlay HTML must be present in the module's HTML (copy from existing modu
 ### Audience (`shared/audience.js`)
 
 ```javascript
-Audience.init();     // call once per bind() cycle — wires close button
+Audience.init();     // call once per bind() cycle — idempotent (audInited guard)
 Audience.show({
   title: 'Throwdown 1v1',
   moduleTag: 'Round 3',  // optional badge label
-  lbHTML: '...',          // inner HTML for standings panel (omit if no standings panel)
+  lbHTML: '...',          // inner HTML for standings panel (omit → single-panel mode)
   histHTML: '...',        // inner HTML for results panel
+  podium: [...],          // optional array — stored for Audience.showPodium()
 });
+Audience.showPodium();   // full-screen podium takeover — audience_enhanced gate only
 ```
 
 **Module usage:**
@@ -282,9 +296,8 @@ Audience.show({
 |---|---|---|---|
 | Throwdown | ✅ in bind() | ✅ | lbHTML omitted — no standings panel in Throwdown |
 | Liga Seduh | ✅ in bind() | ✅ | all four params |
-| BBTC | ❌ | ❌ | self-contained audience — POA-09/16 deferred |
-
-**Known debt (POA-16):** `Audience.init()` is called every `bind()` cycle. `#aud-close` is a static element — each call stacks a new listener. Fix in POA-16 rebuild (add `audInited` guard).
+| BBTC | ✅ in bind() | ✅ | lbHTML = prelim standings; histHTML = match history; podium deferred |
+| Cup Taster | ✅ in bind() | ✅ | single-panel (no lbHTML); podium deferred |
 
 ### Storage (`shared/storage.js`)
 
@@ -333,8 +346,6 @@ Gates.isEnabled('feature_key') // true | false — checks platform switch
 - `canAccess()` checks both axes: org tier AND platform switch. Both must pass for `allowed: true`
 - `reason: 'tier'` → org's subscription doesn't cover this feature → show upgrade prompt
 - `reason: 'disabled'` → super admin has this feature switched off platform-wide → show nothing
-- Stub behaviour through v4.3: all calls return `{ allowed: true }` — all features unlocked
-- Stub is replaced when Firebase auth lands in v4.7
 - **Throwdown is the reference implementation** for gate touch points
 - **BTC gate is routing-layer only** — no gate touch points inside `bbtc/index.html`; access controlled by whether the org account can reach the module URL
 
@@ -342,35 +353,39 @@ Gates.isEnabled('feature_key') // true | false — checks platform switch
 
 ```javascript
 const FEATURES = {
-  // Module access — routing layer
-  'btc':                    { minTier: 'annual' },
-  'liga':                   { minTier: 'per_event' },
-  'cup_taster':             { minTier: 'per_event' },
+  // Module access — routing layer (community = free entry; btc = annual only)
+  'btc':                         { minTier: 'annual' },
+  // liga, cup_taster, throwdown: free entry — no routing-layer gate
 
   // Throwdown
-  'throwdown_redemption':   { minTier: 'per_event' },
-  'throwdown_revival':      { minTier: 'per_event' },
-  'throwdown_report':       { minTier: 'per_event' },
-  'throwdown_unlimited':    { minTier: 'per_event' }, // >16 participants
+  'throwdown_redemption':        { minTier: 'per_event' },
+  'throwdown_revival':           { minTier: 'per_event' },
+  'throwdown_report':            { minTier: 'per_event' },
+  'throwdown_unlimited':         { minTier: 'per_event' }, // >16 participants
 
   // Liga Seduh
-  'liga_device_tracking':   { minTier: 'per_event' },
-  'liga_csv_export':        { minTier: 'per_event' },
-  'liga_unlimited':         { minTier: 'per_event' }, // >8 brewers
+  'liga_device_tracking':        { minTier: 'per_event' },
+  'liga_csv_export':             { minTier: 'per_event' },
+  'liga_unlimited':              { minTier: 'per_event' }, // >8 brewers
 
   // Cup Taster
-  'cup_taster_analytics':   { minTier: 'per_event' },
-  'cup_taster_report':      { minTier: 'per_event' },
-  'cup_taster_unlimited':   { minTier: 'per_event' }, // >8 contestants or >3 sets
+  'cup_taster_analytics':        { minTier: 'per_event' },
+  'cup_taster_report':           { minTier: 'per_event' },
+  'cup_taster_unlimited':        { minTier: 'per_event' }, // >8 contestants or >3 sets
 
   // Audience
-  'audience_enhanced':      { minTier: 'per_event' },
-  'audience_links':         { minTier: 'per_event' },
+  'audience_enhanced':           { minTier: 'per_event' },
+  'audience_branding':           { minTier: 'per_event' }, // MUA-04: event identity in overlay
+  'audience_links_concluded':    { minTier: 'community' }, // concluded-event link
+  'audience_links_snapshot':     { minTier: 'per_event' }, // live snapshot URL
+
+  // PDF / report identity
+  'pdf_branding':                { minTier: 'per_event' }, // MUA-07: event identity in PDFs
 
   // Platform switches — minTier: null means tier-independent
   // Feature hidden for ALL orgs regardless of tier until super admin enables it
-  'cup_taster_module':      { minTier: null },
-  'audience_links_live':    { minTier: null },
+  'cup_taster_module':           { minTier: null },
+  'audience_links_live':         { minTier: null },
 }
 ```
 
@@ -388,7 +403,30 @@ EventConfig.writeHandoff()             // write seduh_handoff to sessionStorage
 EventConfig.getAccent()               // read current accent hex
 ```
 
-Handoff contract: sessionStorage key `seduh_handoff`, shape `{ v:1, accent, logoUrl }`. `v:` field is version sentinel — check before reading. Consumed by `audience.js` `_applyHandoff()` inside `Audience.show()`.
+Handoff contract: sessionStorage key `seduh_handoff`. Always check `v:` sentinel before reading.
+Consumed by `audience.js` `_applyHandoff()` inside `Audience.show()`.
+
+**v1 shape** (current, shipped v4.7):
+```javascript
+{ v: 1, accent: '#...', logoUrl: '...' }
+```
+
+**v2 shape** (MUA-02 target — write path in eventconfig.js, read path in audience.js):
+```javascript
+{
+  v: 2,
+  accent: '#...',       // existing
+  logoUrl: '...',       // existing
+  bgColor: null,        // event band background colour (null = no override)
+  eventName: '',        // competition name
+  eventSubtitle: '',    // constrained format: "Category | City Year"
+  eventDate: '',        // display string (not ISO)
+  eventVenue: ''        // free text
+}
+```
+
+v1 handoffs are gracefully upgraded to v2 on read — no data loss. Migration logic lives in
+`EventConfig.mount()`. v2 written back to sessionStorage immediately after upgrade.
 
 ---
 
@@ -419,6 +457,7 @@ The user-facing label for the optional per-round random revival mechanic is **"R
 ### Button classes
 
 ```css
+/* Base button classes — shared/theme.css */
 .btn-p        /* primary — amber fill */
 .btn-o        /* outline — border only */
 .btn-sm       /* small — use with colour modifier */
@@ -427,9 +466,24 @@ The user-facing label for the optional per-round random revival mechanic is **"R
 .btn-gn       /* green outline */
 .btn-rd       /* red outline */
 .btn-pu       /* purple outline */
+
+/* Module chrome — .mod-toolbar classes (MUA-06, v5.1+) */
+/* These are the current standard for all module action buttons */
+.tb-pri           /* primary toolbar pill — amber, always visible */
+.tb-sec           /* secondary toolbar outline pill — collapses to ⋯ More at <768px */
+.tb-sec-podium    /* green podium variant — conditional on gate + bracket done */
+.tb-reset         /* red destructive — always visible, rightmost */
+.tb-more          /* overflow menu trigger — hidden until fitToolbar() shows it */
+
+/* Bottom sheet (overflow) item classes */
+.ms-item          /* standard sheet row */
+.ms-reset         /* red destructive sheet row */
+.ms-podium        /* green podium sheet row */
 ```
 
-Header action buttons use `.btn-hdr` + colour modifier.
+`.btn-hdr` + colour modifier is superseded for module chrome. Use `.tb-pri` / `.tb-sec` in
+all module toolbars. `.btn-p`, `.btn-o` etc. remain valid for in-content buttons (scoring
+controls, setup forms, confirmation prompts).
 
 ---
 
@@ -491,7 +545,7 @@ Update CHANGELOG.md before committing any release. The CHANGELOG is the handoff 
 ### Branch structure
 
 ```
-main   — live, public-facing, what GitHub Pages serves. Always stable.
+main   — live, production. Always stable. Firebase Hosting serves from this branch.
 dev    — all active development. Work from any device here.
 ```
 
@@ -499,7 +553,7 @@ dev    — all active development. Work from any device here.
 
 ### Daily workflow (any device)
 
-**From phone or tablet** — use GitHub's web editor directly on the `dev` branch. Edit files, commit, all in browser. No local repo required.
+**From tablet** — use GitHub's web editor directly on the `dev` branch. Edit files, commit, all in browser. No local repo required.
 
 **From desktop (PowerShell):**
 ```powershell
@@ -512,13 +566,13 @@ git push
 
 Commit message types: `feat`, `fix`, `docs`, `refactor`
 
-### Releasing to live (any device)
+### Releasing to live
 
 When a version is ready:
 1. Open a Pull Request on GitHub — `dev` → `main`
 2. Review the diff
 3. Merge
-4. GitHub Pages rebuilds automatically — live within ~60 seconds
+4. Firebase Hosting picks up the new `main` automatically — live within ~60 seconds
 
 ### Setting up the dev branch (once, on desktop)
 ```powershell
@@ -528,18 +582,44 @@ git push -u origin dev
 
 ### Repository
 Remote: `https://github.com/greymattercoffee/Seduh-Score.git`  
-Live URL: `https://greymattercoffee.github.io/Seduh-Score/`  
-GitHub Pages: deploys from `main` branch root only.
+Live URL: `https://seduhscore.com` (Firebase Hosting — custom domain via Cloudflare)  
+Firebase project: `seduh-score` · console.firebase.google.com
 
 ---
 
-## Firebase (future — v4.4+)
+## Firebase — live stack (v4.8.0+)
 
-Firebase project `seduh-score` is registered at console.firebase.google.com.  
-Email/Password authentication provider is enabled.  
-No services actively used until v4.4 (Auth + Firestore) and v4.3 (Hosting).
+Firebase project: `seduh-score` · console.firebase.google.com
 
-**Architecture intention for v5.0+:** `shared/storage.js` will gain a Firebase adapter behind the same `Store(key).save()/.load()/.clear()` interface. Modules will not need to change — only the adapter switches. This is why `storage.js` exists as an abstraction layer rather than direct `localStorage` calls in module code. See the Firebase adapter seam note in the Storage API section above.
+| Service | Status | Notes |
+|---|---|---|
+| Hosting | ✅ Live (v4.3+) | Custom domain seduhscore.com via Cloudflare |
+| Auth — Email/Password | ✅ Live (v4.8+) | `shared/firebase.js` + `shared/auth.js` |
+| Firestore | ✅ Live (v4.8+) | `platform/switches` doc; `slideshow` collection |
+| Storage | ✅ Live (v4.8.1+) | Slideshow images; org logos (future) |
+| Cloud Functions | ✅ Live (v4.8+) | Node 24 · us-central1 Gen 2 |
+
+### Cloud Functions
+- `setOrgClaims` — HTTPS callable; verifies `super_admin` claim; sets `subscription_tier` + `subscription_expiry` custom claims
+- `getOrgByEmail` — HTTPS callable; verifies `super_admin` claim; returns UID + current claims
+
+### Auth pattern
+Custom claims on the Firebase token: `subscription_tier` ('community' | 'per_event' | 'annual')
+and `subscription_expiry` (Unix timestamp). `Gates.init(user)` reads both after every token
+refresh. `auth.js` dispatches `seduh:gates-ready` on `window` after `Gates.init()` resolves.
+Modules listen with `{ once: true }` and re-render to apply gate state.
+
+### Storage (localStorage) adapter seam — v5.0 pre-condition
+`shared/storage.js` is shaped for a future Firebase adapter behind the same
+`Store(key).save()/.load()/.clear()` interface. `load()` is currently synchronous —
+Firestore cannot fulfil this natively. Decision required before the adapter opens:
+option (a) modules updated to `await store.load()`, or option (b) localStorage cache
+with Firestore syncing in the background. Option (b) preferred for competition-day
+offline reliability. Do not start the Firebase adapter until this is decided in strategy chat.
+
+Two modules still bypass `Store()` directly (v5.0 pre-condition — do not fix early):
+- BBTC: `localStorage.setItem/getItem/removeItem` directly
+- Dashboard: direct `localStorage` inside `load()`/`save()` wrappers
 
 ---
 
@@ -589,7 +669,6 @@ Before any future Claude Design session touching `theme.css`, paste this file in
 2. Throwdown module-local styles (`.bslot*`, `.score-modal*`, `.vbtn`, `.hr-row*`) remain module-local — promote to shared theme only if needed by another module.
 3. Accent-override swatch palette lives in dashboard JS — lift to tokens if preset accents are wanted centrally.
 4. Optional `[data-theme="stage"]` scope to formalise the dark projector values currently hardcoded in `#tmr-overlay`.
-5. Module inner `font-family:system-ui` → platform type system — POA-06 (BBTC `.pdf-page` and `timer/index.html` body; Throwdown and Liga are clean).
 
 ---
 
@@ -692,4 +771,4 @@ Before starting work in a new session — **all session types: Strategy, Code, D
 
 ---
 
-*Last updated: June 2026 — POA-24 additions: B1 single-file rule, B2 storage key format, B3 gates.js API, B4 revival draw naming, Timer.init() standalone exception*
+*Last updated: June 2026 — CONVENTIONS audit pass v5.1.2: directory tree updated (6 new files/dirs), storage key table completed (Cup Taster + Audience config), BBTC audience row corrected (POA-16 resolved), audInited debt note removed, stub-behaviour comment removed (Firebase live v4.8.0), FEATURES registry corrected (audience_links split, audience_branding + pdf_branding added), handoff v1/v2 shapes documented, MUA chrome button classes added, Firebase section rewritten (live stack), GitHub Pages → Firebase Hosting, font-family follow-up removed (POA-06 resolved)*
