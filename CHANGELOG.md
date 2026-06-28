@@ -2,6 +2,44 @@
 
 ---
 
+## [5.2.1] — MUA-03 — Event band populated across all modules · June 2026
+
+### shared/eventconfig.js
+
+- **feat: `applyToModule()` — event band DOM population** — extended to populate
+  `#event-band` from internal state variables on every call. When `_eventName` is
+  non-empty: builds and injects `.eb-logo` (if `_logoUrl` set), `.eb-name`,
+  `.eb-sub` (if `_eventSubtitle` set), `.eb-meta` (if `eventDate` or `eventVenue`
+  present in `seduh_event_v1`; joined by ` · `); removes `data-empty` to show band.
+  When `_eventName` is empty: clears innerHTML, restores `data-empty` to hide band.
+  Text content escaped via `_esc()`. `eventDate`/`eventVenue` read from
+  `_readDashboard()` at call time (not cached as module-level vars).
+
+### Module files (throwdown, liga, bbtc, cup-taster)
+
+- **No changes** — all four modules already had `EventConfig.mount()` in their boot
+  sequence and `#event-band` in the DOM from MUA-06b/c. Logic lives entirely in
+  `shared/eventconfig.js` as specified.
+
+### Verified
+
+- All four modules (Throwdown, Liga, BBTC, Cup Taster): event band populates
+  correctly when `eventName` is set in the organiser dashboard
+- `data-empty` removed on band show; restored on band hide — CSS `display:none`
+  rule fires correctly
+- Name, subtitle, meta all present in DOM; meta fields joined with ` · `
+- `--event-bg` applied to band background from `bgColor`
+- No horizontal overflow at 353px (band fills full width, `overflow:hidden` clips
+  long text to ellipsis)
+- No JS errors across all four modules
+
+### Opens
+
+MUA-04 session — audience view identity propagation (v5.3.0).
+Open only after this commit is verified on dev.
+
+---
+
 ## [docs] — CONVENTIONS.md audit pass · June 2026
 
 ### CONVENTIONS.md

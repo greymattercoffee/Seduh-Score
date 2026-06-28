@@ -276,11 +276,38 @@
     } else {
       document.documentElement.style.removeProperty('--event-bg');
     }
-    // logo URL as CSS variable for event band consumption in MUA-03
+    // logo URL as CSS variable
     if (_logoUrl) {
       document.documentElement.style.setProperty('--event-logo-url', _logoUrl);
     } else {
       document.documentElement.style.removeProperty('--event-logo-url');
+    }
+    // populate event band DOM slot
+    const band = document.getElementById('event-band');
+    if (band) {
+      if (_eventName) {
+        const logoHtml = _logoUrl
+          ? '<img class="eb-logo" src="' + _logoUrl + '" alt="' + _esc(_eventName) + ' logo">'
+          : '';
+        const subtitleHtml = _eventSubtitle
+          ? '<div class="eb-sub">' + _esc(_eventSubtitle) + '</div>'
+          : '';
+        const ds = _readDashboard();
+        const metaParts = [ds.eventDate || '', ds.eventVenue || ''].filter(Boolean);
+        const metaHtml = metaParts.length
+          ? '<div class="eb-meta">' + _esc(metaParts.join(' · ')) + '</div>'
+          : '';
+        band.innerHTML = logoHtml
+          + '<div class="eb-text">'
+          + '<div class="eb-name">' + _esc(_eventName) + '</div>'
+          + subtitleHtml
+          + metaHtml
+          + '</div>';
+        band.removeAttribute('data-empty');
+      } else {
+        band.innerHTML = '';
+        band.setAttribute('data-empty', '');
+      }
     }
   };
 })();
