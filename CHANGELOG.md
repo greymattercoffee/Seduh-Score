@@ -2,6 +2,135 @@
 
 ---
 
+## [5.2.1] — MUA-03 — Event band populated across all modules · June 2026
+
+### shared/eventconfig.js
+
+- **feat: `applyToModule()` — event band DOM population** — extended to populate
+  `#event-band` from internal state variables on every call. When `_eventName` is
+  non-empty: builds and injects the full band structure, then removes `data-empty`
+  to show the band. When `_eventName` is empty: clears innerHTML, restores
+  `data-empty` to hide the band.
+  - **`.eb-logo`** — `<img class="eb-logo">` injected as the first child when
+    `_logoUrl` is non-null (the session-only blob URL from logo upload). Omitted
+    when no logo is uploaded. `alt` is `"<eventName> logo"`. Sized by the
+    `.eb-logo` CSS rule already in theme.css (46px–64px height, `cqw` units).
+  - **`.eb-name`** — always present when `_eventName` is non-empty; escaped via
+    `_esc()`.
+  - **`.eb-sub`** — injected only when `_eventSubtitle` is non-empty.
+  - **`.eb-meta`** — injected only when `eventDate` or `eventVenue` is present in
+    `seduh_event_v1` (read via `_readDashboard()` at call time); fields joined by
+    ` · ` and escaped via `_esc()`.
+
+### Module files (throwdown, liga, bbtc, cup-taster)
+
+- **No changes** — all four modules already had `EventConfig.mount()` in their boot
+  sequence and `#event-band` in the DOM from MUA-06b/c. Logic lives entirely in
+  `shared/eventconfig.js` as specified.
+
+### Verified
+
+- All four modules (Throwdown, Liga, BBTC, Cup Taster): event band populates
+  correctly when `eventName` is set in the organiser dashboard
+- `data-empty` removed on band show; restored on band hide — CSS `display:none`
+  rule fires correctly
+- **`.eb-logo` wired** — `<img class="eb-logo">` renders from `_logoUrl` when
+  a logo is uploaded; absent when no logo is set. This is confirmed shipped in
+  `applyToModule()` — not deferred to a later session.
+- Name, subtitle, meta all present in DOM; meta fields joined with ` · `
+- `--event-bg` applied to band background from `bgColor`
+- No horizontal overflow at 353px (band fills full width, `overflow:hidden` clips
+  long text to ellipsis)
+- No JS errors across all four modules
+
+### Opens
+
+MUA-04 session — audience view identity propagation (v5.3.0).
+Open only after this commit is verified on dev.
+
+---
+
+## [docs] — CONVENTIONS.md audit pass · June 2026
+
+### CONVENTIONS.md
+- **docs: directory tree updated** — added admin/, audience/, cup-taster/ modules; added gates.js, auth.js, eventconfig.js, firebase.js to shared/ listing
+- **docs: B1 rule updated** — version horizon removed; approved post-B1 shared files listed
+- **docs: storage key table completed** — Cup Taster (seduh_cup_taster_v1) and Audience config (seduh_aud_config_v1) added
+- **docs: Audience BBTC row corrected** — ✅ reflecting POA-16 migration (v4.6.0); Cup Taster row added
+- **docs: audInited debt note removed** — POA-16 shipped audInited guard in v4.6.0
+- **docs: Audience.show() signature updated** — podium param and Audience.showPodium() documented
+- **docs: stub-behaviour bullet removed from gates.js** — Firebase live since v4.8.0
+- **docs: FEATURES registry corrected** — audience_links split into concluded/snapshot (v4.6.0); liga/cup_taster module-access keys removed (Option A, v4.4.3); audience_branding and pdf_branding added (pending MUA-04/07)
+- **docs: eventconfig.js handoff v1 + v2 shapes documented** — v2 is MUA-02 target shape
+- **docs: MUA chrome button classes documented** — .mod-toolbar / .tb-* / .ms-* classes added
+- **docs: Git section updated** — GitHub Pages → Firebase Hosting; live URL corrected to seduhscore.com
+- **docs: Firebase section rewritten** — live stack table, Cloud Functions, auth pattern, storage seam note
+- **docs: font-family follow-up removed** — POA-06 resolved in v4.3.0
+- **docs: footer last-updated line refreshed**
+
+---
+
+## [5.2.0] — MUA-02 — Handoff v2 + EventConfig extension · June 2026
+
+### shared/eventconfig.js
+
+- **feat: handoff bumped to v2** — `writeHandoff()` now writes all 8 fields:
+  `v`, `accent`, `logoUrl`, `bgColor`, `eventName`, `eventSubtitle`, `eventDate`, `eventVenue`.
+  `eventDate` and `eventVenue` sourced from `seduh_event_v1` (were omitted in v1).
+- **feat: v1 → v2 migration in `mount()`** — if `seduh_handoff` in sessionStorage has `v:1`,
+  it is upgraded in-place to v2 shape; missing fields filled with safe defaults
+  (`bgColor: null`, `eventName: ''`, `eventSubtitle: ''`). Old `accent` and `logoUrl` survive.
+  Upgraded v2 written back to sessionStorage immediately.
+- **feat: `applyToModule()` — `--event-bg` CSS variable** — if `bgColor` is non-null, writes
+  `--event-bg` to `:root`; if null, removes it. Consumed by `.event-band` via
+  `var(--event-bg, transparent)` already in theme.css (MUA-06a).
+- **feat: `applyToModule()` — `--event-logo-url` CSS variable** — writes logo URL to `:root`
+  as `--event-logo-url` when logo is present; removes it when cleared. Available for
+  `.event-band` consumption in MUA-03. Logo remains session-only (blob URL, not persisted).
+- **feat: `_eventName` and `_eventSubtitle` internal state** — new module-level vars; restored
+  from `seduh_event_v1` on `mount()`; synced back to `seduh_event_v1` on every change.
+- **feat: `_bgColor` internal state** — new module-level var; restored from `seduh_event_v1`
+  on `mount()`; synced back on every change.
+- **feat: `_readDashboard()` + `_saveToDashboard()` helpers** — read/write `seduh_event_v1`
+  from localStorage; `_saveToDashboard` merges partial updates (no destructive overwrites).
+- **feat: component UI extended** — `_render()` now shows five sections in order:
+  Competition name (text input), Subtitle (text input, placeholder `"Category | City Year"`),
+  Accent colour (10-swatch palette, unchanged), Band background (10-swatch palette + null "–"
+  option, independent of accent), Event logo (upload + preview, unchanged).
+- **feat: accent persistence** — accent swatch click now also calls `_saveToDashboard({ accent })`
+  so the chosen accent survives across browser sessions via `seduh_event_v1`.
+- **refactor: `_esc()` helper** — new internal function for HTML attribute escaping used
+  in `_render()` for text field values.
+- **refactor: `_buildSwatches()` helper** — extracted swatch row builder; shared by accent and
+  bgColor sections; `withNone` flag adds the null "–" button for bgColor only.
+
+### index.html
+- No changes — "Make it your own" drawer was removed at v4.5.0 when `index.html` became the
+  platform front door. `eventconfig.js` mounted in each module's Setup tab is the functional
+  equivalent; `eventName`, `eventSubtitle`, and `bgColor` UI is now managed there.
+
+### Storage
+- `seduh_event_v1` (localStorage) extended: `eventName`, `eventSubtitle`, `bgColor`, `accent`
+  now written by the eventconfig component on every change. `eventDate` and `eventVenue` remain
+  read-only from this session (written by the old dashboard; migrated fields — not yet re-exposed
+  in UI; to be confirmed in MUA-03).
+- `seduh_handoff` (sessionStorage) now v2: all 8 fields present. Old v1 handoffs upgrade
+  gracefully on next `mount()` call.
+
+### Verified
+- All 8 handoff fields written correctly with expected types and defaults
+- v1 handoff upgrades to v2: old `accent` and `logoUrl` survive; new fields default to safe values
+- `--event-bg` CSS variable set/removed correctly on bgColor change
+- `--event-logo-url` CSS variable set/removed correctly on logo upload/clear
+- Component UI renders: eventName, eventSubtitle inputs; accent + bgColor swatches; logo upload
+- `applyToModule()` called on every field change (name, subtitle, accent, bgColor, logo)
+
+### Opens
+MUA-03 session — event band populated in all modules (v5.2.1).
+Open only after this commit is verified on dev.
+
+---
+
 ## [5.1.2] — BBTC, Liga, Cup Taster chrome migrated to MUA toolbar · MUA-06c · June 2026
 
 ### bbtc/index.html
