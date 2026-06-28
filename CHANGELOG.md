@@ -2,6 +2,35 @@
 
 ---
 
+## [4.9.1] — MUA-01b Mobile touch targets and overflow patches · June 2026
+
+### shared/theme.css
+- **fix: `flex-wrap:wrap` on `.plat-hdr`** — header wraps on narrow viewports instead of overflowing; Throwdown, Liga, and Cup Taster benefit; BBTC already had this locally (no conflict)
+- **fix: `min-height:44px` on `.btn-p`** — primary button meets 44px minimum tap target; existing padding unchanged
+- **fix: `min-height:44px` on `.btn-o`** — outline button meets 44px minimum tap target; existing padding unchanged
+- **fix: `min-height:44px` on `.tbtn`** — tab buttons meet 44px minimum tap target
+- **fix: `.p-rm` touch target** — new rule in theme.css: `display:inline-flex; align-items:center; justify-content:center; min-height:44px; min-width:44px`; local module rules retain visual appearance (no `display` set locally, no conflict); applies to Throwdown, Liga, and Cup Taster remove buttons
+
+### throwdown/index.html
+- **fix: event info grid responsive** — replaced inline `grid-template-columns:1fr 1fr 1fr` with `.ev-info-grid` class; at ≥480px: 3 columns; at <480px: 2 columns (name + date on row 1, venue below)
+
+### liga/index.html
+- **fix: scoring row responsive** — at <480px: `.sc-row` collapses from `140px 1fr 1fr` to `1fr 1fr`; `.sc-label` spans full width as a row above the two inputs (`grid-column:1/-1`); label remains visible, no markup change
+
+### cup-taster/index.html
+- **fix: `.sc-trio-btn` height** — `height:38px` → `height:44px`; width stays 42px (horizontal button, height is the tap dimension)
+
+### bbtc/index.html
+- **fix: `.btn-rd` touch target** — `min-height:44px` added to local override
+- **fix: `.btn-sc` touch target** — `min-height:44px` added
+- **fix: `.btn-ed` touch target** — `min-height:44px` added
+- **fix: `.sb` score button** — `width:38px;height:34px` → `width:44px;height:44px`
+
+### index.html
+- **fix: `.mod-info-btn` tap area** — `width:22px;height:22px` → `width:44px;height:44px`; `display:grid;place-items:center` retains icon centring
+
+---
+
 ## [4.9.0] — Customisation Engine Phase B · Module UI accent · June 2026
 
 ### shared/eventconfig.js

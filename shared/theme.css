@@ -215,7 +215,7 @@ button{cursor:pointer}
 ─────────────────────────────────────────────────────────────── */
 
 /* ════════ Platform header (permanent Seduh / Grey Matter lockup) ════════ */
-.plat-hdr{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:14px;
+.plat-hdr{position:sticky;top:0;z-index:60;display:flex;align-items:center;flex-wrap:wrap;gap:14px;
   padding:14px clamp(16px,4vw,40px);background:rgba(255,255,255,.86);backdrop-filter:blur(12px);
   border-bottom:1px solid var(--border2)}
 .plat-hdr-logo{display:flex;align-items:center;gap:11px;text-decoration:none}
@@ -231,7 +231,7 @@ button{cursor:pointer}
 /* ── Tabs ── */
 .tabs{display:flex;gap:2px;background:var(--surface);border-bottom:1px solid var(--border);padding:0 clamp(16px,4vw,40px);overflow-x:auto}
 .tbtn{padding:.7rem 1rem;border:none;background:transparent;font-family:var(--font-mono);font-size:11px;cursor:pointer;
-  color:var(--ink3);border-bottom:2px solid transparent;margin-bottom:-1px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;font-weight:700}
+  color:var(--ink3);border-bottom:2px solid transparent;margin-bottom:-1px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;font-weight:700;min-height:44px}
 .tbtn:hover{color:var(--ink2)}
 .tbtn.on{color:var(--accent);border-bottom-color:var(--accent)}
 
@@ -254,12 +254,13 @@ label.field-lbl{font-size:12px;font-weight:700;color:var(--ink2);display:block;m
 /* ── Chips ── */
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .chip{display:flex;align-items:center;gap:6px;padding:5px 10px 5px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rad-pill);font-size:13px;font-weight:600}
+.p-rm{display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:44px}
 
 /* ── Buttons ── */
-.btn-p{background:var(--accent);color:var(--accent-ink);border:none;padding:11px 22px;border-radius:var(--rad-s);font-size:14px;font-weight:700;transition:background .14s,transform .12s}
+.btn-p{background:var(--accent);color:var(--accent-ink);border:none;padding:11px 22px;border-radius:var(--rad-s);font-size:14px;font-weight:700;min-height:44px;transition:background .14s,transform .12s}
 .btn-p:hover{background:var(--accent-h)}.btn-p:active{transform:scale(.99)}
 .btn-p:disabled{background:var(--border);color:var(--ink3);cursor:default}
-.btn-o{background:var(--surface);border:1.5px solid var(--border);padding:9px 16px;border-radius:var(--rad-s);font-size:13px;color:var(--ink2);font-weight:700}
+.btn-o{background:var(--surface);border:1.5px solid var(--border);padding:9px 16px;border-radius:var(--rad-s);font-size:13px;color:var(--ink2);font-weight:700;min-height:44px}
 .btn-o:hover{border-color:var(--ink3)}
 .btn-sm{padding:6px 13px;font-size:11px;font-weight:700;border-radius:var(--rad-pill);border:1.5px solid;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase}
 .btn-am{background:var(--am-bg);border-color:var(--am-bd);color:var(--am)}.btn-am:hover{background:var(--am);color:#fff}

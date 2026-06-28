@@ -80,6 +80,9 @@
 .hr-t.w{font-weight:700;color:var(--am)}
 .hr-v{font-size:16px;font-weight:700;flex-shrink:0}
 .hvs{font-size:10px;color:var(--txt3);padding:0 3px;flex-shrink:0;font-weight:700}
+/* Event info responsive grid */
+.ev-info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:479px){.ev-info-grid{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -801,7 +804,7 @@ function rSetup() {
   const rdAccess = Gates.canAccess('throwdown_redemption');
   const wcAccess = Gates.canAccess('throwdown_revival');
   return '<div class="card"><div class="card-hdr">Event info <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:9px">(optional)</span></div><div class="card-body">'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
+    + '<div class="ev-info-grid">'
     + '<div><label class="field-lbl">Event name</label><input id="ev-name" type="text" value="'+S.eventName+'" placeholder="e.g. Throwdown Night #3"/></div>'
     + '<div><label class="field-lbl">Date</label><input id="ev-date" type="text" value="'+S.eventDate+'" placeholder="e.g. 14 June 2025"/></div>'
     + '<div><label class="field-lbl">Venue</label><input id="ev-venue" type="text" value="'+S.eventVenue+'" placeholder="e.g. Grey Matter HQ"/></div>'
