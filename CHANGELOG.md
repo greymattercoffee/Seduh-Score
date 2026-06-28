@@ -8,12 +8,19 @@
 
 - **feat: `applyToModule()` — event band DOM population** — extended to populate
   `#event-band` from internal state variables on every call. When `_eventName` is
-  non-empty: builds and injects `.eb-logo` (if `_logoUrl` set), `.eb-name`,
-  `.eb-sub` (if `_eventSubtitle` set), `.eb-meta` (if `eventDate` or `eventVenue`
-  present in `seduh_event_v1`; joined by ` · `); removes `data-empty` to show band.
-  When `_eventName` is empty: clears innerHTML, restores `data-empty` to hide band.
-  Text content escaped via `_esc()`. `eventDate`/`eventVenue` read from
-  `_readDashboard()` at call time (not cached as module-level vars).
+  non-empty: builds and injects the full band structure, then removes `data-empty`
+  to show the band. When `_eventName` is empty: clears innerHTML, restores
+  `data-empty` to hide the band.
+  - **`.eb-logo`** — `<img class="eb-logo">` injected as the first child when
+    `_logoUrl` is non-null (the session-only blob URL from logo upload). Omitted
+    when no logo is uploaded. `alt` is `"<eventName> logo"`. Sized by the
+    `.eb-logo` CSS rule already in theme.css (46px–64px height, `cqw` units).
+  - **`.eb-name`** — always present when `_eventName` is non-empty; escaped via
+    `_esc()`.
+  - **`.eb-sub`** — injected only when `_eventSubtitle` is non-empty.
+  - **`.eb-meta`** — injected only when `eventDate` or `eventVenue` is present in
+    `seduh_event_v1` (read via `_readDashboard()` at call time); fields joined by
+    ` · ` and escaped via `_esc()`.
 
 ### Module files (throwdown, liga, bbtc, cup-taster)
 
@@ -27,6 +34,9 @@
   correctly when `eventName` is set in the organiser dashboard
 - `data-empty` removed on band show; restored on band hide — CSS `display:none`
   rule fires correctly
+- **`.eb-logo` wired** — `<img class="eb-logo">` renders from `_logoUrl` when
+  a logo is uploaded; absent when no logo is set. This is confirmed shipped in
+  `applyToModule()` — not deferred to a later session.
 - Name, subtitle, meta all present in DOM; meta fields joined with ` · `
 - `--event-bg` applied to band background from `bgColor`
 - No horizontal overflow at 353px (band fills full width, `overflow:hidden` clips
