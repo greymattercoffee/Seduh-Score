@@ -2,6 +2,24 @@
 
 ---
 
+## [5.1.1] — Throwdown chrome migrated to MUA toolbar · MUA-06b · June 2026
+
+### throwdown/index.html
+- **feat: `.mod-toolbar` replacing `.hdr-btns` action rail** — Timer and Audience as always-visible `.tb-pri` pill buttons; Save, Load as `.tb-sec` outline pills; Reset as `.tb-reset` (red, inline); Podium as `.tb-sec-podium` (green, conditional on `Gates.canAccess('audience_enhanced')` + bracket done)
+- **feat: `fitToolbar()`** — measures available toolbar width on every bind/resize; hides overflow `.tb-sec` buttons and shows `⋯ More` badge with hidden-count; `chromeInited` guard prevents scroll/resize listener accumulation across re-renders
+- **feat: `#more-sheet` bottom sheet** — overflow actions rendered into `.ms-list` by `buildSheet()`; opens/closes via `openSheet()`/`closeSheet()`; scrim tap closes sheet
+- **feat: `#event-band`** — empty slot with `data-empty` (hidden); ready for MUA-07 event wiring
+- **feat: `.mod-tabs` sticky tab bar** — three tabs (Setup/Bracket/History); `measure()` sets `top` to `plat-hdr.offsetHeight` for correct sticky offset; active tab scrolled into view; `.stuck` shadow on scroll past header
+- **refactor: `doReset()`** — extracted from inline `onclick`; wired via `bind()`
+- **refactor: `.app`** — added `container-type:inline-size` (C2 spec; enables `.eb-logo` `cqw` units when event band is populated)
+- **removed: `.hdr-btns` / `.hdr-btn`** local CSS — superseded by shared `.mod-toolbar` rules; no visual regression
+
+### Verified at
+- Desktop (1024px): all toolbar items visible inline, Reset on right, no More button
+- Mobile (353px): Timer + Audience as primary pills; Save/Load/Reset collapsed to `⋯ 3` More button; no horizontal overflow
+
+---
+
 ## [5.1.0] — MUA Chrome Components · CSS only — modules wired in MUA-06b/c · MUA-06a · June 2026
 
 ### shared/theme.css

@@ -11,9 +11,7 @@
 <link rel="apple-touch-icon" href="../shared/assets/apple-touch-icon.png">
 <style>
 /* ── Throwdown-specific styles ── */
-.app{max-width:900px;margin:0 auto;padding:0 0 60px}
-.hdr-btns{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.hdr-btn{display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:var(--rad-s);font-size:12px;cursor:pointer;font-weight:600;border:1.5px solid}
+.app{max-width:900px;margin:0 auto;padding:0 0 60px;container-type:inline-size}
 .body{padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1rem}
 /* Setup */
 .judge-range{display:flex;align-items:center;gap:12px}
@@ -156,6 +154,7 @@
 <script>
 const STORE = Store('seduh_throwdown_v1');
 let mid = 0;
+let chromeInited = false;
 
 const DEFAULT_STATE = () => ({
   eventName: '', eventDate: '', eventVenue: '',
@@ -778,20 +777,30 @@ function render() {
 }
 
 function rMain() {
+  const podiumEligible = Gates.canAccess('audience_enhanced').allowed && S.bracket?.phase === 'done';
   return '<div class="plat-hdr">'
     + '<a href="../index.html" class="plat-back">← Seduh Score</a>'
     + '<span class="plat-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh"><circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"/><path d="M26 60 a24 24 0 0 1 48 0"/><path d="M35 60 a15 15 0 0 1 30 0"/><path d="M44 60 a6 6 0 0 1 12 0"/></svg></span>'
     + '<div><div class="plat-hdr-sub" style="font-size:10px;color:var(--am);font-weight:700;letter-spacing:.15em;text-transform:uppercase">Seduh Score</div>'
     + '<div class="plat-hdr-name">Throwdown 1v1</div></div>'
-    + '<div class="hdr-btns"><button class="hdr-btn btn-am" id="tmrbtn">⏱ Timer</button>'
-    + '<button class="hdr-btn btn-gn" id="savejsonbtn">💾 Save</button>'
-    + '<button class="hdr-btn btn-bl" id="loadjsonbtn">📂 Load</button>'
-    + '<button class="hdr-btn btn-am" id="audbtn">📺 Audience</button>'
-    + (Gates.canAccess('audience_enhanced').allowed && S.bracket?.phase === 'done' ? '<button class="hdr-btn btn-pu" id="podiumBtn">🏆 Podium</button>' : '')
-    + '<button class="hdr-btn btn-rd" id="resetbtn">↺ Reset</button></div></div>'
-    + '<div class="tabs">'
+    + '</div>'
+    + '<div class="event-band" id="event-band" data-empty></div>'
+    + '<div class="mod-toolbar" id="mod-toolbar">'
+    + '<div class="tb-primary">'
+    + '<button class="tb-pri" id="tmrbtn"><span class="ic">⏱</span> Timer</button>'
+    + '<button class="tb-pri" id="audbtn"><span class="ic">📺</span> Audience</button>'
+    + '</div>'
+    + '<div class="tb-secondary">'
+    + '<button class="tb-sec" id="savejsonbtn" data-act="save"><span class="ic">💾</span> Save</button>'
+    + '<button class="tb-sec" id="loadjsonbtn" data-act="load"><span class="ic">📂</span> Load</button>'
+    + (podiumEligible ? '<button class="tb-sec tb-sec-podium" id="podiumBtn" data-act="podium"><span class="ic">🏆</span> Podium</button>' : '')
+    + '</div>'
+    + '<button class="tb-reset" id="resetbtn" data-act="reset">↺ Reset</button>'
+    + '<button class="tb-more" id="moreBtn"><span class="dots">···</span><span class="word">More</span><span class="ct">0</span></button>'
+    + '</div>'
+    + '<div class="mod-tabs" id="tabs">'
     + [['setup','Setup'],['bracket','Bracket'],['history','History']]
-      .map(([t,l]) => '<button class="tbtn'+(S.tab===t?' on':'')+'" data-tab="'+t+'">'+l+'</button>').join('')
+      .map(([t,l]) => '<button class="mtab'+(S.tab===t?' on':'')+'" data-tab="'+t+'">'+l+'</button>').join('')
     + '</div>'
     + '<div class="body">'
     + (S.tab==='setup'?rSetup():S.tab==='bracket'?rBracket():rHistory())
@@ -1173,6 +1182,101 @@ function showAudience() {
   });
 }
 
+/* ── MUA-06 chrome ── */
+function doReset() {
+  if (confirm('Reset ALL throwdown data? Cannot be undone.')) {
+    STORE.clear(); mid = 0; S = DEFAULT_STATE(); render();
+  }
+}
+
+function handleToolbarAction(act) {
+  if (act === 'save')        exportJSON();
+  else if (act === 'load')   importJSON();
+  else if (act === 'podium') Audience.showPodium();
+  else if (act === 'reset')  doReset();
+}
+
+function buildSheet(overflow, resetInMore) {
+  const title = document.getElementById('ms-title');
+  const list  = document.getElementById('ms-list');
+  if (!list) return;
+  if (title) title.textContent = 'More actions';
+  const meta = {
+    save:   { label: 'Save',        icon: '💾' },
+    load:   { label: 'Load',        icon: '📂' },
+    podium: { label: 'View podium', icon: '🏆' },
+  };
+  const rows = overflow.map(id => {
+    const a = meta[id] || { label: id, icon: '•' };
+    return '<button class="ms-item" data-act="' + id + '">'
+      + '<span class="ms-ic">' + a.icon + '</span>' + a.label
+      + '</button>';
+  }).join('');
+  const reset = resetInMore
+    ? '<div class="ms-divider">Danger zone</div>'
+      + '<button class="ms-item ms-reset" data-act="reset">'
+      + '<span class="ms-ic">↺</span>Reset event'
+      + '<span class="ms-cap">clears all</span>'
+      + '</button>'
+    : '';
+  list.innerHTML = rows + reset;
+  list.querySelectorAll('[data-act]').forEach(btn => {
+    btn.onclick = () => { closeSheet(); handleToolbarAction(btn.dataset.act); };
+  });
+}
+
+function fitToolbar() {
+  const tb      = document.getElementById('mod-toolbar');
+  const moreBtn = document.getElementById('moreBtn');
+  if (!tb || !moreBtn) return;
+  const secEls  = Array.from(document.querySelectorAll('.tb-sec'));
+  const resetEl = document.getElementById('resetbtn');
+  const gap     = 8;
+  secEls.forEach(el => el.style.display = '');
+  if (resetEl) resetEl.style.display = '';
+  moreBtn.style.display = 'none';
+  const padL  = parseInt(getComputedStyle(tb).paddingLeft);
+  const padR  = parseInt(getComputedStyle(tb).paddingRight);
+  const avail = tb.clientWidth - padL - padR;
+  const required = () => {
+    const kids = Array.from(tb.children).filter(c => getComputedStyle(c).display !== 'none');
+    let w = 0;
+    kids.forEach(c => { w += c.offsetWidth; });
+    return w + gap * Math.max(0, kids.length - 1);
+  };
+  const fits = () => required() <= avail + 1;
+  const overflow  = [];
+  let resetInMore = false;
+  if (!fits()) {
+    moreBtn.style.display = 'inline-flex';
+    if (resetEl) { resetEl.style.display = 'none'; resetInMore = true; }
+    for (let i = secEls.length - 1; i >= 0 && !fits(); i--) {
+      secEls[i].style.display = 'none';
+      overflow.unshift(secEls[i].dataset.act);
+    }
+  }
+  buildSheet(overflow, resetInMore);
+  const ct = moreBtn.querySelector('.ct');
+  if (ct) ct.textContent = overflow.length + (resetInMore ? 1 : 0);
+}
+
+function measure() {
+  const hdr  = document.querySelector('.plat-hdr');
+  const tabs = document.getElementById('tabs');
+  if (hdr && tabs) tabs.style.top = hdr.offsetHeight + 'px';
+  const active = tabs && tabs.querySelector('.mtab.on');
+  if (active && tabs) tabs.scrollLeft = active.offsetLeft - (tabs.clientWidth - active.offsetWidth) / 2;
+}
+
+function openSheet() {
+  document.getElementById('more-sheet')?.classList.add('open');
+  document.getElementById('sheet-scrim')?.classList.add('open');
+}
+function closeSheet() {
+  document.getElementById('more-sheet')?.classList.remove('open');
+  document.getElementById('sheet-scrim')?.classList.remove('open');
+}
+
 /* ── Bind ── */
 function bind() {
   const $ = id => document.getElementById(id);
@@ -1187,15 +1291,26 @@ function bind() {
   on('audbtn','click',() => showAudience());
   on('podiumBtn','click',() => Audience.showPodium());
 
+  // MUA-06 toolbar wiring
+  on('moreBtn', 'click', openSheet);
+  on('sheet-scrim', 'click', closeSheet);
+  if (!chromeInited) {
+    chromeInited = true;
+    window.addEventListener('scroll', () => {
+      const tabs = document.getElementById('tabs');
+      const hdr  = document.querySelector('.plat-hdr');
+      if (tabs && hdr) tabs.classList.toggle('stuck', window.scrollY > hdr.offsetHeight + 4);
+    });
+    window.addEventListener('resize', fitToolbar);
+  }
+  fitToolbar();
+  measure();
+
   // Tabs
   document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click',()=>{S.tab=b.dataset.tab;render();}));
 
   // Reset
-  on('resetbtn','click',() => {
-    if (confirm('Reset ALL throwdown data? Cannot be undone.')) {
-      STORE.clear(); mid=0; S=DEFAULT_STATE(); render();
-    }
-  });
+  on('resetbtn','click', doReset);
 
   // Event info
   [['ev-name','eventName'],['ev-date','eventDate'],['ev-venue','eventVenue']].forEach(([id,key])=>{
@@ -1382,5 +1497,12 @@ window.addEventListener('seduh:gates-ready', () => render(), { once: true });
 </script>
 <script type="module" src="../shared/firebase.js"></script>
 <script type="module" src="../shared/auth.js"></script>
+
+<div class="sheet-scrim" id="sheet-scrim" style="position:fixed"></div>
+<div class="more-sheet" id="more-sheet" style="position:fixed">
+  <div class="ms-grab"></div>
+  <div class="ms-title" id="ms-title">More actions</div>
+  <div class="ms-list" id="ms-list"></div>
+</div>
 </body>
 </html>
