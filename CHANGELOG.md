@@ -2,7 +2,7 @@
 
 ---
 
-## [5.1.0] — MUA Chrome Components (part 1 of 3) · MUA-06a · June 2026
+## [5.1.0] — MUA Chrome Components · CSS only — modules wired in MUA-06b/c · MUA-06a · June 2026
 
 ### shared/theme.css
 - **feat: MUA Chrome Components section added** — new clearly-labelled section placed after the audience overlay v4.6 block and before print rules. Contains five component blocks:
