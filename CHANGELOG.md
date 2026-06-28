@@ -2,6 +2,67 @@
 
 ---
 
+## [5.2.0] — MUA-02 — Handoff v2 + EventConfig extension · June 2026
+
+### shared/eventconfig.js
+
+- **feat: handoff bumped to v2** — `writeHandoff()` now writes all 8 fields:
+  `v`, `accent`, `logoUrl`, `bgColor`, `eventName`, `eventSubtitle`, `eventDate`, `eventVenue`.
+  `eventDate` and `eventVenue` sourced from `seduh_event_v1` (were omitted in v1).
+- **feat: v1 → v2 migration in `mount()`** — if `seduh_handoff` in sessionStorage has `v:1`,
+  it is upgraded in-place to v2 shape; missing fields filled with safe defaults
+  (`bgColor: null`, `eventName: ''`, `eventSubtitle: ''`). Old `accent` and `logoUrl` survive.
+  Upgraded v2 written back to sessionStorage immediately.
+- **feat: `applyToModule()` — `--event-bg` CSS variable** — if `bgColor` is non-null, writes
+  `--event-bg` to `:root`; if null, removes it. Consumed by `.event-band` via
+  `var(--event-bg, transparent)` already in theme.css (MUA-06a).
+- **feat: `applyToModule()` — `--event-logo-url` CSS variable** — writes logo URL to `:root`
+  as `--event-logo-url` when logo is present; removes it when cleared. Available for
+  `.event-band` consumption in MUA-03. Logo remains session-only (blob URL, not persisted).
+- **feat: `_eventName` and `_eventSubtitle` internal state** — new module-level vars; restored
+  from `seduh_event_v1` on `mount()`; synced back to `seduh_event_v1` on every change.
+- **feat: `_bgColor` internal state** — new module-level var; restored from `seduh_event_v1`
+  on `mount()`; synced back on every change.
+- **feat: `_readDashboard()` + `_saveToDashboard()` helpers** — read/write `seduh_event_v1`
+  from localStorage; `_saveToDashboard` merges partial updates (no destructive overwrites).
+- **feat: component UI extended** — `_render()` now shows five sections in order:
+  Competition name (text input), Subtitle (text input, placeholder `"Category | City Year"`),
+  Accent colour (10-swatch palette, unchanged), Band background (10-swatch palette + null "–"
+  option, independent of accent), Event logo (upload + preview, unchanged).
+- **feat: accent persistence** — accent swatch click now also calls `_saveToDashboard({ accent })`
+  so the chosen accent survives across browser sessions via `seduh_event_v1`.
+- **refactor: `_esc()` helper** — new internal function for HTML attribute escaping used
+  in `_render()` for text field values.
+- **refactor: `_buildSwatches()` helper** — extracted swatch row builder; shared by accent and
+  bgColor sections; `withNone` flag adds the null "–" button for bgColor only.
+
+### index.html
+- No changes — "Make it your own" drawer was removed at v4.5.0 when `index.html` became the
+  platform front door. `eventconfig.js` mounted in each module's Setup tab is the functional
+  equivalent; `eventName`, `eventSubtitle`, and `bgColor` UI is now managed there.
+
+### Storage
+- `seduh_event_v1` (localStorage) extended: `eventName`, `eventSubtitle`, `bgColor`, `accent`
+  now written by the eventconfig component on every change. `eventDate` and `eventVenue` remain
+  read-only from this session (written by the old dashboard; migrated fields — not yet re-exposed
+  in UI; to be confirmed in MUA-03).
+- `seduh_handoff` (sessionStorage) now v2: all 8 fields present. Old v1 handoffs upgrade
+  gracefully on next `mount()` call.
+
+### Verified
+- All 8 handoff fields written correctly with expected types and defaults
+- v1 handoff upgrades to v2: old `accent` and `logoUrl` survive; new fields default to safe values
+- `--event-bg` CSS variable set/removed correctly on bgColor change
+- `--event-logo-url` CSS variable set/removed correctly on logo upload/clear
+- Component UI renders: eventName, eventSubtitle inputs; accent + bgColor swatches; logo upload
+- `applyToModule()` called on every field change (name, subtitle, accent, bgColor, logo)
+
+### Opens
+MUA-03 session — event band populated in all modules (v5.2.1).
+Open only after this commit is verified on dev.
+
+---
+
 ## [5.1.2] — BBTC, Liga, Cup Taster chrome migrated to MUA toolbar · MUA-06c · June 2026
 
 ### bbtc/index.html
