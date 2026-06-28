@@ -2,6 +2,44 @@
 
 ---
 
+## [5.1.2] — BBTC, Liga, Cup Taster chrome migrated to MUA toolbar · MUA-06c · June 2026
+
+### bbtc/index.html
+- **feat: `.mod-toolbar` replacing `.hdr-btns` action rail** — Timer and Audience as `.tb-pri` pill buttons; Export PDF, Export CSV as `.tb-sec` outline pills; Reset as `.tb-reset`; `fitToolbar()` overflow into `#more-sheet`
+- **feat: `#event-band`** — empty slot with `data-empty`; ready for MUA-07 event wiring
+- **feat: `.mod-tabs` sticky tab bar** — five tabs (Setup / Prelims / Bracket / History / Standings); `measure()` sets correct sticky offset; active tab scrolled into view
+- **feat: `doReset()` extracted** — resets via `localStorage.removeItem(STORE_KEY)` (BBTC uses raw localStorage, not `Store()` wrapper)
+- **refactor: `.app`** — added `container-type:inline-size`
+- **removed: `.plat-hdr` flex-wrap override** — superseded by shared rule in theme.css v4.9.1; local `.hdr-s`/`.hdr-t` title classes retained (deferred rename to POA-06)
+- **removed: `.hdr-btns` / `.hdr-btn` / `.btn-am` / `.btn-bl` / `.btn-gn` / `.btn-rd`** local CSS blocks
+
+### liga/index.html
+- **feat: `.mod-toolbar` replacing `.hdr-btns` action rail** — Timer/Audience as `.tb-pri`; Save/Load/Demo as `.tb-sec`; Podium as `.tb-sec-podium` (conditional on `Gates.canAccess('audience_enhanced')` + matches done); Reset as `.tb-reset`
+- **feat: `#event-band`** — empty slot with `data-empty`
+- **feat: `.mod-tabs` sticky tab bar** — five tabs (Setup / Schedule / Standings / Final / Report); active tab scrolled into view; long title "Liga Seduh Bawah Tanah" verified no overflow at 353px
+- **feat: `doReset()` extracted** — resets via `STORE.clear()`
+- **refactor: `.app`** — added `container-type:inline-size`
+- **removed: `.hdr-btns` / `.hdr-btn` / `.btn-gn-lg` / `.btn-pu-lg`** local CSS blocks
+
+### cup-taster/index.html
+- **feat: `.mod-toolbar` replacing `.hdr-btns` action rail** — Timer/Audience as `.tb-pri`; Save/Load/Demo as `.tb-sec`; Reset as `.tb-reset`; `fitToolbar()` overflow into `#more-sheet`
+- **feat: `#event-band`** — empty slot with `data-empty`
+- **feat: `.mod-tabs` sticky tab bar** — dynamic tab set (3–5 tabs: Setup / Heats / Standings / [Semis] / [Finals] / Report); `measure()` scrolls active tab into view when tabs appear/disappear across competition flow
+- **feat: `doReset()` extracted** — resets via `STORE.clear()`; restores `hid`/`cid` counters and clears heat timer interval
+- **refactor: `.app`** — added `container-type:inline-size`
+- **removed: `.hdr-btn` / `.hdr-btns`** local CSS
+
+### Verified at (all three modules)
+- Mobile (353px): Timer + Audience primary; secondary buttons overflow to More; correct count badge; sheet pre-populated with correct items
+- Tablet (768px): full toolbar fits inline, no More button
+- Desktop (1024px): full toolbar fits inline, no More button
+- Cup Taster: active tab scrolled into view with 5-tab layout (demo loaded to semis stage)
+
+### v5.1 complete
+MUA-06 (Chrome build) fully shipped: CSS (MUA-06a) + Throwdown (MUA-06b) + BBTC/Liga/Cup Taster (MUA-06c).
+
+---
+
 ## [5.1.1] — Throwdown chrome migrated to MUA toolbar · MUA-06b · June 2026
 
 ### throwdown/index.html
