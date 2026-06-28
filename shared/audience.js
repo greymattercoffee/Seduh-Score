@@ -91,7 +91,7 @@ function _applyHandoff() {
     const raw = sessionStorage.getItem('seduh_handoff');
     if (!raw) return;
     const h = JSON.parse(raw);
-    if (!h || h.v !== 1) return;
+    if (!h || (h.v !== 1 && h.v !== 2)) return;
     if (h.accent)  _cfg.accentColour = h.accent;
     if (h.logoUrl) _cfg.logoUrl      = h.logoUrl;
   } catch(e) { /* malformed handoff — ignore */ }
@@ -130,6 +130,49 @@ Audience.show = function({ title = '', moduleTag = '', lbHTML, histHTML = '', po
   _applyHandoff();
   const ovl = document.getElementById('aud-overlay');
   if (!ovl) return;
+
+  // MUA-04 — event identity band (Per-Event / Annual tiers, handoff v2 only)
+  const _handoff = (() => {
+    try { return JSON.parse(sessionStorage.getItem('seduh_handoff') || '{}'); }
+    catch { return {}; }
+  })();
+  const hasBranding = _handoff.v >= 2 && !!_handoff.eventName;
+  const tierOk = typeof Gates !== 'undefined'
+    && Gates.canAccess('audience_branding').allowed;
+
+  let band = ovl.querySelector('.aud-event-band');
+  if (hasBranding && tierOk) {
+    if (!band) {
+      band = document.createElement('div');
+      band.className = 'aud-event-band';
+      ovl.insertBefore(band, ovl.firstChild);
+    }
+    band.style.cssText = [
+      'display:flex', 'align-items:center', 'gap:16px', 'padding:16px 24px',
+      'background:' + (_handoff.bgColor || 'var(--surface-deep)'),
+      'border-bottom:1px solid rgba(255,255,255,0.12)'
+    ].join(';');
+    band.innerHTML =
+      (_handoff.logoUrl
+        ? `<img src="${_handoff.logoUrl}" alt=""` +
+          ` style="height:60px;width:60px;object-fit:contain;border-radius:8px;flex-shrink:0;">`
+        : '') +
+      `<div style="min-width:0;">` +
+        `<div style="font-family:var(--font-display);font-size:var(--fs-h2);` +
+             `font-weight:var(--fw-bold);color:#fff;` +
+             `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">` +
+          _handoff.eventName +
+        `</div>` +
+        (_handoff.eventSubtitle
+          ? `<div style="font-size:var(--fs-sm);color:rgba(255,255,255,0.75);` +
+               `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">` +
+              _handoff.eventSubtitle +
+            `</div>`
+          : '') +
+      `</div>`;
+  } else {
+    if (band) band.remove();
+  }
 
   // Store or clear podium data — undefined podium param clears it
   _podiumData = (podium && podium.length > 0) ? podium : null;

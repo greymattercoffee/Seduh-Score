@@ -2,6 +2,48 @@
 
 ---
 
+## [5.3.0] — MUA-04 — Audience view event identity propagation · June 2026
+
+### shared/gates.js
+
+- **feat: `audience_branding` key added to FEATURES registry** — `{ minTier: 'per_event' }`;
+  covers Per-Event and Annual tiers. Called by `audience.js` inside `Audience.show()` to
+  gate the event identity band. No other change to gates.js.
+
+### shared/audience.js
+
+- **feat: `.aud-event-band` injected in `Audience.show()`** — when handoff v2 is present
+  with a non-empty `eventName` AND `Gates.canAccess('audience_branding').allowed`, a
+  `.aud-event-band` div is created and inserted as the first child of `#aud-overlay`.
+  The band shows the event logo (60px, `object-fit:contain`), event name (white, `--fs-h2`,
+  `--fw-bold`), and optional subtitle (`rgba(255,255,255,0.75)`). `bgColor` from handoff
+  applied as band background; fallback to `var(--surface-deep)`.
+  - Band is removed when conditions are not met (community tier, no `eventName`, or no
+    handoff v2). `.aud-event-band` is a new class — no existing `.aud-*` class affected.
+- **feat: `_applyHandoff()` updated to accept v2** — previously rejected any handoff where
+  `h.v !== 1`; now accepts v1 and v2. Accent and logoUrl extraction unchanged.
+- **MUA-04 note:** Handoff is read independently inside `Audience.show()` (not passed by
+  caller) — call signature of `Audience.show()` is unchanged.
+
+### Verified
+
+- [ ] `audience_branding` key present in gates.js FEATURES registry
+- [ ] Community tier: audience overlay unchanged — no event band visible
+- [ ] Per-Event/Annual tier + handoff v2 with eventName: event band visible
+- [ ] Logo renders at 60px height in audience context
+- [ ] Event name in white, large, high contrast
+- [ ] Subtitle in `rgba(255,255,255,0.75)` — readable on projector
+- [ ] Band hidden when no eventName (even on eligible tier)
+- [ ] bgColor applied as band background when set; fallback to `--surface-deep`
+- [ ] No existing `.aud-*` class renamed or removed
+- [ ] `Audience.show()` call signature unchanged in all modules
+
+### Opens
+
+MUA-07 — PDF branding (v5.4.0). Confirmed 30 Aug deployment target for Throwdown module.
+
+---
+
 ## [5.2.1] — MUA-03 — Event band populated across all modules · June 2026
 
 ### shared/eventconfig.js
