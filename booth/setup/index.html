@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Booth Setup — Seduh Score</title>
+<link rel="stylesheet" href="../../shared/theme.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  .booth-wrap{max-width:520px;margin:0 auto;padding:var(--space-6) var(--space-4)}
+  .booth-field{margin-bottom:var(--space-4)}
+  .booth-field label{display:block;font-family:var(--font-mono);font-size:var(--fs-label);
+    letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-bottom:6px}
+  .booth-url-row{display:flex;align-items:center;gap:8px;background:var(--surface2);
+    border:1px solid var(--border);border-radius:var(--rad-s);padding:10px 12px;margin-bottom:var(--space-3)}
+  .booth-url-row code{flex:1;font-family:var(--font-mono);font-size:12px;color:var(--ink2);
+    overflow-x:auto;white-space:nowrap}
+  .booth-danger{margin-top:var(--space-6);padding-top:var(--space-4);border-top:1.5px solid var(--rd-bd)}
+  .booth-danger-label{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.1em;
+    text-transform:uppercase;color:var(--rd);font-weight:700;margin-bottom:var(--space-3)}
+  #qr-container{width:256px;height:256px;margin:var(--space-4) auto;background:#fff;
+    padding:12px;border-radius:var(--rad-s);border:1px solid var(--border)}
+  .booth-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#fff;padding:12px 20px;border-radius:var(--rad-pill);
+    font-size:13px;font-weight:600;z-index:200;box-shadow:var(--shadow-md)}
+  .booth-err{color:var(--rd);font-size:12px;margin-top:4px}
+  .booth-toggle-row{display:flex;align-items:center;gap:12px;margin-bottom:var(--space-3)}
+  .booth-toggle{position:relative;display:inline-block;width:44px;height:26px;flex-shrink:0}
+  .booth-toggle input{opacity:0;width:0;height:0}
+  .booth-toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:var(--rad-pill);
+    transition:background .15s;cursor:pointer}
+  .booth-toggle-slider::before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;
+    background:#fff;border-radius:50%;transition:transform .15s;box-shadow:var(--shadow-sm)}
+  .booth-toggle input:checked + .booth-toggle-slider{background:var(--am)}
+  .booth-toggle input:checked + .booth-toggle-slider::before{transform:translateX(18px)}
+  .booth-btn-solid-rd{background:var(--rd);color:#fff;border-color:var(--rd)}
+  .booth-btn-solid-rd:hover{background:var(--rd-bd);border-color:var(--rd-bd)}
+</style>
+</head>
+<body>
+
+<header class="plat-hdr">
+  <span class="plat-mark">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh">
+      <circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"></circle>
+      <path d="M26 60 a24 24 0 0 1 48 0"></path>
+      <path d="M35 60 a15 15 0 0 1 30 0"></path>
+      <path d="M44 60 a6 6 0 0 1 12 0"></path>
+    </svg>
+  </span>
+  <div>
+    <div class="plat-hdr-sub" style="font-size:10px;color:var(--am);font-weight:700;letter-spacing:.15em;text-transform:uppercase">Seduh Score</div>
+    <div class="plat-hdr-name">Booth Setup</div>
+  </div>
+</header>
+
+<div class="booth-wrap" id="app"></div>
+<div id="toast-slot"></div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
+  import { getFirestore, collection, doc, setDoc, getDoc,
+           getDocs, query, where, writeBatch, serverTimestamp }
+    from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDwlaPgB_5g3xXDTq539JN09aWBpdHM6e4",
+    authDomain:        "seduh-score.firebaseapp.com",
+    projectId:         "seduh-score",
+    storageBucket:     "seduh-score.firebasestorage.app",
+    messagingSenderId: "298052620542",
+    appId:             "1:298052620542:web:53376c72eaf81b35a8d5af",
+    measurementId:     "G-GTFF3TYD37"
+  };
+
+  const app = initializeApp(firebaseConfig, 'booth');
+  const db  = getFirestore(app);
+
+  const LS_KEY = 'seduh_booth_session';
+  const app_el = document.getElementById('app');
+  const toastSlot = document.getElementById('toast-slot');
+
+  let state = {
+    view: 'loading', sessionId: null, sessionData: null, showQR: false, errors: {},
+    formValues: { sessionId: '', beanCount: '', grinderLabel: '', grinderEnabled: true, guessEnabled: true }
+  };
+
+  function toast(msg) {
+    toastSlot.innerHTML = `<div class="booth-toast">${msg}</div>`;
+    setTimeout(() => { toastSlot.innerHTML = ''; }, 1500);
+  }
+
+  function escapeAttr(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  }
+
+  function render() {
+    if (state.view === 'loading') {
+      app_el.innerHTML = `<div class="hint" style="text-align:center;padding:40px 0">Loading…</div>`;
+      return;
+    }
+    if (state.view === 'form') {
+      app_el.innerHTML = renderForm();
+      bindForm();
+      return;
+    }
+    if (state.view === 'success') {
+      app_el.innerHTML = renderSuccess();
+      bindSuccess();
+      return;
+    }
+  }
+
+  function renderForm() {
+    const e = state.errors;
+    const v = state.formValues;
+    return `
+      <div class="card">
+        <div class="card-hdr">Create Session</div>
+        <div style="padding:var(--space-4)">
+          <div class="booth-field">
+            <label>Session ID</label>
+            <input id="f-sessionId" type="text" placeholder="e.g. GGD_OCT_2026" value="${escapeAttr(v.sessionId)}">
+            ${e.sessionId ? `<div class="booth-err">${e.sessionId}</div>` : ''}
+          </div>
+          <div class="booth-toggle-row">
+            <label class="booth-toggle">
+              <input type="checkbox" id="f-guessEnabled" ${v.guessEnabled ? 'checked' : ''}>
+              <span class="booth-toggle-slider"></span>
+            </label>
+            <span>Guess the Bean</span>
+          </div>
+          <div class="booth-field" id="beanCount-field">
+            <label>Real bean count</label>
+            <input id="f-beanCount" type="number" min="1" placeholder="e.g. 428" value="${escapeAttr(v.beanCount)}">
+            ${e.beanCount ? `<div class="booth-err">${e.beanCount}</div>` : ''}
+          </div>
+          <div class="booth-toggle-row">
+            <label class="booth-toggle">
+              <input type="checkbox" id="f-grinderEnabled" ${v.grinderEnabled ? 'checked' : ''}>
+              <span class="booth-toggle-slider"></span>
+            </label>
+            <span>Grinder Challenge</span>
+          </div>
+          <div class="booth-field" id="grinderLabel-field">
+            <label>Grinder label</label>
+            <input id="f-grinderLabel" type="text" placeholder="e.g. Fastest Grinder · Grey Matter" value="${escapeAttr(v.grinderLabel)}">
+            ${e.grinderLabel ? `<div class="booth-err">${e.grinderLabel}</div>` : ''}
+          </div>
+          ${e.games ? `<div class="booth-err" style="margin-bottom:var(--space-3)">${e.games}</div>` : ''}
+          <button id="btn-create" class="btn-p" style="width:100%">Create Session</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function bindForm() {
+    document.getElementById('btn-create').addEventListener('click', onCreate);
+
+    const grinderToggle = document.getElementById('f-grinderEnabled');
+    const guessToggle = document.getElementById('f-guessEnabled');
+    const syncFieldVisibility = () => {
+      document.getElementById('grinderLabel-field').style.display = grinderToggle.checked ? '' : 'none';
+      document.getElementById('beanCount-field').style.display = guessToggle.checked ? '' : 'none';
+    };
+    grinderToggle.addEventListener('change', syncFieldVisibility);
+    guessToggle.addEventListener('change', syncFieldVisibility);
+    syncFieldVisibility();
+  }
+
+  async function onCreate() {
+    const sessionId    = document.getElementById('f-sessionId').value.trim();
+    const beanCountRaw = document.getElementById('f-beanCount').value.trim();
+    const grinderLabel = document.getElementById('f-grinderLabel').value.trim();
+    const beanCount    = parseInt(beanCountRaw, 10);
+    const grinderEnabled = document.getElementById('f-grinderEnabled').checked;
+    const guessEnabled   = document.getElementById('f-guessEnabled').checked;
+
+    state.formValues = { sessionId, beanCount: beanCountRaw, grinderLabel, grinderEnabled, guessEnabled };
+
+    const errors = {};
+    if (!sessionId) errors.sessionId = 'Session ID is required.';
+    if (guessEnabled && (!beanCountRaw || !Number.isInteger(beanCount) || beanCount <= 0)) errors.beanCount = 'Enter a bean count greater than 0.';
+    if (grinderEnabled && !grinderLabel) errors.grinderLabel = 'Grinder label is required.';
+    if (!grinderEnabled && !guessEnabled) errors.games = 'At least one game must be enabled.';
+
+    if (Object.keys(errors).length) {
+      state.errors = errors;
+      render();
+      return;
+    }
+
+    const sessionDoc = {
+      sessionId,
+      beanCount: guessEnabled ? beanCount : 0,
+      grinderLabel: grinderEnabled ? grinderLabel : '',
+      grinderEnabled, guessEnabled,
+      revealed: false,
+      grinderActive: false,
+      grinderName: '',
+      active: true,
+      createdAt: serverTimestamp()
+    };
+
+    await setDoc(doc(db, 'booth_sessions', sessionId), sessionDoc);
+    localStorage.setItem(LS_KEY, sessionId);
+    state.sessionId = sessionId;
+    state.sessionData = sessionDoc;
+    state.showQR = false;
+    state.view = 'success';
+    render();
+  }
+
+  function renderSuccess() {
+    const sid = state.sessionId;
+    const grinderEnabled = state.sessionData.grinderEnabled !== false;
+    const guessEnabled   = state.sessionData.guessEnabled !== false;
+    const activeGames = [];
+    if (guessEnabled) activeGames.push('Guess the Bean');
+    if (grinderEnabled) activeGames.push('Grinder Challenge');
+    const activeGamesText = activeGames.length === 2 ? activeGames.join(' · ') : `${activeGames[0]} only`;
+
+    const displayUrl   = `${location.origin}/booth/display/?session=${encodeURIComponent(sid)}`;
+    const guessUrl     = `${location.origin}/booth/guess/?session=${encodeURIComponent(sid)}`;
+    const grinderOpUrl = `${location.origin}/booth/grinder/?session=${encodeURIComponent(sid)}`;
+
+    return `
+      <div class="card">
+        <div class="card-hdr">Session Active</div>
+        <div style="padding:var(--space-4)">
+          <div class="section-title" style="margin-bottom:var(--space-2)">${sid}</div>
+          <div class="hint" style="margin-bottom:var(--space-4)">Active games: ${activeGamesText}</div>
+
+          <label style="display:block;font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-bottom:6px">Display URL</label>
+          <div class="booth-url-row">
+            <code>${displayUrl}</code>
+            <button class="btn-o btn-sm" data-copy="${displayUrl}">Copy</button>
+          </div>
+
+          ${guessEnabled ? `
+          <label style="display:block;font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-bottom:6px">Guess entry URL (for QR)</label>
+          <div class="booth-url-row">
+            <code>${guessUrl}</code>
+            <button class="btn-o btn-sm" data-copy="${guessUrl}">Copy</button>
+          </div>
+          <button id="btn-qr" class="btn-o" style="width:100%;margin-top:var(--space-2);margin-bottom:var(--space-3)">${state.showQR ? 'Hide QR Code' : 'Show QR Code'}</button>
+          ${state.showQR ? `<div id="qr-container"></div>` : ''}
+          ` : ''}
+
+          ${grinderEnabled ? `
+          <label style="display:block;font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-bottom:6px">Grinder operator URL</label>
+          <div class="booth-url-row">
+            <code>${grinderOpUrl}</code>
+            <button class="btn-o btn-sm" data-copy="${grinderOpUrl}">Copy</button>
+          </div>
+          ` : ''}
+
+          <div class="booth-danger">
+            <div class="booth-danger-label">⚠ Danger zone</div>
+            <button id="btn-export" class="btn-o" style="width:100%;margin-bottom:8px">Export Data</button>
+            <button id="btn-reset-data" class="btn-rd" style="width:100%;margin-bottom:8px">Reset Data</button>
+            <button id="btn-end-session" class="btn-rd booth-btn-solid-rd" style="width:100%">End Session</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function bindSuccess() {
+    document.querySelectorAll('[data-copy]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(btn.getAttribute('data-copy')).then(() => toast('Copied to clipboard'));
+      });
+    });
+    const qrBtn = document.getElementById('btn-qr');
+    if (qrBtn) {
+      qrBtn.addEventListener('click', () => {
+        state.showQR = !state.showQR;
+        render();
+        if (state.showQR) {
+          const guessUrl = `${location.origin}/booth/guess/?session=${encodeURIComponent(state.sessionId)}`;
+          new QRCode(document.getElementById('qr-container'), {
+            text: guessUrl, width: 256, height: 256,
+            colorDark: '#1a1a1a', colorLight: '#ffffff'
+          });
+        }
+      });
+    }
+    document.getElementById('btn-export').addEventListener('click', onExportData);
+    document.getElementById('btn-reset-data').addEventListener('click', onResetData);
+    document.getElementById('btn-end-session').addEventListener('click', onEndSession);
+  }
+
+  async function fetchSessionSubmissions(sid) {
+    const guessQ = query(collection(db, 'booth_guess'), where('sessionId', '==', sid));
+    const grinderQ = query(collection(db, 'booth_grinder'), where('sessionId', '==', sid));
+    return Promise.all([getDocs(guessQ), getDocs(grinderQ)]);
+  }
+
+  function tsToIso(ts) {
+    return ts && typeof ts.toDate === 'function' ? ts.toDate().toISOString() : null;
+  }
+
+  async function onExportData() {
+    const sid = state.sessionId;
+    const [guessSnap, grinderSnap] = await fetchSessionSubmissions(sid);
+
+    const exportObj = {
+      exportedAt: new Date().toISOString(),
+      session: {
+        sessionId: sid,
+        grinderLabel: state.sessionData.grinderLabel,
+        createdAt: tsToIso(state.sessionData.createdAt),
+        grinderEnabled: state.sessionData.grinderEnabled !== false,
+        guessEnabled: state.sessionData.guessEnabled !== false
+      },
+      guesses: guessSnap.docs.map(d => {
+        const g = d.data();
+        return { name: g.name, guess: g.guess, phone: g.phone || '', instagram: g.instagram || '', ts: tsToIso(g.ts) };
+      }),
+      grinderEntries: grinderSnap.docs.map(d => {
+        const g = d.data();
+        return { name: g.name, timeMs: g.timeMs, ts: tsToIso(g.ts) };
+      })
+    };
+
+    const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `seduh-booth-export-${sid}-${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast('Data exported.');
+  }
+
+  async function onResetData() {
+    const sid = state.sessionId;
+    const ok = confirm(`This will permanently delete all submissions for session ${sid}. Session config and settings are preserved. Are you sure?`);
+    if (!ok) return;
+
+    const [guessSnap, grinderSnap] = await fetchSessionSubmissions(sid);
+
+    const batch = writeBatch(db);
+    guessSnap.forEach(d => batch.delete(d.ref));
+    grinderSnap.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+
+    await setDoc(doc(db, 'booth_sessions', sid), {
+      revealed: false, grinderActive: false, grinderName: ''
+    }, { merge: true });
+
+    toast('Session data cleared. Ready for next run.');
+  }
+
+  async function onEndSession() {
+    const sid = state.sessionId;
+    const ok = confirm(`This will delete all submissions and end the current session. You will need to create a new session to continue. Are you sure?`);
+    if (!ok) return;
+
+    const [guessSnap, grinderSnap] = await fetchSessionSubmissions(sid);
+
+    const batch = writeBatch(db);
+    guessSnap.forEach(d => batch.delete(d.ref));
+    grinderSnap.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+
+    localStorage.removeItem(LS_KEY);
+    location.reload();
+  }
+
+  async function boot() {
+    const existingId = localStorage.getItem(LS_KEY);
+    if (existingId) {
+      try {
+        const snap = await getDoc(doc(db, 'booth_sessions', existingId));
+        if (snap.exists()) {
+          state.sessionId = existingId;
+          state.sessionData = snap.data();
+          state.view = 'success';
+          render();
+          return;
+        }
+      } catch (e) { /* fall through to create form on read failure */ }
+    }
+    state.view = 'form';
+    render();
+  }
+
+  boot();
+</script>
+</body>
+</html>

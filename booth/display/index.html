@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Booth Display — Seduh Score</title>
+<link rel="stylesheet" href="../../shared/theme.css">
+<style>
+  .booth-wrap{max-width:480px;margin:0 auto;padding:var(--space-8) var(--space-4);text-align:center}
+  .booth-lead{font-size:14px;color:var(--ink2);margin-bottom:var(--space-5)}
+  .booth-select-row{display:flex;flex-direction:column;gap:12px}
+  .booth-select-row a.btn-p, .booth-select-row a.btn-o{display:block;text-decoration:none;text-align:center}
+</style>
+</head>
+<body>
+
+<header class="plat-hdr">
+  <span class="plat-mark">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh">
+      <circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"></circle>
+      <path d="M26 60 a24 24 0 0 1 48 0"></path>
+      <path d="M35 60 a15 15 0 0 1 30 0"></path>
+      <path d="M44 60 a6 6 0 0 1 12 0"></path>
+    </svg>
+  </span>
+  <div>
+    <div class="plat-hdr-sub" style="font-size:10px;color:var(--am);font-weight:700;letter-spacing:.15em;text-transform:uppercase">Seduh Score</div>
+    <div class="plat-hdr-name">Booth</div>
+  </div>
+</header>
+
+<div class="booth-wrap" id="app"></div>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const sessionId = params.get('session');
+  const app = document.getElementById('app');
+
+  if (!sessionId) {
+    app.innerHTML = `<div class="booth-lead">No session specified. Add ?session=YOUR_SESSION_ID to the URL.</div>`;
+  } else {
+    const q = `?session=${encodeURIComponent(sessionId)}`;
+    app.innerHTML = `
+      <div class="booth-lead">Select display</div>
+      <div class="booth-select-row">
+        <a class="btn-p" href="guess/${q}">Guess the Bean →</a>
+        <a class="btn-o" href="grinder/${q}">Grinder Challenge →</a>
+      </div>
+    `;
+  }
+</script>
+</body>
+</html>

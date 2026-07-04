@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Platform — authenticated read, super admin write only
+    match /platform/switches {
+      allow read: if request.auth != null;
+      allow write: if request.auth.token.super_admin == true;
+    }
+
+    // Slideshow — authenticated read, super admin write only
+    match /slideshow/{slideId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.token.super_admin == true;
+    }
+
+    // Upcoming events — public read (teaser page), super admin write only (admin panel)
+ match /upcoming_events/{eventId} {
+  allow read: if true;
+  allow write: if request.auth.token.super_admin == true;
+    }
+
+    // Events — locked pending implementation
+    match /events/{eventId} {
+      allow read, write: if false;
+    }
+
+    // Booth mini-games — public read/write, sessionId-scoped by application logic
+    match /booth_sessions/{sessionId} {
+      allow read, write: if true;
+    }
+    match /booth_guess/{docId} {
+      allow read, write: if true;
+    }
+    match /booth_grinder/{docId} {
+      allow read, write: if true;
+    }
+
+    // Catch-all — deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+  }
+}

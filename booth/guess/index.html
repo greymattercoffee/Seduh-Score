@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guess the Bean — Booth</title>
+<link rel="stylesheet" href="../../shared/theme.css">
+<style>
+  body{background:var(--surface)}
+  .booth-wrap{max-width:400px;margin:0 auto;padding:var(--space-6) var(--space-4);text-align:center}
+  .booth-title{font-family:var(--font-display);font-weight:800;font-size:22px;margin-bottom:var(--space-2);color:var(--ink)}
+  .booth-lead{font-size:14px;color:var(--ink2);margin-bottom:var(--space-5)}
+  .booth-field{margin-bottom:var(--space-4);text-align:left}
+  .booth-field label{display:block;font-family:var(--font-mono);font-size:var(--fs-label);
+    letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-bottom:6px}
+  .booth-field input{font-size:16px;padding:14px 14px;min-height:48px}
+  .booth-err{color:var(--rd);font-size:12px;margin-top:4px;text-align:left}
+  .booth-confirm-check{width:56px;height:56px;border-radius:50%;background:var(--gn-bg);
+    color:var(--gn);display:flex;align-items:center;justify-content:center;font-size:28px;
+    margin:0 auto var(--space-4)}
+  .booth-guess-val{font-family:var(--font-mono);font-size:32px;font-weight:800;color:var(--am);margin:var(--space-3) 0}
+</style>
+</head>
+<body>
+
+<header class="plat-hdr">
+  <span class="plat-mark">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh">
+      <circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"></circle>
+      <path d="M26 60 a24 24 0 0 1 48 0"></path>
+      <path d="M35 60 a15 15 0 0 1 30 0"></path>
+      <path d="M44 60 a6 6 0 0 1 12 0"></path>
+    </svg>
+  </span>
+  <div>
+    <div class="plat-hdr-sub" style="font-size:10px;color:var(--am);font-weight:700;letter-spacing:.15em;text-transform:uppercase">Seduh Score</div>
+    <div class="plat-hdr-name">Booth</div>
+  </div>
+</header>
+
+<div class="booth-wrap" id="app"></div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
+  import { getFirestore, doc, getDoc, onSnapshot, collection, addDoc, serverTimestamp }
+    from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDwlaPgB_5g3xXDTq539JN09aWBpdHM6e4",
+    authDomain:        "seduh-score.firebaseapp.com",
+    projectId:         "seduh-score",
+    storageBucket:     "seduh-score.firebasestorage.app",
+    messagingSenderId: "298052620542",
+    appId:             "1:298052620542:web:53376c72eaf81b35a8d5af",
+    measurementId:     "G-GTFF3TYD37"
+  };
+
+  const app = initializeApp(firebaseConfig, 'booth');
+  const db  = getFirestore(app);
+
+  const app_el = document.getElementById('app');
+  const params = new URLSearchParams(location.search);
+  const sessionId = params.get('session');
+
+  let state = {
+    view: 'loading', errors: {}, submittedGuess: null,
+    formValues: { name: '', guess: '', phone: '', instagram: '' }
+  };
+
+  function escapeAttr(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  }
+
+  function render() {
+    if (state.view === 'loading') {
+      app_el.innerHTML = `<div class="hint" style="padding:40px 0">Loading…</div>`;
+      return;
+    }
+    if (state.view === 'no-session') {
+      app_el.innerHTML = `
+        <div class="booth-title">Missing session</div>
+        <div class="booth-lead">Scan the QR code again.</div>
+      `;
+      return;
+    }
+    if (state.view === 'not-found') {
+      app_el.innerHTML = `
+        <div class="booth-title">No active session found</div>
+        <div class="booth-lead">Ask the organiser for help.</div>
+      `;
+      return;
+    }
+    if (state.view === 'closed') {
+      app_el.innerHTML = `
+        <div class="booth-title">Guessing is now closed</div>
+        <div class="booth-lead">Check the display screen to see who got closest!</div>
+      `;
+      return;
+    }
+    if (state.view === 'form') {
+      app_el.innerHTML = renderForm();
+      bindForm();
+      return;
+    }
+    if (state.view === 'confirmed') {
+      app_el.innerHTML = `
+        <div class="booth-confirm-check">✓</div>
+        <div class="booth-title">Guess recorded!</div>
+        <div class="hint">Your guess</div>
+        <div class="booth-guess-val">${state.submittedGuess}</div>
+        <div class="booth-lead">Watch the display screen to see how close you are when results are revealed!</div>
+      `;
+      return;
+    }
+  }
+
+  function renderForm() {
+    const e = state.errors;
+    const v = state.formValues;
+    return `
+      <div class="booth-title">Guess the Bean</div>
+      <div class="booth-lead">How many coffee beans are in the jar?</div>
+      <div class="booth-field">
+        <label>Your name</label>
+        <input id="f-name" type="text" value="${escapeAttr(v.name)}">
+        ${e.name ? `<div class="booth-err">${e.name}</div>` : ''}
+      </div>
+      <div class="booth-field">
+        <label>Your guess</label>
+        <input id="f-guess" type="number" min="1" value="${escapeAttr(v.guess)}">
+        ${e.guess ? `<div class="booth-err">${e.guess}</div>` : ''}
+      </div>
+      <div class="booth-field">
+        <label>Phone / WhatsApp</label>
+        <input id="f-phone" type="text" inputmode="tel" value="${escapeAttr(v.phone)}">
+      </div>
+      <div class="booth-field">
+        <label>Instagram username</label>
+        <input id="f-instagram" type="text" placeholder="@yourhandle" value="${escapeAttr(v.instagram)}">
+        ${e.contact ? `<div class="booth-err">${e.contact}</div>` : ''}
+      </div>
+      <button id="btn-submit" class="btn-p" style="width:100%">Submit my guess</button>
+    `;
+  }
+
+  function bindForm() {
+    document.getElementById('btn-submit').addEventListener('click', onSubmit);
+  }
+
+  async function onSubmit() {
+    const name = document.getElementById('f-name').value.trim();
+    const guessRaw = document.getElementById('f-guess').value.trim();
+    const guess = parseInt(guessRaw, 10);
+    const phone = document.getElementById('f-phone').value.trim();
+    const instagram = document.getElementById('f-instagram').value.trim();
+
+    state.formValues = { name, guess: guessRaw, phone, instagram };
+
+    const errors = {};
+    if (!name) errors.name = 'Name is required.';
+    if (!guessRaw || !Number.isInteger(guess) || guess <= 0) errors.guess = 'Enter a positive whole number.';
+    if (!phone && !instagram) errors.contact = 'Enter a phone/WhatsApp number or Instagram username.';
+
+    if (Object.keys(errors).length) {
+      state.errors = errors;
+      render();
+      return;
+    }
+
+    await addDoc(collection(db, 'booth_guess'), {
+      sessionId, name, guess, phone, instagram, ts: serverTimestamp()
+    });
+
+    state.submittedGuess = guess;
+    state.view = 'confirmed';
+    render();
+  }
+
+  async function boot() {
+    if (!sessionId) {
+      state.view = 'no-session';
+      render();
+      return;
+    }
+
+    const ref = doc(db, 'booth_sessions', sessionId);
+    let snap;
+    try {
+      snap = await getDoc(ref);
+    } catch (e) {
+      state.view = 'not-found';
+      render();
+      return;
+    }
+    if (!snap.exists()) {
+      state.view = 'not-found';
+      render();
+      return;
+    }
+
+    const data = snap.data();
+    state.view = data.revealed ? 'closed' : 'form';
+    render();
+
+    onSnapshot(ref, s => {
+      if (!s.exists()) return;
+      const d = s.data();
+      if (d.revealed && state.view === 'form') {
+        state.view = 'closed';
+        render();
+      }
+    }, () => { /* live-close watch failed silently; submitted guess is already recorded */ });
+  }
+
+  boot();
+</script>
+</body>
+</html>
