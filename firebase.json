@@ -20,8 +20,8 @@
       "public/**",
       "skills-lock.json"
     ],
-    "rewrites": [
-      { "source": "/", "destination": "/coming-soon/index.html" }
+    "redirects": [
+      { "source": "/", "destination": "/coming-soon/", "type": 302 }
     ]
   },
   "functions": {
