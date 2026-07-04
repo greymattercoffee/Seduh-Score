@@ -2,6 +2,66 @@
 
 ---
 
+## [5.3.2] — Deployment routing, About page, footer fix · July 2026
+
+Fast-follow to v5.3.1, from `COMING-SOON-SPEC.md` Sections 14–17. Makes `coming-soon/index.html`
+servable at the bare domain root via a Hosting rewrite, and fixes a dev-artifact footer link.
+
+### coming-soon/index.html (modified)
+
+- **fix:** all shared asset paths changed from relative (`../shared/...`) to root-relative
+  (`/shared/...`) — required because the new `firebase.json` rewrite serves this file's
+  content at `/`, and the browser resolves relative paths against the request URL, not
+  the file's physical location. A relative path that resolved fine at `/coming-soon/`
+  would 404 once served at root
+- **fix:** header logo link changed from `../index.html` to `/index.html` for the same
+  root-relative reasoning (link happened to still resolve correctly either way due to
+  path normalization at root, but made explicit for consistency)
+- **fix:** footer link was pointing at `../index.html` (would undermine the teaser by
+  linking straight to the full platform) — changed to `/about/`, copy changed from
+  "Learn more on the main site" to "Learn more about Seduh Score"
+
+### about/index.html (new)
+
+- **feat:** lightweight about page — fetches `/README.md` at runtime and renders it
+  client-side via `marked.js` (cdnjs, matching the platform's existing external-script
+  convention already used by `booth/`), styled with `shared/theme.css` tokens so headings,
+  tables, links, and code blocks read as on-brand rather than a raw markdown dump
+  - Falls back to a `<pre>` dump of the raw markdown if `marked` fails to load, and to
+    an inline error message if the fetch itself fails — no unhandled blank page either way
+- **feat:** simple header (Seduh mark + "About Seduh Score") with a back link to `/`
+- **fix:** the README's Modules table overflowed horizontally at the 353px mobile floor
+  (395px content vs 353px viewport) — added `display:block;overflow-x:auto` to
+  `.about-content table` so wide tables scroll within their own bounds instead of
+  pushing the whole page wider
+- **note:** no auth, no Firestore — static fetch + render only, as scoped
+
+### firebase.json (modified)
+
+- **feat:** added Hosting rewrite `{ "source": "/", "destination": "/coming-soon/index.html" }`
+  so the bare domain serves the teaser once deployed. `index.html` (the real front door)
+  is untouched and stays reachable directly at `/index.html` for internal preview
+- **note:** Code made this edit only — **deploy is Firdaus's step**, same convention as
+  rules deploys. Per the spec's deploy-sequencing note, the rewrite should only go live
+  after reviewing `coming-soon/index.html` and `about/index.html` directly (`/coming-soon/`,
+  `/about/`) — once deployed, that's the moment the bare domain starts showing the teaser
+  publicly
+
+### Verified
+
+- Root-relative asset paths resolve with zero failed network requests when the page is
+  loaded directly at `/coming-soon/index.html` (confirms the fix works both there and,
+  by the same mechanism, once the rewrite serves it at `/`)
+- Real seeded event data (with a live Storage image) renders correctly through the fixed paths
+- `/about/index.html` renders the README with full formatting, no raw markdown visible;
+  back link navigates correctly
+- No horizontal overflow at 353px on `/about/` after the table fix
+
+### Deferred
+
+- Confirming the page renders correctly once the Hosting rewrite is actually deployed and
+  `/` is live — blocked on Firdaus running `firebase deploy --only hosting`
+
 ## [5.3.1] — Coming Soon teaser + Admin tab refactor · July 2026
 
 Built from `COMING-SOON-SPEC.md`. Two pieces: a new public teaser page, and a structural

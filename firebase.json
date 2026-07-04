@@ -19,6 +19,9 @@
       "firebase-debug.log",
       "public/**",
       "skills-lock.json"
+    ],
+    "rewrites": [
+      { "source": "/", "destination": "/coming-soon/index.html" }
     ]
   },
   "functions": {

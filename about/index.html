@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seduh Score — About</title>
+<link rel="stylesheet" href="/shared/theme.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"></script>
+<style>
+  body{overflow-x:hidden}
+
+  .about-back{
+    font-size:12px;color:var(--txt3);text-decoration:none;padding:7px 13px;
+    border:1.5px solid var(--border);border-radius:var(--rad-pill);font-weight:600;white-space:nowrap;
+  }
+  .about-back:hover{color:var(--accent);border-color:var(--accent-bd)}
+
+  .about-wrapper{max-width:var(--container-narrow);margin:0 auto;padding:clamp(24px,4vw,48px) clamp(16px,4vw,40px) var(--space-10)}
+
+  .about-content h1{
+    font-family:var(--font-display);font-weight:var(--fw-extrabold);font-size:var(--fs-display);
+    color:var(--txt);letter-spacing:var(--ls-tight);line-height:var(--lh-snug);margin-bottom:var(--space-4);
+  }
+  .about-content h2{
+    font-family:var(--font-display);font-weight:var(--fw-bold);font-size:var(--fs-h2);
+    color:var(--txt);margin:var(--space-6) 0 var(--space-3);
+  }
+  .about-content h3{
+    font-family:var(--font-display);font-weight:var(--fw-bold);font-size:var(--fs-lead);
+    color:var(--txt);margin:var(--space-5) 0 var(--space-2);
+  }
+  .about-content p{font-size:var(--fs-body);color:var(--txt2);line-height:var(--lh-body);margin-bottom:var(--space-3)}
+  .about-content a{color:var(--am);text-decoration:none;font-weight:var(--fw-medium)}
+  .about-content a:hover{text-decoration:underline}
+  .about-content ul,.about-content ol{margin:0 0 var(--space-3) 1.3em;color:var(--txt2);font-size:var(--fs-body);line-height:var(--lh-body)}
+  .about-content li{margin-bottom:var(--space-1)}
+  .about-content strong{color:var(--txt);font-weight:var(--fw-bold)}
+  .about-content code{
+    font-family:var(--font-mono);font-size:var(--fs-xs);background:var(--surface2);
+    border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--txt2);
+  }
+  .about-content pre{
+    background:var(--surface2);border:1px solid var(--border);border-radius:var(--rad-s);
+    padding:var(--space-3);overflow-x:auto;margin-bottom:var(--space-3);
+  }
+  .about-content pre code{background:none;border:none;padding:0}
+  .about-content hr{border:none;border-top:1px solid var(--border);margin:var(--space-6) 0}
+  .about-content table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;border-collapse:collapse;margin-bottom:var(--space-4);font-size:var(--fs-sm)}
+  .about-content th,.about-content td{padding:8px 12px;border:1px solid var(--border);text-align:left;color:var(--txt2)}
+  .about-content th{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--txt3);text-transform:uppercase;letter-spacing:var(--ls-label);background:var(--surface2)}
+  .about-content blockquote{border-left:3px solid var(--am-bd);padding-left:var(--space-3);color:var(--txt3);margin-bottom:var(--space-3)}
+  .about-empty{text-align:center;padding:3rem 1rem;color:var(--txt3);font-size:var(--fs-sm)}
+</style>
+</head>
+<body>
+
+<div class="plat-hdr">
+  <a class="plat-hdr-logo" href="/">
+    <span class="plat-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh"><circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"/><path d="M26 60 a24 24 0 0 1 48 0"/><path d="M35 60 a15 15 0 0 1 30 0"/><path d="M44 60 a6 6 0 0 1 12 0"/></svg></span>
+    <div>
+      <div class="plat-hdr-name">About Seduh Score</div>
+      <div class="plat-hdr-sub">Coffee competition platform</div>
+    </div>
+  </a>
+  <div class="plat-hdr-actions">
+    <a class="about-back" href="/">← Coming soon</a>
+  </div>
+</div>
+
+<div class="about-wrapper">
+  <div class="about-content" id="about-content">
+    <div class="about-empty">Loading…</div>
+  </div>
+</div>
+
+<script>
+fetch('/README.md')
+  .then(r => { if (!r.ok) throw new Error('README fetch failed: ' + r.status); return r.text(); })
+  .then(md => {
+    const el = document.getElementById('about-content');
+    if (typeof marked !== 'undefined') {
+      el.innerHTML = marked.parse(md);
+    } else {
+      const pre = document.createElement('pre');
+      pre.textContent = md;
+      el.innerHTML = '';
+      el.appendChild(pre);
+    }
+  })
+  .catch(err => {
+    console.warn('Could not load README.md:', err);
+    document.getElementById('about-content').innerHTML =
+      '<div class="about-empty">Unable to load content right now.</div>';
+  });
+</script>
+</body>
+</html>
