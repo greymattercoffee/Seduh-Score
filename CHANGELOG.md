@@ -2,6 +2,289 @@
 
 ---
 
+## [5.3.2] — Deployment routing, About page, footer fix · July 2026
+
+Fast-follow to v5.3.1, from `COMING-SOON-SPEC.md` Sections 14–17. Makes `coming-soon/index.html`
+servable at the bare domain root via a Hosting rewrite, and fixes a dev-artifact footer link.
+
+### coming-soon/index.html (modified)
+
+- **fix:** all shared asset paths changed from relative (`../shared/...`) to root-relative
+  (`/shared/...`) — required because the new `firebase.json` rewrite serves this file's
+  content at `/`, and the browser resolves relative paths against the request URL, not
+  the file's physical location. A relative path that resolved fine at `/coming-soon/`
+  would 404 once served at root
+- **fix:** header logo link changed from `../index.html` to `/index.html` for the same
+  root-relative reasoning (link happened to still resolve correctly either way due to
+  path normalization at root, but made explicit for consistency)
+- **fix:** footer link was pointing at `../index.html` (would undermine the teaser by
+  linking straight to the full platform) — changed to `/about/`, copy changed from
+  "Learn more on the main site" to "Learn more about Seduh Score"
+
+### about/index.html (new)
+
+- **feat:** lightweight about page — fetches `/README.md` at runtime and renders it
+  client-side via `marked.js` (cdnjs, matching the platform's existing external-script
+  convention already used by `booth/`), styled with `shared/theme.css` tokens so headings,
+  tables, links, and code blocks read as on-brand rather than a raw markdown dump
+  - Falls back to a `<pre>` dump of the raw markdown if `marked` fails to load, and to
+    an inline error message if the fetch itself fails — no unhandled blank page either way
+- **feat:** simple header (Seduh mark + "About Seduh Score") with a back link to `/`
+- **fix:** the README's Modules table overflowed horizontally at the 353px mobile floor
+  (395px content vs 353px viewport) — added `display:block;overflow-x:auto` to
+  `.about-content table` so wide tables scroll within their own bounds instead of
+  pushing the whole page wider
+- **note:** no auth, no Firestore — static fetch + render only, as scoped
+
+### firebase.json (modified)
+
+- **feat:** added Hosting rewrite `{ "source": "/", "destination": "/coming-soon/index.html" }`
+  so the bare domain serves the teaser once deployed. `index.html` (the real front door)
+  is untouched and stays reachable directly at `/index.html` for internal preview
+- **note:** Code made this edit only — **deploy is Firdaus's step**, same convention as
+  rules deploys. Per the spec's deploy-sequencing note, the rewrite should only go live
+  after reviewing `coming-soon/index.html` and `about/index.html` directly (`/coming-soon/`,
+  `/about/`) — once deployed, that's the moment the bare domain starts showing the teaser
+  publicly
+
+### Verified
+
+- Root-relative asset paths resolve with zero failed network requests when the page is
+  loaded directly at `/coming-soon/index.html` (confirms the fix works both there and,
+  by the same mechanism, once the rewrite serves it at `/`)
+- Real seeded event data (with a live Storage image) renders correctly through the fixed paths
+- `/about/index.html` renders the README with full formatting, no raw markdown visible;
+  back link navigates correctly
+- No horizontal overflow at 353px on `/about/` after the table fix
+
+### Deferred
+
+- Confirming the page renders correctly once the Hosting rewrite is actually deployed and
+  `/` is live — blocked on Firdaus running `firebase deploy --only hosting`
+
+## [5.3.1] — Coming Soon teaser + Admin tab refactor · July 2026
+
+Built from `COMING-SOON-SPEC.md`. Two pieces: a new public teaser page, and a structural
+refactor of `admin/index.html` to make room for it (and future admin sections) via tabs.
+
+### coming-soon/index.html (new)
+
+- **feat:** self-contained teaser landing page — Seduh mark + "Coming Soon" header,
+  `.plat-hdr` convention, tagline "Powering the Brunei coffee scene"
+- **feat:** reads `upcoming_events` Firestore collection via `onSnapshot()`, sorted by
+  `eventDate` ascending, public read (no auth)
+- **feat:** carousel — 5s auto-rotate, opacity crossfade (fade-out/swap/fade-in, 300ms),
+  visual timer bar (CSS `transition: width` restarted via forced reflow), manual prev/next
+  (resets auto-rotate timer + timer bar), slide counter, left/right arrow key navigation
+- **feat:** format badges colour-coded from existing tokens only — Throwdown `--am`,
+  Liga `--gn`, Cup Taster `--bl` — no new CSS tokens introduced
+- **feat:** offline fallback — successful reads cached to `localStorage` under
+  `seduh_upcoming_events_cache`; on Firestore error (including permission-denied before
+  rules are deployed), falls back to cache and shows an "Offline mode" indicator, flagged
+  stale if the cache is over an hour old
+- **verified:** carousel cycles all three format badges correctly on manual nav; no
+  horizontal overflow at 353px (`scrollWidth === clientWidth`); offline-mode path
+  exercised directly (Firestore rules for `upcoming_events` are not yet deployed — see
+  admin section below — so the permission-denied → cache-fallback path is the one that
+  actually ran in testing, confirming it works, not just the happy path)
+
+### admin/index.html (modified — structural refactor)
+
+- **refactor:** converted from one long vertically-stacked page into a tabbed layout —
+  Organisations (Create Org + Org Management), Platform Switches, Front Door Content
+  (Slideshow Manager), Upcoming Events (new). Default active tab on load: Organisations
+- **refactor:** every pre-existing section moved as-is into a `.adm-tab-panel` wrapper —
+  no internal logic touched, no element IDs/function names/event bindings changed.
+  `loadSwitches()` and `loadSlides()` are unchanged functions, just called lazily now
+  (on first tab activation) instead of eagerly on auth success — the only timing change
+  in the pre-existing code paths
+- **feat:** tab bar (`.adm-tabs` / `.adm-tab`) — horizontally scrollable, sticky-underline
+  active state, styled to match the admin panel's existing dark palette (mirrors the
+  `.mod-tabs`/`.mtab` interaction pattern used in module tab bars, not a new component)
+- **feat: Upcoming Events Manager** — new tab content, modelled directly on the existing
+  Slideshow Manager: Add Event form (name, date, venue, format select, description,
+  optional photo), reuses the same Firebase Storage upload flow (no duplicate upload
+  logic), event list sorted by `eventDate` ascending with Edit (prefills form) and
+  Delete (confirm-before-delete, same pattern as Slideshow). No manual reordering —
+  order is date-driven
+- **note:** gated behind the same `super_admin` claim check already enforced on page
+  load — no new auth logic added
+- **note:** `firestore.rules` was **not** touched in this session — rules for
+  `upcoming_events` (public read, `super_admin`-only write) are being handled separately
+  by Firdaus per the spec's explicit instruction
+- **verified:** tab switching confirmed client-side only (no reload), all pre-existing
+  element IDs present and unchanged (checked programmatically against the shipped file),
+  tab bar auto-scrolls the active tab into view on narrow viewports, Upcoming Events form
+  and list render correctly with the Slideshow Manager's visual conventions preserved.
+  Full end-to-end (create/edit/delete against live Firestore, super_admin login) not
+  exercised in this session — requires real auth credentials and deployed rules, both
+  outside Claude Code's local-files-only scope
+
+### Deferred
+
+- Full mobile check with real (non-placeholder) event images on the teaser page
+
+## [5.3.1-rules] — Firestore + Storage rules for upcoming_events · July 2026
+
+### firestore.rules
+
+- **fix:** added `match /upcoming_events/{eventId}` block — `allow read: if true` (public,
+  teaser page needs no auth), `allow write: if request.auth.token.super_admin == true`
+  (admin panel is the sole write path). Matches Section 9 of `COMING-SOON-SPEC.md`.
+  Deployed by Firdaus via `firebase deploy --only firestore:rules`.
+
+### storage.rules (new) / firebase.json
+
+- **fix:** `admin/index.html`'s Upcoming Events Manager image upload was failing with
+  `storage/unauthorized` — Storage security rules existed only in the Firebase console
+  (no `storage.rules` file in the repo, no `"storage"` block in `firebase.json`), and the
+  console ruleset only had a match block for `slideshow/`, nothing for the new
+  `upcoming_events/` path
+- **fix:** created `storage.rules` mirroring the existing `slideshow/` pattern
+  (`allow read: if request.auth != null`, write/delete restricted to `super_admin`),
+  extended with a matching `upcoming_events/{fileName}` block. Public visibility of
+  images on the teaser page is unaffected — `getDownloadURL()` URLs carry a bypass
+  token, same mechanism that already lets Slideshow images render on the public front door
+  despite the auth-gated read rule
+- **feat:** wired `"storage": { "rules": "storage.rules" }` into `firebase.json`; added
+  `storage.rules` to the Hosting `ignore` list (same treatment as `firestore.rules`) so it
+  isn't served as a static file
+- **note:** brings Storage rules out of console-only tribal knowledge and into the repo,
+  same reconciliation the booth build already did for Firestore rules
+- **deployed:** `firebase deploy --only storage` — confirmed working end-to-end,
+  Upcoming Events image upload succeeds post-deploy
+- **verified:** two events seeded via the admin Upcoming Events tab (with images) appeared
+  correctly on `coming-soon/index.html` — confirms the full loop end-to-end: admin write
+  → Firestore → `onSnapshot` → teaser carousel render, with the previously-missing
+  Firestore + Storage rules now both live
+
+## [5.3.1-booth] — Booth amendment · July 2026
+
+### firestore.indexes.json (new) / firebase.json
+- **fix:** the booth display pages' `where('sessionId','==',...) + orderBy('ts'|'timeMs')` listeners on `booth_guess` and `booth_grinder` were failing silently with `failed-precondition: The query requires an index` — no composite index existed for either collection, so `onSnapshot` never fired and nothing ever appeared, refresh or not. Not a code bug; reproduced directly against live Firestore to confirm. Added `firestore.indexes.json` with the two required composite indexes (`booth_guess`: sessionId+ts; `booth_grinder`: sessionId+timeMs) and wired it into `firebase.json`'s `"firestore"` block so it deploys alongside rules going forward
+- **deployed:** ran `firebase deploy --only firestore:indexes` against the live `seduh-score` project so this is fixed immediately, not just on the next deploy. Verified end-to-end post-deploy: wrote a real `booth_guess` doc while `booth/display/guess/` was open and watched the bullseye dot, proximity list, and participant count update live via `onSnapshot` with zero page reload; test doc deleted after
+- **note:** `firebase.json` was previously flagged off-limits in the original booth build handoff ("Firdaus will handle deploy config separately") — touched this time at explicit request
+
+### booth/guess/index.html
+- **investigated, no change required:** the reported "form fields not rendering" symptom did not reproduce against live Firestore data (tested against real `Test01`/`Test_9` session docs with rules deployed). The root cause this handoff describes matches a bug already fixed at the end of the v5.3.0-booth session — an unguarded `await getDoc()` in `boot()` that threw uncaught on a Firestore permission error and prevented `render()` from ever being called. That try/catch fix (`booth/guess/index.html` lines ~164-177) was already in place before this session started. Confirmed working end-to-end: form renders with a valid `?session=` param, submits to `booth_guess`, shows confirmation.
+- **feat:** added Phone/WhatsApp and Instagram username fields to the submission form; at least one of the two is required to submit (name + guess validation unchanged); both written to `booth_guess` documents
+- **fix:** the phone field was initially `type="tel"`, which renders at a fixed browser-default width instead of filling the container (confirmed via computed style — 217px vs 368px on sibling fields). Changed to `type="text" inputmode="tel"`, which keeps the numeric mobile keypad hint without the layout bug
+- **fix:** failed validation used to wipe every field on re-render, since only error state was tracked, not entered values. Added `state.formValues`, populated from the live inputs on every submit attempt and echoed back into the re-rendered form via escaped `value=""` attributes, so a participant who forgets one field doesn't have to retype everything
+
+### booth/setup/index.html
+- **feat:** master reset replaced with three distinct danger zone actions — Export Data (JSON download, excludes `beanCount`), Reset Data (purge submissions, preserve session config), End Session (purge submissions + clear localStorage → return to create form)
+- **feat:** per-game toggles on session create form — `grinderEnabled` and `guessEnabled` written to session document; success panel shows active games; Guess entry URL / QR and Grinder operator URL filtered by enabled games; missing fields on pre-amendment sessions treated as `true` (verified against real `Test01` doc, which predates this field)
+- **note:** all generated URLs (display, guess, grinder) now consistently use a trailing slash (`/booth/guess/?session=...`) to match the directory-style routing the pages already expect
+- **feat:** Export Data JSON now includes `phone` and `instagram` per guess entry, alongside `name`/`guess`/`ts`
+- **fix:** "Grinder label is required" blocked session creation even with the Grinder Challenge toggle switched off — validation for `grinderLabel` and `beanCount` wasn't reading the toggle state at all. Now `grinderLabel` is only required when `grinderEnabled` is checked, and `beanCount` only when `guessEnabled` is checked; the disabled field's value is written as empty/`0` rather than validated. The corresponding field also hides live when its toggle is switched off, instead of sitting there looking mandatory
+- **fix:** the create form reset every typed field and both toggles back to their defaults on any validation error (e.g. unchecking Grinder, then leaving Session ID blank, silently re-checked Grinder on re-render). Added `state.formValues` — same fix pattern as `booth/guess/index.html` — so text fields and toggle states now survive a failed validation pass
+
+### booth/display/index.html
+- **refactor:** converted from split-view display to game selector/redirect page; passes session param through to both display links
+
+### booth/display/guess/index.html (new)
+- **feat:** full-screen Guess the Bean display — bullseye canvas, ranked proximity list (top 8), live QR code with smooth fade-out on reveal, live participant count, reveal trigger (Spacebar / Enter / tap target), confetti + sound, localStorage fallback (`seduh_booth_guess_display_cache`), `guessEnabled` game-off check
+- **fix:** layout corrected to match the original operator sketch — bullseye large on the left (flex 3:2 split), proximity list on the right, instead of the stacked top/bottom layout the amendment handoff's own ASCII sketch had specified. The written handoff and the operator's actual intent had diverged; rebuilt to match intent
+- **feat:** added an eyebrow label above the proximity list — "Live guesses · not ranked by accuracy" pre-reveal, "Results" post-reveal — so it's visually obvious the pre-reveal order/labels are intentionally scrambled (sorted by submission time, bands randomly reassigned every update) and not a reflection of actual proximity
+- **fix:** the proximity list never actually re-rendered when reveal fired — only the bullseye animation, QR, and participant count did. It would keep showing the scrambled pre-reveal state until some unrelated Firestore update forced a re-render. Added the missing `renderProxList()` call to the reveal-transition branch
+
+### booth/display/grinder/index.html (new)
+- **feat:** stub page — full build KIV
+
+## [5.3.0-booth] — Booth mini-games · July 2026
+
+### booth/ (new directory — all files new)
+- **feat: booth/setup/index.html** — one-time session configuration; creates Firestore session document; generates QR code for guess entry URL; master reset (batch-deletes all session submissions, resets revealed flag); sessionId persisted to localStorage (`seduh_booth_session`)
+- **feat: booth/display/index.html** — full-screen split display; Guess the Bean bullseye (canvas, pre-reveal scatter → post-reveal accurate radial animation); Grinder Challenge live leaderboard; grinder active full-screen override (mirrors operator timer via Firestore flag); reveal trigger (Spacebar / Enter / tap target bottom-right); confetti + sound on reveal; localStorage fallback cache (`seduh_booth_display_cache`)
+- **feat: booth/guess/index.html** — mobile-first participant submission form; QR entry path; session state detection (active / revealed / not found); one-submission confirmation screen; onSnapshot to auto-switch to closed state if reveal happens while form is open
+- **feat: booth/grinder/index.html** — operator timer; IDLE → RUNNING → PAUSED → RUNNING → STOPPED → SAVED state machine; Firestore flag writes on start/pause/resume/stop (drives display full-screen override); crash recovery from localStorage (`seduh_booth_grinder_recovery`)
+- **feat: booth/assets/reveal.mp3** — silent placeholder; replace before deployment
+- **feat: Firestore rules** — public read/write on `booth_sessions`, `booth_guess`, `booth_grinder` collections (sessionId-scoped, no sensitive data)
+- **note: Firebase stress-test instrumentation** — three onSnapshot listeners on display page; write-per-submission model on guess page; flag-only writes on grinder page (no per-frame writes). Monitor Firebase console during deployment for read/write cost baseline ahead of v5.3.0 throwdown deployment.
+- **note: `firestore.rules` did not exist in the repo prior to this session** — created fresh with only the booth rules above. Any rules for `platform/switches`, `slideshow`, or other collections referenced in CONVENTIONS.md's Firebase section are not present in this file and must be reconciled against whatever is actually deployed in the Firebase console before this file is deployed, or those collections will lose their rules.
+- **note: header class deviation** — used the existing `.plat-hdr-name` token (real convention, seen in throwdown/liga/bbtc/cup-taster) instead of the handoff's `.plat-hdr-title`, which does not exist anywhere in `shared/theme.css` or any module.
+
+## [docs] — Strategy reconciliation pass · July 2026
+
+**Deviation from prepared brief:** The reconciliation brief was drafted assuming MUA-03 was still the active task and MUA-04 had not started. Reading this CHANGELOG (the mandated ground truth) showed MUA-03 (v5.2.1) and MUA-04 (v5.3.0) both already shipped, and MUA-04's own "Opens" note reserves **v5.4.0** for MUA-07 (not v5.3 as the brief assumed). All version numbers and "next active" pointers below were corrected to match actual shipped state rather than applied literally from the brief.
+
+### ROADMAP.md
+- **docs: current state updated to v5.3.0** — header, module table, shared component table all reconciled with CHANGELOG (corrected from brief's assumed v5.2.0)
+- **docs: Phase 2 milestones updated** — v4.6 (domain/hosting) and v4.7 (Firebase/admin) marked ✅ complete; Firebase shipped as v4.8.x noted
+- **docs: Seduh ID renumbered v6.x** — formerly v5.x; v5.x/v5.4 block consumed by MUA milestone series; Phase 3 content unchanged
+- **docs: Master Version Timeline replaced** — all rows updated with accurate status; MUA-03/04 shown shipped (v5.2.1/v5.3.0); MUA-07 reserved at v5.4.0; booth games parallel track added (v5.3.0-booth)
+- **docs: repository URL corrected** — GitHub Pages → seduhscore.com via Firebase Hosting
+- **docs: Current State table historical notes removed** — audit phase, v4.3.x/v4.4.x completion notes moved to historical record (in CHANGELOG); not needed in current state view
+
+### STRATEGY.md
+- **docs: Platform Hierarchy heading updated** — "Pre-Firebase Skeleton" removed; Firebase live annotation added
+- **docs: Girls Got Drip section updated** — future tense → past tense; event ran 19 June 2026 at &Coffee Bandar
+- **docs: Pricing section updated** — active prices set: BND $18 Per-Event / BND $100 Annual; "too early to decide" language removed
+- **docs: BNCC prerequisites note added** — all four gates cleared as of July 2026; conversation unblocked
+- **docs: Booth Games section added** — strategic purpose, Firebase validation rationale, architecture decisions, timeline, roadmap placement
+- **docs: Strategic Sequencing diagram updated** — reflects current completed and pending states
+- **docs: internal Seduh ID version references reconciled to v6.x** — v5.0/v5.1 mentions in Layer descriptions and registration section updated for consistency with the Phase 3 renumbering
+
+### PLAN_OF_ACTION.md
+- **docs: POA-17B retired** — marked ✅ retired; scope absorbed into MUA-02 and MUA-03
+- **docs: NEXT UP block updated** — MUA-07 (v5.4.0) as active task (not MUA-03 — already shipped); booth games parallel track noted; POA-36 blocked on booth data; POA-37 confirmed closed and moved out of NEXT UP into the done sequence
+
+### PLAN_OF_ACTION_MUA.md
+- **docs: version plan table updated** — all shipped phases marked ✅ including MUA-03 and MUA-04 (not previously reflected in the brief); MUA-07 marked as next active task at v5.4.0
+- **docs: MUA-02/03/04 sections marked complete** — v5.2.0, v5.2.1, v5.3.0
+- **docs: MUA-05 and MUA-06 sections marked complete** — design session and chrome build all shipped
+- **docs: sequence block reconciled** — matches CHANGELOG ship order (chrome v5.1.x shipped before handoff/band v5.2.x, ahead of the original dependency-ordered plan); POA-17B retirement noted
+
+### Not touched
+No module files, shared files, CONVENTIONS.md, CLAUDE.md, or Firebase config were opened or modified in this session.
+
+### ROADMAP.md — addendum
+- **docs: codename table corrected** — Muara and Seria version assignments swapped so thematic fit matches actual content: Muara ("the port — opens outward") now maps to v6.0 (Seduh ID Layer 1 — public registry); Seria ("oil town — infrastructure") now maps to v5.x (MUA milestone series).
+
+---
+
+## [5.3.0] — MUA-04 — Audience view event identity propagation · June 2026
+
+### shared/gates.js
+
+- **feat: `audience_branding` key added to FEATURES registry** — `{ minTier: 'per_event' }`;
+  covers Per-Event and Annual tiers. Called by `audience.js` inside `Audience.show()` to
+  gate the event identity band. No other change to gates.js.
+
+### shared/audience.js
+
+- **feat: `.aud-event-band` injected in `Audience.show()`** — when handoff v2 is present
+  with a non-empty `eventName` AND `Gates.canAccess('audience_branding').allowed`, a
+  `.aud-event-band` div is created and inserted as the first child of `#aud-overlay`.
+  The band shows the event logo (60px, `object-fit:contain`), event name (white, `--fs-h2`,
+  `--fw-bold`), and optional subtitle (`rgba(255,255,255,0.75)`). `bgColor` from handoff
+  applied as band background; fallback to `var(--surface-deep)`.
+  - Band is removed when conditions are not met (community tier, no `eventName`, or no
+    handoff v2). `.aud-event-band` is a new class — no existing `.aud-*` class affected.
+- **feat: `_applyHandoff()` updated to accept v2** — previously rejected any handoff where
+  `h.v !== 1`; now accepts v1 and v2. Accent and logoUrl extraction unchanged.
+- **MUA-04 note:** Handoff is read independently inside `Audience.show()` (not passed by
+  caller) — call signature of `Audience.show()` is unchanged.
+
+### Verified
+
+- [ ] `audience_branding` key present in gates.js FEATURES registry
+- [ ] Community tier: audience overlay unchanged — no event band visible
+- [ ] Per-Event/Annual tier + handoff v2 with eventName: event band visible
+- [ ] Logo renders at 60px height in audience context
+- [ ] Event name in white, large, high contrast
+- [ ] Subtitle in `rgba(255,255,255,0.75)` — readable on projector
+- [ ] Band hidden when no eventName (even on eligible tier)
+- [ ] bgColor applied as band background when set; fallback to `--surface-deep`
+- [ ] No existing `.aud-*` class renamed or removed
+- [ ] `Audience.show()` call signature unchanged in all modules
+
+### Opens
+
+MUA-07 — PDF branding (v5.4.0). Confirmed 30 Aug deployment target for Throwdown module.
+
+---
+
 ## [5.2.1] — MUA-03 — Event band populated across all modules · June 2026
 
 ### shared/eventconfig.js

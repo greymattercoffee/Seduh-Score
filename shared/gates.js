@@ -24,6 +24,7 @@ const FEATURES = {
 
   // Audience
   'audience_enhanced':          { minTier: 'per_event' },
+  'audience_branding':          { minTier: 'per_event' }, // MUA-04: event identity band in overlay
   'audience_links_concluded':   { minTier: 'community' },
   'audience_links_snapshot':    { minTier: 'per_event' },
 

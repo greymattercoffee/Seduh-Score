@@ -3,6 +3,8 @@
     "public": ".",
     "ignore": [
       "firebase.json",
+      "firestore.rules",
+      "storage.rules",
       "**/.*",
       "**/node_modules/**",
       "Thumbs.db",
@@ -17,9 +19,19 @@
       "firebase-debug.log",
       "public/**",
       "skills-lock.json"
+    ],
+    "rewrites": [
+      { "source": "/", "destination": "/coming-soon/index.html" }
     ]
   },
   "functions": {
     "source": "functions"
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }
