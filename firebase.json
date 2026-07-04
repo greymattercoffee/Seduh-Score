@@ -3,6 +3,8 @@
     "public": ".",
     "ignore": [
       "firebase.json",
+      "firestore.rules",
+      "storage.rules",
       "**/.*",
       "**/node_modules/**",
       "Thumbs.db",
@@ -21,5 +23,12 @@
   },
   "functions": {
     "source": "functions"
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }

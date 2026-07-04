@@ -328,6 +328,121 @@
     width: 100%;
   }
   .adm-add-form input:focus { border-color: var(--am-bd); }
+  .adm-add-form textarea {
+    background: var(--bg);
+    border: 1.5px solid var(--bd2);
+    border-radius: var(--rad);
+    color: var(--ink);
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    resize: vertical;
+    min-height: 64px;
+    transition: border-color .14s;
+    width: 100%;
+  }
+  .adm-add-form textarea:focus { border-color: var(--am-bd); }
+
+  /* ── Tabs ── */
+  .adm-tabs {
+    display: flex;
+    gap: 2px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--bd);
+  }
+  .adm-tabs::-webkit-scrollbar { display: none; }
+  .adm-tab {
+    padding: 10px 14px;
+    border: none;
+    background: transparent;
+    color: var(--ink3);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: ui-monospace, monospace;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color .14s;
+  }
+  .adm-tab:hover { color: var(--ink2); }
+  .adm-tab.on { color: var(--am-bd); border-bottom-color: var(--am-bd); }
+
+  .adm-tab-panel { display: none; }
+  .adm-tab-panel.active { display: block; }
+
+  /* ── Upcoming Events Manager ── */
+  .adm-ev-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--bd);
+  }
+  .adm-ev-row:last-child { border-bottom: none; }
+  .adm-ev-thumb {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+    background: var(--bd);
+  }
+  .adm-ev-info { flex: 1; min-width: 0; }
+  .adm-ev-name {
+    font-size: 13px;
+    color: var(--ink);
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .adm-ev-meta {
+    font-size: 11px;
+    color: var(--ink3);
+    font-family: ui-monospace, monospace;
+    margin-top: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .adm-ev-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: ui-monospace, monospace;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-top: 4px;
+    border: 1px solid;
+  }
+  .adm-ev-badge.fmt-throwdown { color: var(--am-bd); border-color: var(--am-bd); background: rgba(224,154,54,.1); }
+  .adm-ev-badge.fmt-liga      { color: var(--gn);    border-color: var(--gn);    background: rgba(11,122,82,.12); }
+  .adm-ev-badge.fmt-cup-taster{ color: #4a90d9;       border-color: #4a90d9;      background: rgba(74,144,217,.12); }
+  .adm-ev-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .adm-ev-actions button {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--bd2);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--ink3);
+    font-size: 13px;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: background .12s, color .12s;
+  }
+  .adm-ev-actions button:hover { background: var(--bd2); color: var(--ink); }
+  .adm-ev-actions button.del-btn:hover { background: var(--rd); color: #fff; border-color: var(--rd); }
 </style>
 </head>
 <body>
@@ -338,6 +453,15 @@
     <h1>Admin Panel</h1>
     <p>Seduh Score · Super admin · Internal tool</p>
   </div>
+
+  <div class="adm-tabs" id="adm-tabs">
+    <button class="adm-tab on" data-tab="organisations">Organisations</button>
+    <button class="adm-tab" data-tab="switches">Platform Switches</button>
+    <button class="adm-tab" data-tab="frontdoor">Front Door Content</button>
+    <button class="adm-tab" data-tab="events">Upcoming Events</button>
+  </div>
+
+  <div class="adm-tab-panel active" id="tab-organisations">
 
   <!-- ══ Create Org ══ -->
   <div class="adm-section">
@@ -404,6 +528,10 @@
     </div>
   </div>
 
+  </div>
+
+  <div class="adm-tab-panel" id="tab-switches">
+
   <!-- ══ Platform Switches ══ -->
   <div class="adm-section">
     <div class="adm-section-title">Platform Switches</div>
@@ -424,6 +552,10 @@
       </div>
     </div>
   </div>
+
+  </div>
+
+  <div class="adm-tab-panel" id="tab-frontdoor">
 
   <!-- ══ Slideshow ══ -->
   <div class="adm-section">
@@ -450,6 +582,59 @@
       <div id="ss-list" style="margin-top:14px"></div>
       <div class="adm-status" id="ss-list-status"></div>
     </div>
+  </div>
+
+  </div>
+
+  <div class="adm-tab-panel" id="tab-events">
+
+  <!-- ══ Upcoming Events Manager ══ -->
+  <div class="adm-section">
+    <div class="adm-section-title">Upcoming Events</div>
+    <div class="adm-card">
+      <button class="btn btn-am" id="ev-add-btn">+ Add Event</button>
+
+      <div class="adm-add-form" id="ev-add-form">
+        <div>
+          <label>Event Name</label>
+          <input type="text" id="ev-name" placeholder="e.g. Latte Art Throwdown Vol. 1">
+        </div>
+        <div>
+          <label>Event Date</label>
+          <input type="datetime-local" id="ev-date">
+        </div>
+        <div>
+          <label>Event Venue</label>
+          <input type="text" id="ev-venue" placeholder="e.g. &amp;Coffee Bandar, Brunei">
+        </div>
+        <div>
+          <label>Event Format</label>
+          <select id="ev-format">
+            <option value="throwdown">Throwdown</option>
+            <option value="liga">Liga</option>
+            <option value="cup-taster">Cup Taster</option>
+          </select>
+        </div>
+        <div>
+          <label>Description</label>
+          <textarea id="ev-description" placeholder="1–2 sentences, organiser copy"></textarea>
+        </div>
+        <div>
+          <label>Photo (JPG / PNG, max 2 MB, optional)</label>
+          <input type="file" id="ev-file" accept="image/jpeg,image/png">
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-am" id="ev-save-btn">Add Event</button>
+          <button class="btn" id="ev-cancel-btn" style="background:var(--bd2);color:var(--ink2)">Cancel</button>
+        </div>
+        <div class="adm-status" id="ev-upload-status"></div>
+      </div>
+
+      <div id="ev-list" style="margin-top:14px"></div>
+      <div class="adm-status" id="ev-list-status"></div>
+    </div>
+  </div>
+
   </div>
 
 </div>
@@ -482,8 +667,25 @@ onAuthStateChanged(auth, async user => {
     return;
   }
   document.getElementById('panel').style.display = 'block';
-  loadSwitches();
-  loadSlides();
+  showTab('organisations');
+});
+
+// ── Tabs ──
+const tabLoaded = { organisations: true, switches: false, frontdoor: false, events: false };
+
+function showTab(name) {
+  document.querySelectorAll('.adm-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  document.querySelectorAll('.adm-tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  if (!tabLoaded[name]) {
+    tabLoaded[name] = true;
+    if (name === 'switches')  loadSwitches();
+    if (name === 'frontdoor') loadSlides();
+    if (name === 'events')    loadEvents();
+  }
+}
+
+document.querySelectorAll('.adm-tab').forEach(btn => {
+  btn.addEventListener('click', () => showTab(btn.dataset.tab));
 });
 
 // ── Create Org ──
@@ -769,6 +971,199 @@ document.getElementById('ss-upload-btn').addEventListener('click', async () => {
       }
     }
   );
+});
+
+
+// ── Upcoming Events Manager ──
+const EV_FORMAT_LABEL = { 'throwdown': 'Throwdown', 'liga': 'Liga', 'cup-taster': 'Cup Taster' };
+let evEditingId = null;
+let evEditingStoragePath = null;
+
+async function loadEvents() {
+  const list = document.getElementById('ev-list');
+  list.innerHTML = '';
+  setStatus('ev-list-status', '', '');
+  try {
+    const q = query(collection(db, 'upcoming_events'), orderBy('eventDate'));
+    const snap = await getDocs(q);
+    if (snap.empty) { setStatus('ev-list-status', 'No events yet.', 'muted'); return; }
+    snap.forEach(d => {
+      const ev = { id: d.id, ...d.data() };
+      const row = document.createElement('div');
+      row.className = 'adm-ev-row';
+      row.dataset.id = ev.id;
+      const fmtClass = 'fmt-' + (ev.eventFormat || 'throwdown');
+      const fmtLabel = EV_FORMAT_LABEL[ev.eventFormat] || ev.eventFormat || '';
+      const dateStr = ev.eventDate ? new Date(ev.eventDate).toLocaleString('en-BN', { timeZone: 'Asia/Brunei' }) : '';
+      row.innerHTML =
+        (ev.imageUrl ? '<img class="adm-ev-thumb" src="' + ev.imageUrl + '" alt="">' : '<div class="adm-ev-thumb"></div>') +
+        '<div class="adm-ev-info">' +
+          '<div class="adm-ev-name">' + escHtml(ev.eventName || '') + '</div>' +
+          '<div class="adm-ev-meta">' + escHtml(dateStr) + (ev.eventVenue ? ' · ' + escHtml(ev.eventVenue) : '') + '</div>' +
+          '<span class="adm-ev-badge ' + fmtClass + '">' + escHtml(fmtLabel) + '</span>' +
+        '</div>' +
+        '<div class="adm-ev-actions">' +
+          '<button title="Edit" class="edit-btn">✎</button>' +
+          '<button title="Delete" class="del-btn">✕</button>' +
+        '</div>';
+
+      row.querySelector('.edit-btn').addEventListener('click', () => startEditEvent(ev));
+      row.querySelector('.del-btn').addEventListener('click', () => showEventDeleteConfirm(row, ev));
+
+      list.appendChild(row);
+    });
+  } catch (e) {
+    setStatus('ev-list-status', 'Failed to load events: ' + e.message, 'error');
+  }
+}
+
+function escHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+function toDatetimeLocalValue(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
+function resetEventForm() {
+  evEditingId = null;
+  evEditingStoragePath = null;
+  document.getElementById('ev-name').value = '';
+  document.getElementById('ev-date').value = '';
+  document.getElementById('ev-venue').value = '';
+  document.getElementById('ev-format').value = 'throwdown';
+  document.getElementById('ev-description').value = '';
+  document.getElementById('ev-file').value = '';
+  document.getElementById('ev-save-btn').textContent = 'Add Event';
+  setStatus('ev-upload-status', '', '');
+}
+
+function startEditEvent(ev) {
+  evEditingId = ev.id;
+  evEditingStoragePath = ev.storagePath || null;
+  document.getElementById('ev-name').value = ev.eventName || '';
+  document.getElementById('ev-date').value = toDatetimeLocalValue(ev.eventDate);
+  document.getElementById('ev-venue').value = ev.eventVenue || '';
+  document.getElementById('ev-format').value = ev.eventFormat || 'throwdown';
+  document.getElementById('ev-description').value = ev.eventDescription || '';
+  document.getElementById('ev-file').value = '';
+  document.getElementById('ev-save-btn').textContent = 'Save Changes';
+  document.getElementById('ev-add-form').classList.add('open');
+  setStatus('ev-upload-status', '', '');
+}
+
+function showEventDeleteConfirm(row, ev) {
+  const existing = row.querySelector('.adm-slide-confirm');
+  if (existing) { existing.remove(); return; }
+  const confirmEl = document.createElement('div');
+  confirmEl.className = 'adm-slide-confirm';
+  confirmEl.innerHTML =
+    '<span>Delete this event?</span>' +
+    '<button class="confirm-yes">Yes, delete</button>' +
+    '<button class="confirm-no">Cancel</button>';
+  confirmEl.querySelector('.confirm-yes').addEventListener('click', () => deleteEvent(ev));
+  confirmEl.querySelector('.confirm-no').addEventListener('click', () => confirmEl.remove());
+  row.insertAdjacentElement('afterend', confirmEl);
+}
+
+async function deleteEvent(ev) {
+  setStatus('ev-list-status', 'Deleting…', 'muted');
+  try {
+    if (ev.storagePath) await deleteObject(ref(storage, ev.storagePath));
+    await deleteDoc(doc(db, 'upcoming_events', ev.id));
+    loadEvents();
+  } catch (e) {
+    setStatus('ev-list-status', 'Delete failed: ' + e.message, 'error');
+  }
+}
+
+document.getElementById('ev-add-btn').addEventListener('click', () => {
+  const form = document.getElementById('ev-add-form');
+  form.classList.toggle('open');
+  if (!form.classList.contains('open')) resetEventForm();
+});
+
+document.getElementById('ev-cancel-btn').addEventListener('click', () => {
+  document.getElementById('ev-add-form').classList.remove('open');
+  resetEventForm();
+});
+
+document.getElementById('ev-save-btn').addEventListener('click', async () => {
+  const eventName = document.getElementById('ev-name').value.trim();
+  const eventDateLocal = document.getElementById('ev-date').value;
+  const eventVenue = document.getElementById('ev-venue').value.trim();
+  const eventFormat = document.getElementById('ev-format').value;
+  const eventDescription = document.getElementById('ev-description').value.trim();
+  const file = document.getElementById('ev-file').files[0];
+
+  if (!eventName || !eventDateLocal || !eventVenue) {
+    setStatus('ev-upload-status', 'Event name, date, and venue are required.', 'error');
+    return;
+  }
+  if (file) {
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      setStatus('ev-upload-status', 'Only JPG or PNG files allowed.', 'error'); return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setStatus('ev-upload-status', 'File must be under 2 MB.', 'error'); return;
+    }
+  }
+
+  const eventDate = new Date(eventDateLocal).toISOString();
+  document.getElementById('ev-save-btn').disabled = true;
+
+  try {
+    let imageUrl = null;
+    let storagePath = evEditingStoragePath;
+
+    if (file) {
+      if (evEditingStoragePath) {
+        try { await deleteObject(ref(storage, evEditingStoragePath)); } catch (e) { /* old image may already be gone */ }
+      }
+      storagePath = 'upcoming_events/' + Date.now() + '_' + sanitiseFilename(file.name);
+      const storageRef = ref(storage, storagePath);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+      await new Promise((resolve, reject) => {
+        uploadTask.on('state_changed',
+          snapshot => {
+            const pct = Math.round(snapshot.bytesTransferred / snapshot.totalBytes * 100);
+            setStatus('ev-upload-status', 'Uploading… ' + pct + '%', 'muted');
+          },
+          reject,
+          resolve
+        );
+      });
+      imageUrl = await getDownloadURL(uploadTask.snapshot.ref);
+    }
+
+    if (evEditingId) {
+      const updates = { eventName, eventDate, eventVenue, eventFormat, eventDescription, updatedAt: serverTimestamp() };
+      if (file) { updates.imageUrl = imageUrl; updates.storagePath = storagePath; }
+      await updateDoc(doc(db, 'upcoming_events', evEditingId), updates);
+      setStatus('ev-upload-status', 'Event updated.', 'success');
+    } else {
+      await addDoc(collection(db, 'upcoming_events'), {
+        eventName, eventDate, eventVenue, eventFormat, eventDescription,
+        imageUrl: imageUrl || null,
+        storagePath: storagePath || null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      setStatus('ev-upload-status', 'Event added.', 'success');
+    }
+
+    document.getElementById('ev-add-form').classList.remove('open');
+    resetEventForm();
+    document.getElementById('ev-save-btn').disabled = false;
+    loadEvents();
+  } catch (e) {
+    setStatus('ev-upload-status', 'Save failed: ' + e.message, 'error');
+    document.getElementById('ev-save-btn').disabled = false;
+  }
 });
 
 </script>
