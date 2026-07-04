@@ -2,6 +2,30 @@
 
 ---
 
+## [5.3.3] — Root routing fix: rewrite → redirect · July 2026
+
+### firebase.json
+
+- **fix:** v5.3.2's Hosting `rewrites` entry (`/` → `/coming-soon/index.html`) never actually
+  fired in production. Deployed and confirmed via both `seduhscore.com` and the un-proxied
+  `seduh-score.web.app` — root still served the real `index.html` on both, ruling out
+  Cloudflare edge caching as the cause
+- **root cause:** Firebase Hosting resolves requests in a fixed priority order — redirects,
+  then exact static file matches (`/` implicitly resolves to a physical `index.html` at
+  that path), and only then `rewrites`. Since the repo's real `index.html` already sits at
+  the root, `/` was served directly as a static file and the rewrite rule was never reached.
+  This holds regardless of deploy count or cache state — v5.3.2's Section 14 assumption
+  (rewrite serves the teaser at root while `index.html` stays untouched, reachable directly)
+  doesn't hold up against Hosting's actual resolution order
+- **fix:** replaced the `rewrites` entry with a `redirects` entry
+  (`{ "source": "/", "destination": "/coming-soon/", "type": 302 }`). Redirects are checked
+  before static file matches, so this reliably sends `/` to the teaser
+- **tradeoff (accepted):** the address bar now shows `seduhscore.com/coming-soon/` after
+  the redirect rather than staying clean at the bare domain — the one piece of the original
+  Section 14 UX goal this approach can't preserve. `index.html` remains completely untouched
+  either way, still directly reachable at `/index.html`
+- **deploy:** Firdaus's step, same as other Hosting deploys — `firebase deploy --only hosting`
+
 ## [5.3.2] — Deployment routing, About page, footer fix · July 2026
 
 Fast-follow to v5.3.1, from `COMING-SOON-SPEC.md` Sections 14–17. Makes `coming-soon/index.html`
