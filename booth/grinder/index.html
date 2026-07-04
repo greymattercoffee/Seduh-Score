@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grinder Challenge — Booth</title>
+<link rel="stylesheet" href="../../shared/theme.css">
+<style>
+  .booth-wrap{max-width:480px;margin:0 auto;padding:var(--space-6) var(--space-4);text-align:center}
+  .booth-field{margin-bottom:var(--space-4);text-align:left}
+  .booth-field label{display:block;font-family:var(--font-mono);font-size:var(--fs-label);
+    letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-bottom:6px}
+  .booth-participant{font-family:var(--font-display);font-size:28px;font-weight:800;color:var(--ink);margin-bottom:var(--space-3)}
+  .booth-clock{font-family:var(--font-mono);font-size:56px;font-weight:800;letter-spacing:-.02em;
+    margin:var(--space-4) 0;color:var(--am)}
+  .booth-clock.muted{color:var(--ink3)}
+  .booth-btnrow{display:flex;gap:10px;margin-top:var(--space-4)}
+  .booth-btnrow .btn-p, .booth-btnrow .btn-o{flex:1}
+  .booth-recent{margin-top:var(--space-6);text-align:left}
+  .booth-recent-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border2)}
+  .booth-recovery{background:var(--am-bg);border:1.5px solid var(--am-bd);border-radius:var(--rad-s);
+    padding:var(--space-3);margin-bottom:var(--space-4);text-align:left}
+  .booth-recovery p{font-size:13px;color:var(--ink2);margin-bottom:var(--space-2)}
+  .booth-recovery .booth-btnrow{margin-top:0}
+  .booth-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:var(--gn);color:#fff;padding:12px 20px;border-radius:var(--rad-pill);
+    font-size:13px;font-weight:600;z-index:200;box-shadow:var(--shadow-md)}
+  .booth-err{color:var(--rd);font-size:12px;margin-top:4px}
+</style>
+</head>
+<body>
+
+<header class="plat-hdr">
+  <span class="plat-mark">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh">
+      <circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"></circle>
+      <path d="M26 60 a24 24 0 0 1 48 0"></path>
+      <path d="M35 60 a15 15 0 0 1 30 0"></path>
+      <path d="M44 60 a6 6 0 0 1 12 0"></path>
+    </svg>
+  </span>
+  <div>
+    <div class="plat-hdr-sub" style="font-size:10px;color:var(--am);font-weight:700;letter-spacing:.15em;text-transform:uppercase">Seduh Score</div>
+    <div class="plat-hdr-name">Grinder Challenge</div>
+  </div>
+</header>
+
+<div class="booth-wrap" id="app"></div>
+<div id="toast-slot"></div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
+  import { getFirestore, doc, setDoc, getDoc, collection, addDoc,
+           query, where, orderBy, limit, getDocs, serverTimestamp }
+    from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDwlaPgB_5g3xXDTq539JN09aWBpdHM6e4",
+    authDomain:        "seduh-score.firebaseapp.com",
+    projectId:         "seduh-score",
+    storageBucket:     "seduh-score.firebasestorage.app",
+    messagingSenderId: "298052620542",
+    appId:             "1:298052620542:web:53376c72eaf81b35a8d5af",
+    measurementId:     "G-GTFF3TYD37"
+  };
+
+  const app = initializeApp(firebaseConfig, 'booth');
+  const db  = getFirestore(app);
+
+  const RECOVERY_KEY = 'seduh_booth_grinder_recovery';
+  const app_el = document.getElementById('app');
+  const toastSlot = document.getElementById('toast-slot');
+
+  const params = new URLSearchParams(location.search);
+  const sessionId = params.get('session');
+
+  function fmtTime(ms) {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    const millis  = ms % 1000;
+    return `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}.${String(millis).padStart(3,'0')}`;
+  }
+
+  let S = {
+    state: 'idle',   // idle | running | paused | stopped
+    name: '',
+    startedAt: 0,
+    pausedMs: 0,
+    pausedAt: 0,
+    finalTimeMs: 0,
+    recent: [],
+    recovery: null,   // recovered recovery payload awaiting decision
+    errors: {}
+  };
+
+  let tickHandle = null;
+
+  function toast(msg) {
+    toastSlot.innerHTML = `<div class="booth-toast">${msg}</div>`;
+    setTimeout(() => { toastSlot.innerHTML = ''; }, 1500);
+  }
+
+  function elapsedMs() {
+    return (Date.now() - S.startedAt) - S.pausedMs;
+  }
+
+  function saveRecovery() {
+    localStorage.setItem(RECOVERY_KEY, JSON.stringify({
+      name: S.name, startedAt: S.startedAt, pausedMs: S.pausedMs, state: 'running'
+    }));
+  }
+
+  function clearRecovery() {
+    localStorage.removeItem(RECOVERY_KEY);
+  }
+
+  async function loadRecent() {
+    const q = query(
+      collection(db, 'booth_grinder'),
+      where('sessionId', '==', sessionId),
+      orderBy('timeMs', 'asc'),
+      limit(5)
+    );
+    const snap = await getDocs(q);
+    S.recent = snap.docs.map(d => d.data());
+  }
+
+  function render() {
+    if (!sessionId) {
+      app_el.innerHTML = `<div class="card"><div style="padding:var(--space-4)">Missing <code>?session=</code> in the URL. Add it and reload.</div></div>`;
+      return;
+    }
+
+    if (S.recovery) {
+      app_el.innerHTML = renderRecoveryBanner();
+      bindRecoveryBanner();
+      return;
+    }
+
+    if (S.state === 'idle') {
+      app_el.innerHTML = renderIdle();
+      bindIdle();
+      return;
+    }
+    if (S.state === 'running') {
+      app_el.innerHTML = renderRunning();
+      bindRunning();
+      return;
+    }
+    if (S.state === 'paused') {
+      app_el.innerHTML = renderPaused();
+      bindPaused();
+      return;
+    }
+    if (S.state === 'stopped') {
+      app_el.innerHTML = renderStopped();
+      bindStopped();
+      return;
+    }
+  }
+
+  function renderRecoveryBanner() {
+    return `
+      <div class="booth-recovery">
+        <p>It looks like a timer was running when this page last closed. Recover it?</p>
+        <div class="booth-btnrow">
+          <button id="btn-recover" class="btn-p">Recover</button>
+          <button id="btn-discard-recovery" class="btn-o">Discard</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function bindRecoveryBanner() {
+    document.getElementById('btn-recover').addEventListener('click', () => {
+      const r = S.recovery;
+      S.name = r.name;
+      S.startedAt = r.startedAt;
+      S.pausedMs = r.pausedMs;
+      S.finalTimeMs = (Date.now() - r.startedAt) - r.pausedMs;
+      S.state = 'stopped';
+      S.recovery = null;
+      clearRecovery();
+      render();
+    });
+    document.getElementById('btn-discard-recovery').addEventListener('click', () => {
+      S.recovery = null;
+      clearRecovery();
+      S.state = 'idle';
+      render();
+    });
+  }
+
+  function renderIdle() {
+    const e = S.errors;
+    return `
+      <div class="card">
+        <div class="card-hdr">Grinder Challenge</div>
+        <div style="padding:var(--space-4)">
+          <div class="booth-field">
+            <label>Participant name</label>
+            <input id="f-name" type="text" autofocus value="${S.name}">
+            ${e.name ? `<div class="booth-err">${e.name}</div>` : ''}
+          </div>
+          <button id="btn-start" class="btn-p" style="width:100%">▶ Start</button>
+        </div>
+      </div>
+      <div class="booth-recent">
+        <div class="section-title">Recent times</div>
+        ${S.recent.length === 0 ? `<div class="hint" style="padding:8px 0">No times yet.</div>` :
+          S.recent.map((r, i) => `<div class="booth-recent-row"><span>${i+1}. ${r.name}</span><span class="mono">${fmtTime(r.timeMs)}</span></div>`).join('')}
+      </div>
+    `;
+  }
+
+  function bindIdle() {
+    const input = document.getElementById('f-name');
+    input.focus();
+    document.getElementById('btn-start').addEventListener('click', onStart);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') onStart(); });
+  }
+
+  async function onStart() {
+    const name = document.getElementById('f-name').value.trim();
+    if (!name) {
+      S.errors = { name: 'Participant name is required.' };
+      render();
+      return;
+    }
+    S.errors = {};
+    S.name = name;
+    S.startedAt = Date.now();
+    S.pausedMs = 0;
+    S.state = 'running';
+
+    await setDoc(doc(db, 'booth_sessions', sessionId), { grinderActive: true, grinderName: name }, { merge: true });
+
+    saveRecovery();
+    render();
+    startTick();
+  }
+
+  function startTick() {
+    stopTick();
+    tickHandle = setInterval(() => {
+      if (S.state !== 'running') return;
+      const el = document.getElementById('booth-clock-val');
+      if (el) el.textContent = fmtTime(elapsedMs());
+      saveRecovery();
+    }, 50);
+  }
+
+  function stopTick() {
+    if (tickHandle) { clearInterval(tickHandle); tickHandle = null; }
+  }
+
+  function renderRunning() {
+    return `
+      <div class="booth-participant">${S.name}</div>
+      <div class="booth-clock" id="booth-clock-val">${fmtTime(elapsedMs())}</div>
+      <div class="booth-btnrow">
+        <button id="btn-pause" class="btn-o">⏸ Pause</button>
+        <button id="btn-stop" class="btn-rd">⏹ Stop</button>
+      </div>
+    `;
+  }
+
+  function bindRunning() {
+    document.getElementById('btn-pause').addEventListener('click', onPause);
+    document.getElementById('btn-stop').addEventListener('click', onStop);
+  }
+
+  async function onPause() {
+    stopTick();
+    S.pausedAt = Date.now();
+    S.state = 'paused';
+    await setDoc(doc(db, 'booth_sessions', sessionId), { grinderActive: false }, { merge: true });
+    render();
+  }
+
+  function renderPaused() {
+    return `
+      <div class="booth-participant">${S.name}</div>
+      <div class="booth-clock muted">${fmtTime(elapsedMs())}</div>
+      <p class="hint">Paused — beans not done yet?</p>
+      <div class="booth-btnrow">
+        <button id="btn-resume" class="btn-p">▶ Resume</button>
+        <button id="btn-stop" class="btn-rd">⏹ Stop</button>
+      </div>
+    `;
+  }
+
+  function bindPaused() {
+    document.getElementById('btn-resume').addEventListener('click', onResume);
+    document.getElementById('btn-stop').addEventListener('click', onStop);
+  }
+
+  async function onResume() {
+    S.pausedMs += Date.now() - S.pausedAt;
+    S.state = 'running';
+    await setDoc(doc(db, 'booth_sessions', sessionId), { grinderActive: true }, { merge: true });
+    saveRecovery();
+    render();
+    startTick();
+  }
+
+  async function onStop() {
+    stopTick();
+    if (S.state === 'paused') {
+      // pausedMs already accounts for the frozen period; elapsedMs is correct as-is
+    }
+    S.finalTimeMs = elapsedMs();
+    S.state = 'stopped';
+    await setDoc(doc(db, 'booth_sessions', sessionId), { grinderActive: false }, { merge: true });
+    clearRecovery();
+    render();
+  }
+
+  function renderStopped() {
+    return `
+      <div class="booth-participant">${S.name}</div>
+      <div class="booth-clock muted">${fmtTime(S.finalTimeMs)}</div>
+      <div class="booth-btnrow">
+        <button id="btn-save" class="btn-gn" style="flex:1">✓ Save time</button>
+      </div>
+      <button id="btn-discard" class="btn-rd btn-sm" style="margin-top:var(--space-3)">✕ Discard</button>
+    `;
+  }
+
+  function bindStopped() {
+    document.getElementById('btn-save').addEventListener('click', onSave);
+    document.getElementById('btn-discard').addEventListener('click', onDiscard);
+  }
+
+  async function onSave() {
+    await addDoc(collection(db, 'booth_grinder'), {
+      sessionId, name: S.name, timeMs: S.finalTimeMs, ts: serverTimestamp()
+    });
+    toast(`Time saved — ${fmtTime(S.finalTimeMs)}`);
+    try { await loadRecent(); } catch (e) { /* keep prior recent list on read failure */ }
+    S = { ...S, state: 'idle', name: '', startedAt: 0, pausedMs: 0, pausedAt: 0, finalTimeMs: 0, recovery: null, errors: {} };
+    render();
+  }
+
+  function onDiscard() {
+    const ok = confirm('Discard this time?');
+    if (!ok) return;
+    S = { ...S, state: 'idle', name: '', startedAt: 0, pausedMs: 0, pausedAt: 0, finalTimeMs: 0, recovery: null, errors: {} };
+    render();
+  }
+
+  async function boot() {
+    if (!sessionId) { render(); return; }
+
+    const raw = localStorage.getItem(RECOVERY_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.state === 'running') S.recovery = parsed;
+      } catch (e) { /* ignore malformed recovery payload */ }
+    }
+
+    try { await loadRecent(); } catch (e) { S.recent = []; }
+    render();
+    if (S.state === 'running') startTick();
+  }
+
+  boot();
+</script>
+</body>
+</html>
