@@ -128,7 +128,14 @@ or automatically per the trigger matrix above.
 1. Read `CHANGELOG.md` first. Its most recent numbered header is the anchor
    version for this audit.
 2. For each **Tier A** document: read the top-line version stamp. Flag any
-   mismatch against the anchor version.
+   mismatch against the anchor version. **When adding or correcting a
+   document's version stamp, also scan that same document for any other
+   version reference — footers, inline "current version" notes, tables —
+   and reconcile them in the same edit.** A stamp that's correct while the
+   rest of the document still contradicts it is worse than the staleness it
+   replaced (this happened to README.md in the first application of this
+   protocol: the new top-line stamp said v5.4.0 while the pre-existing
+   footer still said v5.3.3, until a same-day follow-up fixed it).
 3. For `PLAN_OF_ACTION.md` specifically: check the "NEXT UP" line and any
    status markers against what CHANGELOG.md says has shipped since the last
    clean audit — a version-stamp match doesn't guarantee status markers

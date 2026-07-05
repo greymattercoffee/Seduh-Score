@@ -2,6 +2,11 @@
 
 ---
 
+## [docs] — KB-PROTOCOL.md amended · July 2026
+KB-PROTOCOL.md amended — Section 5 now requires reconciling other version references in a document whenever its stamp is corrected, closing the gap that caused the README.md footer contradiction.
+
+---
+
 ## [docs] — README.md self-contradiction fix · same-day follow-up to KB Consistency Protocol adoption · July 2026
 
 ### README.md
