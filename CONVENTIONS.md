@@ -1,5 +1,7 @@
 # Conventions — Seduh Score
 
+*State: v5.4.0 — matches CHANGELOG.md as of July 2026*
+
 Coding patterns, architecture decisions, and development standards for the Seduh Score platform. Read this at the start of any new chat session before touching code.
 
 ---
@@ -18,6 +20,10 @@ seduh-score/
 ├── liga/index.html             ← fully self-contained module
 ├── throwdown/index.html        ← fully self-contained module
 ├── timer/index.html            ← standalone timer page
+├── about/index.html            ← README renderer, public (v5.3.2)
+├── coming-soon/index.html      ← teaser landing page, served at "/" via Hosting redirect (v5.3.1/5.3.3)
+├── booth/                      ← mini-games: setup/, display/, guess/, grinder/ (v5.3.0-booth+).
+│                                  In repo, not yet publicly deployed — target Oct 2026 per STRATEGY.md
 └── shared/                     ← loaded by every module
     ├── theme.css
     ├── storage.js
@@ -26,6 +32,9 @@ seduh-score/
     ├── audience.js
     ├── eventconfig.js          ← v4.7+ organiser customisation component
     ├── firebase.js             ← v4.8+ Firebase SDK init (app/auth/Firestore/Storage)
+    ├── pdf.js                  ← v5.4+ shared PDF export module (MUA-07, BBTC pilot)
+    ├── sound.js                ← synthesised timer/reveal audio cues (no audio files); used by
+    │                              bbtc/index.html, liga/index.html, timer/index.html
     ├── timer.js
     └── assets/                 ← seduh-mark.svg + favicons
 ```
@@ -38,12 +47,16 @@ Each module includes shared files like this:
 <script src="../shared/timer.js"></script>
 <script src="../shared/audience.js"></script>
 <script src="../shared/eventconfig.js"></script>
+<script src="../shared/pdf.js"></script>
 <!-- firebase.js + auth.js loaded as type="module" before </body> -->
 ```
 
+`pdf.js` is currently included by BBTC only (MUA-07 pilot) — Throwdown, Liga, and Cup Taster
+have no PDF export yet and should not include it until each gets its own scoped adoption session.
+
 **Rule:** Never copy shared component code into a module file. Always reference from `../shared/`.
 
-**Rule (B1 — locked):** Each module stays one self-contained `index.html`. No build step, no bundler. `shared/` expansion is the consistency mechanism — new shared files must be explicitly approved in the strategy chat before creation. Approved post-B1 shared files: `gates.js` (v4.3), `eventconfig.js` (v4.7), `firebase.js` and `auth.js` (v4.8).
+**Rule (B1 — locked):** Each module stays one self-contained `index.html`. No build step, no bundler. `shared/` expansion is the consistency mechanism — new shared files must be explicitly approved in the strategy chat before creation. Approved post-B1 shared files: `gates.js` (v4.3), `eventconfig.js` (v4.7), `firebase.js` and `auth.js` (v4.8), `pdf.js` (v5.4, MUA-07).
 
 ---
 
@@ -299,6 +312,20 @@ Audience.showPodium();   // full-screen podium takeover — audience_enhanced ga
 | BBTC | ✅ in bind() | ✅ | lbHTML = prelim standings; histHTML = match history; podium deferred |
 | Cup Taster | ✅ in bind() | ✅ | single-panel (no lbHTML); podium deferred |
 
+### Sound (`shared/sound.js`)
+
+```javascript
+Sound.unlock();   // call on a user gesture (e.g. Start click) — satisfies autoplay policy
+Sound.beep();     // three quick tones — one-minute warning cue
+Sound.horn();     // sustained dual-tone swell — time's-up cue
+```
+
+Synthesised via Web Audio API oscillators — no audio files, no assets to load or replace.
+`unlock()` lazily creates/resumes a single module-level `AudioContext`; `beep()`/`horn()`
+call it internally, so modules don't need to call `unlock()` separately as long as the
+first call happens on a user gesture. Currently used by `bbtc/index.html`,
+`liga/index.html`, and `timer/index.html` for timer cues.
+
 ### Storage (`shared/storage.js`)
 
 ```javascript
@@ -427,6 +454,47 @@ Consumed by `audience.js` `_applyHandoff()` inside `Audience.show()`.
 
 v1 handoffs are gracefully upgraded to v2 on read — no data loss. Migration logic lives in
 `EventConfig.mount()`. v2 written back to sessionStorage immediately after upgrade.
+
+### PDF export (`shared/pdf.js`) — v5.4.0+ (MUA-07)
+
+Approved third post-B1 shared file (strategy chat, July 2026, MUA-07-SPEC-V2.md). Shared,
+format-agnostic PDF export module — owns the `#pdf-overlay` lifecycle, the gated event-identity
+header, and the print trigger. Piloted on BBTC; Throwdown/Liga/Cup Taster adoption is separate,
+future work (none of them has a PDF export today — see AUDIT.md / MUA-07-SPEC-V2.md for why the
+original all-four-modules draft was rescoped).
+
+Public API (three methods only — never touch `#pdf-overlay` classList from a module):
+```javascript
+PdfExport.open({
+  fallbackTitle: 'Barista Team Championship',  // shown when no eventName is configured
+  pages: [
+    { sectionTitle: 'Preliminary Standings', metaHtml: '...', bodyHtml: '<table>...</table>' },
+    { sectionTitle: 'Match Results',         metaHtml: '...', bodyHtml: '<table>...</table>' },
+  ]
+});
+PdfExport.close();  // hide the overlay
+PdfExport.print();  // trigger window.print()
+```
+
+The module supplies `pages` — each page's own report markup (`bodyHtml`) and the small
+top-right meta block (`metaHtml`, e.g. a section label + date). `shared/pdf.js` builds
+everything else: the Seduh mark line, the event identity block, the section title, and the
+footer (attribution + export timestamp).
+
+**Header/footer field mapping** (read from `seduh_handoff` v2, same key `audience.js` reads):
+
+| Element | Always shown | Behind `pdf_branding` gate |
+|---|---|---|
+| Seduh mark line | ✅ | — |
+| `eventName` (plain text) | ✅ (falls back to `fallbackTitle` if unset) | — |
+| `logoUrl`, `eventSubtitle`, `eventDate`, `eventVenue` | — | ✅ |
+
+`bgColor` never propagates to the PDF header, on any tier — stays scoped to `.event-band` per D1.
+
+**Contract:** `#pdf-overlay` markup (toolbar + `#pdf-content` slot) must already exist in the
+module's HTML, same as `#aud-overlay` does for `audience.js`. `.pdf-*` overlay/header/footer CSS
+lives in `shared/theme.css`; a module's own `<style>` block only needs its report-table classes
+(e.g. BBTC's `.pdf-lb-table`, `.pdf-res-table`).
 
 ---
 
@@ -593,10 +661,12 @@ Firebase project: `seduh-score` · console.firebase.google.com
 
 | Service | Status | Notes |
 |---|---|---|
-| Hosting | ✅ Live (v4.3+) | Custom domain seduhscore.com via Cloudflare |
+| Hosting | ✅ Live (v4.3+) | Custom domain seduhscore.com via Cloudflare. `firebase.json` also wires `redirects` (`/` → `/coming-soon/`, v5.3.3) |
 | Auth — Email/Password | ✅ Live (v4.8+) | `shared/firebase.js` + `shared/auth.js` |
-| Firestore | ✅ Live (v4.8+) | `platform/switches` doc; `slideshow` collection |
+| Firestore rules | ✅ Live (v4.8+) | `firestore.rules`; `platform/switches` doc, `slideshow`, `upcoming_events`, `booth_sessions`/`booth_guess`/`booth_grinder` collections |
+| Firestore indexes | ✅ Live (v5.3.1-booth+) | `firestore.indexes.json` — composite indexes for `booth_guess` (sessionId+ts) and `booth_grinder` (sessionId+timeMs); wired into `firebase.json`'s `"firestore"` block alongside rules |
 | Storage | ✅ Live (v4.8.1+) | Slideshow images; org logos (future) |
+| Storage rules | ✅ Live (v5.3.1-rules+) | `storage.rules` (repo file, not console-only) — mirrors Firestore's `super_admin`-write pattern; covers `slideshow/` and `upcoming_events/`; wired into `firebase.json`'s `"storage"` block |
 | Cloud Functions | ✅ Live (v4.8+) | Node 24 · us-central1 Gen 2 |
 
 ### Cloud Functions
@@ -728,12 +798,33 @@ Seduh Score is a 1+1 project (one developer, one AI collaborator) intended to ru
 - [ ] Knowledge base snapshots replaced if CHANGELOG or CONVENTIONS changed
 - [ ] Changes committed to `dev` with a clear commit message
 
+Standing habit, same moment as the CHANGELOG update above — whenever this
+session bumped CHANGELOG.md's top-line version: run the audit in
+KB-PROTOCOL.md before closing the session.
+
 **After any strategy session where a significant decision was made:**
 - [ ] Decision captured in ROADMAP.md, STRATEGY.md, or PLAN_OF_ACTION.md
 - [ ] Knowledge base updated if any of those documents changed
 
 **The single highest-leverage habit:**
 Never close a build session without a CHANGELOG entry. Everything else can slip occasionally. This one cannot.
+
+---
+
+### Knowledge base consistency
+
+The full protocol for auditing drift across CHANGELOG.md, CLAUDE.md,
+CONVENTIONS.md, README.md, PLAN_OF_ACTION.md, ROADMAP.md, and STRATEGY.md
+lives in a dedicated document: **KB-PROTOCOL.md**.
+
+Load KB-PROTOCOL.md into any session — Strategy, Code, or Design — to force
+a drift audit. It defines which documents are checked on every version bump
+versus only on major/minor bumps, the exact version-stamp format every
+document must carry, and how to run `scripts/check-doc-versions.sh` for a
+mechanical first pass.
+
+Do not duplicate that logic here — if the audit protocol itself needs to
+change, update KB-PROTOCOL.md, not this section.
 
 ---
 
@@ -771,4 +862,4 @@ Before starting work in a new session — **all session types: Strategy, Code, D
 
 ---
 
-*Last updated: June 2026 — CONVENTIONS audit pass v5.1.2: directory tree updated (6 new files/dirs), storage key table completed (Cup Taster + Audience config), BBTC audience row corrected (POA-16 resolved), audInited debt note removed, stub-behaviour comment removed (Firebase live v4.8.0), FEATURES registry corrected (audience_links split, audience_branding + pdf_branding added), handoff v1/v2 shapes documented, MUA chrome button classes added, Firebase section rewritten (live stack), GitHub Pages → Firebase Hosting, font-family follow-up removed (POA-06 resolved)*
+*Last updated: July 2026 — CONVENTIONS audit pass v5.4.0 (reconciling v5.1.2 → v5.4.0 CHANGELOG drift): directory tree updated (added `about/`, `coming-soon/`, `booth/`), `shared/sound.js` documented (tree entry + component API section), Firebase live-stack table split into six rows (Firestore rules/indexes and Storage/Storage rules now listed separately, per `firestore.indexes.json` and `storage.rules`), Hosting row notes the `/` → `/coming-soon/` redirect. BBTC's residual `.hdr-s`/`.hdr-t` inner-class rename is not tracked in this file (no POA cross-reference table exists here to correct) — it now lives under PLAN_OF_ACTION.md's POA-38, not the already-closed POA-06.*

@@ -2,6 +2,145 @@
 
 ---
 
+## [docs] — KB Consistency Protocol adopted · July 2026
+
+### KB-PROTOCOL.md (new)
+- docs: new dedicated protocol document — document registry with authority tiers
+  (Ground truth / Tier A / Tier B / Tier C), the version-stamp contract (`*State:
+  vX.Y.Z — matches CHANGELOG.md as of [Month Year]*`, first line after the title),
+  a reconciliation trigger matrix, severity levels (cosmetic / status drift / fact
+  drift), and the audit procedure. Root cause captured: the prior session-close
+  checklist only mandatorily re-checked CLAUDE.md/CONVENTIONS.md on a version bump —
+  ROADMAP.md, STRATEGY.md, and PLAN_OF_ACTION.md sat behind a conditional trigger
+  that a Code-session bump never fired, which is exactly how the v5.4.0 drift
+  described below accumulated
+
+### scripts/check-doc-versions.sh (new)
+- feat: mechanical companion script — extracts each Tier A/B document's version
+  stamp and diffs it against CHANGELOG.md's latest numbered header; exit 0 (clean),
+  1 (drift), or 2 (setup error). Checks version-stamp drift only — status drift and
+  fact drift still require the read-through in KB-PROTOCOL.md's audit procedure
+
+### CONVENTIONS.md
+- docs: new "Knowledge base consistency" subsection added (between "Before closing
+  any session" and "Before building any new module") pointing to KB-PROTOCOL.md as
+  the single home for the audit protocol
+- docs: the prior standing-habit paragraph (spot-check CLAUDE.md every bump,
+  CONVENTIONS.md itself at major/minor boundaries only) replaced with a pointer to
+  run the KB-PROTOCOL.md audit on every CHANGELOG.md version bump — removes the
+  asymmetry that caused the drift
+- docs: top-line version stamp added
+
+### Version stamps added
+`*State: v5.4.0 — matches CHANGELOG.md as of July 2026*` added as the first line
+after the title in `CLAUDE.md`, `README.md`, `STRATEGY.md`, and `PLAN_OF_ACTION.md`
+(`ROADMAP.md` and `CONVENTIONS.md` covered above/below).
+
+### MUA-07 status correction
+- `PLAN_OF_ACTION.md`: NEXT UP line no longer names MUA-07 as active (it shipped at
+  v5.4.0) — sequence log gained an explicit `✅ MUA-07` line; NEXT UP now points to
+  the 30 August throwdown per ROADMAP.md/STRATEGY.md
+- `ROADMAP.md`: Executive Summary and "Current State" header version references
+  updated v5.3.0 → v5.4.0; Master Version Timeline's v5.4.0 row changed from
+  "🔵 Next active" to "✅ Jul 2026" (MUA-07 shipped, rescoped to BBTC pilot per
+  MUA-07-SPEC-V2.md); footer note reconciled to v5.4.0 / MUA-02–07 complete
+
+### Verified
+`./scripts/check-doc-versions.sh` run before and after — baseline showed
+`README.md`/`PLAN_OF_ACTION.md`/`ROADMAP.md`/`STRATEGY.md` mismatched and
+`CLAUDE.md` with no stamp; after this session's edits, all six tracked documents
+report `OK` against CHANGELOG.md's v5.4.0.
+
+### Not touched
+Module files, shared JS/CSS files, ROADMAP.md's Codenames table and Strategic
+Principles sections.
+
+---
+
+## [docs] — Session-discipline cadence adopted, POA-38/39 · July 2026
+
+### CONVENTIONS.md
+- docs: "Before closing any session" checklist gained a standing post-CHANGELOG-bump
+  spot-check — CLAUDE.md's architecture tree/Repo section/known-quirks on every version
+  bump, same spot-check against CONVENTIONS.md itself at major/minor boundaries only
+
+### PLAN_OF_ACTION.md
+- docs: POA-38 (Docs/KB reconciliation cadence) closed — resolved via the standing
+  CONVENTIONS.md checklist item above; no dedicated recurring session needed
+- docs: POA-39 opened — BBTC .hdr-s/.hdr-t inner class rename (cosmetic naming debt
+  split out of POA-38's closing note); backlog, no urgency
+
+### Not touched
+CLAUDE.md, ROADMAP.md, STRATEGY.md, module/shared JS/CSS files.
+
+---
+
+## [docs] — CONVENTIONS.md reconciliation pass · July 2026
+
+### CONVENTIONS.md
+- docs: directory tree updated — added about/, coming-soon/, booth/ (shipped [5.3.1]–[5.3.3],
+  [5.3.0-booth]–[5.3.1-booth]; booth flagged not yet publicly deployed)
+- docs: shared/sound.js documented — tree entry + new component API section (unlock/beep/horn)
+- docs: Firebase live-stack table split into six rows — firestore.indexes.json ([5.3.1-booth])
+  and storage.rules ([5.3.1-rules]) now listed as separate deployables from firestore.rules/
+  firebase.json; Hosting row notes the "/" → "/coming-soon/" redirect ([5.3.2]/[5.3.3])
+- docs: footer stamp updated to July 2026 / v5.4.0
+- docs: .hdr-s/.hdr-t rename confirmed untracked in this file — flagged under POA-38
+  in PLAN_OF_ACTION.md
+
+### Not touched
+CLAUDE.md, ROADMAP.md, STRATEGY.md, PLAN_OF_ACTION*.md, module/shared JS/CSS files.
+
+---
+
+## [5.4.0] — Shared PDF export module, BBTC pilot · July 2026
+
+MUA-07, rescoped. Original draft assumed all four modules had an existing PDF export
+needing a shared header — a codebase check found only BBTC has PDF export at all, and
+its header was hardcoded, not handoff-driven. See MUA-07-SPEC-V2.md for the rescoping.
+Throwdown, Liga, and Cup Taster have no PDF export today; adoption is separate future work.
+
+### shared/pdf.js (new)
+
+- **feat:** new shared, format-agnostic PDF export module. Public API: `PdfExport.open({
+  pages, fallbackTitle })`, `PdfExport.close()`, `PdfExport.print()`. Owns the `#pdf-overlay`
+  lifecycle and renders the event-identity header/footer; the module supplies only its own
+  report markup per page (`sectionTitle`, `metaHtml`, `bodyHtml`)
+- **feat:** reads `seduh_handoff` (v2) directly, same convention as `audience.js` —
+  `eventName` always renders as plain text (falls back to `fallbackTitle` if unset);
+  `logoUrl`, `eventSubtitle`, `eventDate`, `eventVenue` render only when
+  `Gates.canAccess('pdf_branding').allowed`. `bgColor` never propagates to the PDF header,
+  on any tier — stays scoped to `.event-band` per D1
+
+### shared/gates.js
+
+- **feat:** new `pdf_branding` feature key, `{ minTier: 'per_event' }` — gates the full
+  identity block (logo + subtitle + date + venue) as one unit
+
+### shared/theme.css
+
+- **refactor:** `#pdf-overlay`, `.pdf-toolbar*`, `.btn-print`, `.pdf-page`, `.pdf-logo-row`,
+  `.pdf-event-name`, `.pdf-event-sub`, `.pdf-meta`, `.pdf-section-title`, `.pdf-footer`, and
+  the print media query moved here from BBTC's inline `<style>` — same pattern as `.aud-*`.
+  Two new classes added: `.pdf-id-block`, `.pdf-logo` (org logo image next to the Seduh mark
+  line). Contract tokens (`#pdf-overlay`, `.pdf-*` print rules) unchanged, per CLAUDE.md
+
+### bbtc/index.html
+
+- **fix:** `generatePDF()` no longer hardcodes `"Barista Team Championship"` and the Seduh
+  attribution line — both now come from `PdfExport.open()`'s header logic, reading the
+  organiser's `eventName`/`logoUrl`/`eventSubtitle`/`eventDate`/`eventVenue` from the v2
+  handoff instead of module-local state
+- **refactor:** `#pdf-print`/`#pdf-close` toolbar buttons now call `PdfExport.print()` /
+  `PdfExport.close()` instead of touching `#pdf-overlay` classList directly
+- BBTC's own report tables (`.pdf-lb-table`, `.pdf-res-table`, rank/score/badge classes)
+  are unchanged and stay in BBTC's own `<style>` block
+
+### CONVENTIONS.md / CLAUDE.md
+
+- **docs:** `shared/pdf.js` added to architecture trees and B1 approved-shared-files list;
+  new "PDF export (`shared/pdf.js`)" section documents the public API and field mapping
+
 ## [5.3.3] — Root routing fix: rewrite → redirect · July 2026
 
 ### firebase.json

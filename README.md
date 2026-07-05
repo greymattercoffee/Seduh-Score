@@ -1,5 +1,7 @@
 # Seduh Score ☕
 
+*State: v5.4.0 — matches CHANGELOG.md as of July 2026*
+
 **Coffee competition platform for organisers in Brunei and Southeast Asia.**
 
 Built by [Firdaus Omar](https://github.com/mfosa7222) · [Grey Matter Coffee Werks](https://greymattercoffee.github.io), Brunei
