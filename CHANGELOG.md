@@ -2,6 +2,28 @@
 
 ---
 
+## [docs] — README.md self-contradiction fix · same-day follow-up to KB Consistency Protocol adoption · July 2026
+
+### README.md
+- **fix:** the `*State: v5.4.0*` stamp added in the prior session's KB Consistency
+  Protocol adoption commit (`03b2c0e`) still left the footer reading "Current
+  version: v5.3.3" — the document contradicted its own top-line stamp, the exact
+  failure mode the version-stamp contract in KB-PROTOCOL.md exists to prevent.
+  Footer updated to v5.4.0 to match
+- **docs:** Shared Components table gained two rows missing since their respective
+  ships — `shared/pdf.js` (v5.4.0, MUA-07, BBTC-only pilot) and `shared/sound.js`
+  (used by BBTC, Liga, Timer)
+
+### Verified
+`./scripts/check-doc-versions.sh` re-run — README.md still reports OK (the script
+checks only the stamp line, not the footer or table, so the footer/stamp agreement
+was confirmed by direct read, not by the script).
+
+### Not touched
+Module files, shared JS/CSS files, all other KB documents.
+
+---
+
 ## [docs] — KB Consistency Protocol adopted · July 2026
 
 ### KB-PROTOCOL.md (new)
