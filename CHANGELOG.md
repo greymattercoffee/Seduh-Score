@@ -2,6 +2,91 @@
 
 ---
 
+## [5.5.0] — Throwdown results archive, Seduh Records seed (POA-40) · July 2026
+
+First permanent record-keeping from a live Seduh Score event. Full spec:
+`THROWDOWN-ARCHIVE-SPEC.md` (registered Tier C in KB-PROTOCOL.md). Locked ready
+date remains 23 August 2026; this entry covers the build, not the go-live.
+
+### throwdown/index.html
+
+- **feat:** new Firestore collection `throwdown_records` — a finalized event
+  archives automatically the moment a champion is confirmed, as a side effect
+  of `render()` rather than patching each of the four call sites that can set
+  `S.bracket.phase = 'done'` (`advanceBracket()` ×2 branches,
+  `continueAfterWildCard()`, `skipWildCard()`). `render()` runs unconditionally
+  after all four, so hooking the shared choke point is the single, reliable
+  trigger. Guarded by a persisted `S.bracket._archived` flag — fires exactly
+  once per event, survives reloads, verified via three repeated `render()`
+  calls producing zero further write attempts
+- **feat:** non-blocking, fail-open by design — the write is never awaited by
+  `render()`, and `archiveThrowdownRecord()` catches all errors internally
+  (`console.warn`, no user-facing state). Verified against an unauthenticated
+  session: write correctly rejected (`permission-denied`), champion reveal and
+  podium display unaffected
+- **feat:** no write fires if the bracket never reaches `phase: 'done'`
+  (event abandoned mid-bracket) — verified
+- **feat:** new "Seduh Records" setup-screen card — `isTest` toggle ("This is
+  a test run"), defaulting to `true` (the safer default per
+  THROWDOWN-ARCHIVE-SPEC.md §10's open question). Written into every record
+  produced by that event session
+- **feat:** new additive `type="module"` script block bridges the signed-in
+  org's uid to the classic-script scope as `window._tdUid`, via
+  `onAuthStateChanged` imported directly from `shared/firebase.js`'s existing
+  `auth` export. Mirrors the `window._sdDb` bridge `gates.js` already uses.
+  `shared/firebase.js` and `shared/auth.js` themselves are untouched — this
+  pattern is not yet promoted to CONVENTIONS.md; revisit if a second classic-script
+  module ever needs the same bridge
+- **deviation from spec:** `eventDate` is written as the free-text string
+  already stored in `S.eventDate` (e.g. "14 June 2025"), not a Firestore
+  `timestamp` as THROWDOWN-ARCHIVE-SPEC.md §4 specifies. Throwdown's setup
+  screen has no date picker and enforces no format — parsing unvalidated
+  free text into a `Timestamp` was judged an unsafe guess rather than a
+  faithful implementation of the spec. Revisit if/when the setup screen gets
+  a real date input
+- **feat:** `participants[].roundReached` computed from the furthest round
+  each name appears in across `S.bracket.rounds` (later rounds overwrite
+  earlier ones as the array is walked in chronological order); `revivalUsed`
+  reuses the existing `b.revivedNames` array; `redemptionUsed` is `!!S.redemption`
+
+### admin/index.html
+
+- **feat:** new "Seduh Records" tab — view (event name, date, champion,
+  `isTest` badge, newest first) and a reset tool for test data
+- **feat:** reset tool is double-confirmation: reveals a live count scoped to
+  `isTest == true` before any action is possible, then requires typing
+  `DELETE` exactly to enable the final delete button. The delete path only
+  ever operates on documents returned by the `isTest == true` query, and is
+  additionally enforced server-side (see firestore.rules below) — a real
+  event record cannot be deleted by this tool even if the client code were
+  altered, not just by UI discipline
+
+### firestore.rules
+
+- **feat:** `throwdown_records/{recordId}` — create: authenticated org only,
+  and only where `orgId` matches the writing user's own uid (no cross-org
+  writes); read: `super_admin` only for v1, per spec (public read deferred
+  until Seduh ID actually consumes this data); delete: `super_admin` **and**
+  `resource.data.isTest == true` — the structural guarantee behind the admin
+  reset tool. No `update` permission — not needed for v1
+
+### Not touched (per spec, v1 scope)
+
+Liga Seduh, Cup Taster, BBTC archiving; public read access to
+`throwdown_records`; competitor profile linking (Seduh ID v6.1 territory);
+`Store()` / `load()` / any localStorage persistence path — fully decoupled
+from the v5.0 storage-adapter precondition; `shared/gates.js`, `shared/auth.js`,
+`shared/firebase.js` used as-is
+
+### Deferred
+
+- POA-41 (Super Admin org roster/search, Codename Pagon) — same v5.5.0 window,
+  tracked as a separate ticket, not part of this entry
+- Manual date input for Throwdown's setup screen, which would resolve the
+  `eventDate` string-vs-timestamp deviation above
+
+---
+
 ## [docs] — KB-PROTOCOL.md amended · July 2026
 KB-PROTOCOL.md amended — Section 5 now requires reconciling other version references in a document whenever its stamp is corrected, closing the gap that caused the README.md footer contradiction.
 

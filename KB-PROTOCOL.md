@@ -54,7 +54,7 @@ independently maintained.
 | `PLAN_OF_ACTION.md` | POA item status, the "NEXT UP" line | **A** | No |
 | `ROADMAP.md` | Version sequencing, phase status, Current State table | **A** | No |
 | `STRATEGY.md` | Business model, pricing, tiers, BNCC status | **B** | No |
-| `LIGA-SPEC.md`, `CUP-TASTER-SPEC.md`, `MUA_mobile_audit.md`, `PLAN_OF_ACTION_MUA.md`, `AUDIT.md`, and similar single-initiative documents | Historical record of a closed initiative | **C** | No |
+| `LIGA-SPEC.md`, `CUP-TASTER-SPEC.md`, `MUA_mobile_audit.md`, `PLAN_OF_ACTION_MUA.md`, `AUDIT.md`, `THROWDOWN-ARCHIVE-SPEC.md`, and similar single-initiative documents | Historical record of a closed initiative | **C** | No |
 
 **Tier definitions:**
 - **Ground truth** — CHANGELOG.md. Everything else is checked *against* it, never the reverse.
@@ -199,6 +199,7 @@ document and compares it against CHANGELOG.md's latest numbered header.
 
 ---
 
-*Protocol established: July 2026. Companion to CONVENTIONS.md — that document
+*Protocol established: July 2026. Last updated: July 2026 — `THROWDOWN-ARCHIVE-SPEC.md`
+registered as Tier C (POA-40 seed spec). Companion to CONVENTIONS.md — that document
 covers how to build; this one covers whether the knowledge base describing
 the build is telling the truth.*
