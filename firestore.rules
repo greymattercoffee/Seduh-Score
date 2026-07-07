@@ -25,6 +25,20 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Throwdown results archive — Seduh Records seed (POA-40)
+    // Write: authenticated org only, and only to its own records (orgId == uid)
+    // Read: super_admin only for v1 — public read deferred until Seduh ID consumes this data
+    // Delete: super_admin only, AND scoped to isTest == true on the document being deleted —
+    // this is the structural guarantee the reset tool relies on (per THROWDOWN-ARCHIVE-SPEC.md
+    // §6): a real event record (isTest == false) is unreachable by delete no matter what query
+    // the admin panel sends, because the rule itself re-checks resource.data on every request.
+    match /throwdown_records/{recordId} {
+      allow read: if request.auth != null && request.auth.token.super_admin == true;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.orgId;
+      allow delete: if request.auth != null && request.auth.token.super_admin == true
+                    && resource.data.isTest == true;
+    }
+
     // Booth mini-games — public read/write, sessionId-scoped by application logic
     match /booth_sessions/{sessionId} {
       allow read, write: if true;
