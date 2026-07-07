@@ -273,7 +273,7 @@
 
   <footer class="fd-foot">
     <div class="fd-credit">Built by <a href="https://instagram.com/mfosaminumkopi" target="_blank" rel="noreferrer">Firdaus Omar</a> · Grey Matter Coffee Werks, Brunei<br>Free tools save to this device.</div>
-    <span class="live-pill"><span class="dot"></span>Seduh Score · v4.6.1</span>
+    <span class="live-pill"><span class="dot"></span>Seduh Score · v<span id="footer-version"></span></span>
   </footer>
 
   <!-- module info modal -->
@@ -290,8 +290,11 @@
 
 </div>
 
+<script src="shared/version.js"></script>
 <script src="shared/gates.js"></script>
 <script>
+  document.getElementById('footer-version').textContent = SEDUH_VERSION;
+
 (function(){
   "use strict";
 

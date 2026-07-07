@@ -2,6 +2,49 @@
 
 ---
 
+## [5.5.1] — Front-page version pill fix (POA-42 Part A) · July 2026
+
+Part A of POA-42 only. Part B (shared `upcoming-events` module + front-page
+banner) was scoped during the Code session and flagged back to the strategy
+chat rather than built — see "Deferred" below.
+
+### shared/version.js (new)
+
+- **feat:** new single-source-of-truth version constant, `SEDUH_VERSION`.
+  Replaces the footer's hardcoded literal, which had drifted since POA-32
+  (`v4.6.1`) — every version from v4.7.0 through v5.5.0 shipped without
+  updating it
+- Approved as the fourth post-B1 shared file (locked in POA-42-CODE-HANDOFF.md,
+  option (a) of the two proposed approaches). Option (b) — sourcing from
+  whatever `scripts/check-doc-versions.sh` treats as ground truth — was ruled
+  out: that script greps Tier A/B markdown files and has no client-side
+  runtime equivalent
+
+### index.html
+
+- **fix:** footer now reads `Seduh Score · v` + `SEDUH_VERSION` via a
+  `#footer-version` span, set from `shared/version.js` on load, instead of a
+  hand-edited string. Bumping the constant is now the single required step —
+  no other footer content or layout touched
+
+### Deferred — Part B (front-page banner)
+
+`index.html`'s "Now on Seduh Score" banner (`.fd-ribbon` — a thin full-bleed
+strip) and `coming-soon/index.html`'s carousel (a tall boxed image card with
+format badge, description, and rotation controls) turned out to be
+structurally different components, not a container-sizing mismatch as
+anticipated in POA-42-DRAFT.md. Per the brief's own instruction to stop
+rather than improvise a visual fix, this was flagged back rather than
+decided unilaterally in the Code session. Candidate direction raised for the
+strategy chat: a second, slimmer render mode inside `shared/upcoming-events.js`
+that reuses the ribbon's existing markup/CSS — this would reopen the
+"carousel only, no static mode" decision locked in POA-42-DRAFT.md, so it
+needs to go through the strategy chat rather than be built ahead of that
+call. The front-page banner still shows the stale June 2026 hardcoded event
+as of this entry.
+
+---
+
 ## [5.5.0] — Throwdown results archive, Seduh Records seed (POA-40) · July 2026
 
 First permanent record-keeping from a live Seduh Score event. Full spec:

@@ -1,6 +1,6 @@
 # Conventions — Seduh Score
 
-*State: v5.5.0 — matches CHANGELOG.md as of July 2026*
+*State: v5.5.1 — matches CHANGELOG.md as of July 2026*
 
 Coding patterns, architecture decisions, and development standards for the Seduh Score platform. Read this at the start of any new chat session before touching code.
 
@@ -35,6 +35,7 @@ seduh-score/
     ├── pdf.js                  ← v5.4+ shared PDF export module (MUA-07, BBTC pilot)
     ├── sound.js                ← synthesised timer/reveal audio cues (no audio files); used by
     │                              bbtc/index.html, liga/index.html, timer/index.html
+    ├── version.js              ← v5.5.1+ platform version constant (POA-42 Part A) — sourced by index.html footer
     ├── timer.js
     └── assets/                 ← seduh-mark.svg + favicons
 ```
@@ -56,7 +57,7 @@ have no PDF export yet and should not include it until each gets its own scoped 
 
 **Rule:** Never copy shared component code into a module file. Always reference from `../shared/`.
 
-**Rule (B1 — locked):** Each module stays one self-contained `index.html`. No build step, no bundler. `shared/` expansion is the consistency mechanism — new shared files must be explicitly approved in the strategy chat before creation. Approved post-B1 shared files: `gates.js` (v4.3), `eventconfig.js` (v4.7), `firebase.js` and `auth.js` (v4.8), `pdf.js` (v5.4, MUA-07).
+**Rule (B1 — locked):** Each module stays one self-contained `index.html`. No build step, no bundler. `shared/` expansion is the consistency mechanism — new shared files must be explicitly approved in the strategy chat before creation. Approved post-B1 shared files: `gates.js` (v4.3), `eventconfig.js` (v4.7), `firebase.js` and `auth.js` (v4.8), `pdf.js` (v5.4, MUA-07), `version.js` (v5.5.1, POA-42 Part A).
 
 ---
 
@@ -496,6 +497,20 @@ module's HTML, same as `#aud-overlay` does for `audience.js`. `.pdf-*` overlay/h
 lives in `shared/theme.css`; a module's own `<style>` block only needs its report-table classes
 (e.g. BBTC's `.pdf-lb-table`, `.pdf-res-table`).
 
+### Version constant (`shared/version.js`) — v5.5.1+ (POA-42 Part A)
+
+Approved fourth post-B1 shared file. Single source of truth for the version string shown in
+`index.html`'s footer — fixes drift where the footer's hardcoded literal (`v4.6.1`) went
+unmaintained from POA-32 through v5.5.0.
+
+```javascript
+const SEDUH_VERSION = '5.5.1';  // bump alongside CHANGELOG.md's top-line version
+```
+
+Loaded as a classic `<script>` (no exports, no `.mount()` — this is a constant, not a
+component). `index.html` reads it once on load to set `#footer-version`'s text content.
+Currently `index.html`-only; not wired into any module's `index.html`.
+
 ---
 
 ## CSS conventions
@@ -862,4 +877,4 @@ Before starting work in a new session — **all session types: Strategy, Code, D
 
 ---
 
-*Last updated: July 2026 — v5.5.0 (POA-40, Throwdown results archive / Seduh Records seed): Firestore live-stack table's rules row now lists the new `throwdown_records` collection. Prior pass — CONVENTIONS audit v5.4.0 (reconciling v5.1.2 → v5.4.0 CHANGELOG drift): directory tree updated (added `about/`, `coming-soon/`, `booth/`), `shared/sound.js` documented (tree entry + component API section), Firebase live-stack table split into six rows (Firestore rules/indexes and Storage/Storage rules now listed separately, per `firestore.indexes.json` and `storage.rules`), Hosting row notes the `/` → `/coming-soon/` redirect. BBTC's residual `.hdr-s`/`.hdr-t` inner-class rename is not tracked in this file (no POA cross-reference table exists here to correct) — it now lives under PLAN_OF_ACTION.md's POA-38, not the already-closed POA-06.*
+*Last updated: July 2026 — v5.5.1 (POA-42 Part A, front-page version pill fix): new `shared/version.js` documented (tree entry, B1 approved-files list, component API section). Part B of POA-42 (shared `upcoming-events` module + front-page banner) was flagged back to the strategy chat mid-session — not built, not reflected here. Prior pass — v5.5.0 (POA-40, Throwdown results archive / Seduh Records seed): Firestore live-stack table's rules row now lists the new `throwdown_records` collection. Prior pass — CONVENTIONS audit v5.4.0 (reconciling v5.1.2 → v5.4.0 CHANGELOG drift): directory tree updated (added `about/`, `coming-soon/`, `booth/`), `shared/sound.js` documented (tree entry + component API section), Firebase live-stack table split into six rows (Firestore rules/indexes and Storage/Storage rules now listed separately, per `firestore.indexes.json` and `storage.rules`), Hosting row notes the `/` → `/coming-soon/` redirect. BBTC's residual `.hdr-s`/`.hdr-t` inner-class rename is not tracked in this file (no POA cross-reference table exists here to correct) — it now lives under PLAN_OF_ACTION.md's POA-38, not the already-closed POA-06.*
