@@ -427,6 +427,7 @@
   .adm-ev-badge.fmt-throwdown { color: var(--am-bd); border-color: var(--am-bd); background: rgba(224,154,54,.1); }
   .adm-ev-badge.fmt-liga      { color: var(--gn);    border-color: var(--gn);    background: rgba(11,122,82,.12); }
   .adm-ev-badge.fmt-cup-taster{ color: #4a90d9;       border-color: #4a90d9;      background: rgba(74,144,217,.12); }
+  .adm-ev-badge.fmt-btc       { color: #6d28d9;       border-color: #6d28d9;      background: rgba(109,40,217,.1); }
   .adm-ev-actions { display: flex; gap: 6px; flex-shrink: 0; }
   .adm-ev-actions button {
     width: 28px;
@@ -666,6 +667,7 @@
             <option value="throwdown">Throwdown</option>
             <option value="liga">Liga</option>
             <option value="cup-taster">Cup Taster</option>
+            <option value="btc">BTC</option>
           </select>
         </div>
         <div>
@@ -1063,9 +1065,20 @@ document.getElementById('ss-upload-btn').addEventListener('click', async () => {
 
 
 // ── Upcoming Events Manager ──
-const EV_FORMAT_LABEL = { 'throwdown': 'Throwdown', 'liga': 'Liga', 'cup-taster': 'Cup Taster' };
+const EV_FORMAT_LABEL = { 'throwdown': 'Throwdown', 'liga': 'Liga', 'cup-taster': 'Cup Taster', 'btc': 'BTC' };
 let evEditingId = null;
 let evEditingStoragePath = null;
+
+// eventId — stable identifier for future results-page deep-linking (POA-42
+// Part B). Auto-derived from the event name plus a short timestamp suffix
+// for uniqueness; no dedicated form input needed. Populated on create only
+// — existing docs predating this field are left as-is (guarded, not
+// migrated, per POA-42-PART-B-CODE-HANDOFF.md).
+function slugifyEvent(name) {
+  const base = String(name || '').toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return (base || 'event') + '-' + Date.now().toString(36);
+}
 
 async function loadEvents() {
   const list = document.getElementById('ev-list');
@@ -1236,6 +1249,7 @@ document.getElementById('ev-save-btn').addEventListener('click', async () => {
     } else {
       await addDoc(collection(db, 'upcoming_events'), {
         eventName, eventDate, eventVenue, eventFormat, eventDescription,
+        eventId: slugifyEvent(eventName),
         imageUrl: imageUrl || null,
         storagePath: storagePath || null,
         createdAt: serverTimestamp(),

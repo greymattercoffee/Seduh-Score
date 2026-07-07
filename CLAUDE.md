@@ -1,6 +1,6 @@
 # Seduh Score — Claude Code orientation
 
-*State: v5.5.1 — matches CHANGELOG.md as of July 2026*
+*State: v5.5.2 — matches CHANGELOG.md as of July 2026*
 
 Read these two files in full before touching anything:
 1. `CONVENTIONS.md` — all patterns, naming rules, architecture decisions
@@ -85,6 +85,7 @@ shared/
   pdf.js                ← shared PDF export module (v5.4, MUA-07 — BBTC pilot only)
   sound.js              ← shared sound effects (used by bbtc, liga, timer)
   version.js            ← platform version constant (v5.5.1, POA-42 Part A) — sourced by index.html footer
+  upcoming-events.js    ← shared event carousel (v5.5.2, POA-42 Part B) — UpcomingEvents.mount(); used by index.html + coming-soon/index.html
   assets/               ← seduh-mark.svg + favicons
 ```
 

@@ -1,6 +1,6 @@
 # Seduh Score ☕
 
-*State: v5.5.1 — matches CHANGELOG.md as of July 2026*
+*State: v5.5.2 — matches CHANGELOG.md as of July 2026*
 
 **Coffee competition platform for organisers in Brunei and Southeast Asia.**
 
@@ -179,4 +179,4 @@ Organisational licensing is available for coffee associations, competition bodie
 - `CONVENTIONS.md` — code patterns, token names, git workflow
 - `CHANGELOG.md` — version history, what changed and when
 
-**Current version:** v5.5.1
+**Current version:** v5.5.2

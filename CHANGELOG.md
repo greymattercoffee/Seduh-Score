@@ -2,6 +2,98 @@
 
 ---
 
+## [5.5.2] — Shared upcoming-events module + front-page banner (POA-42 Part B) · July 2026
+
+Visual direction locked via mockup review before this session — full-bleed,
+icon-based front-page banner, no photos. Both `index.html` and
+`coming-soon/index.html` now read `upcoming_events` through one shared module
+instead of independent inline carousels.
+
+### shared/upcoming-events.js (new)
+
+- **feat:** approved fifth post-B1 shared file. `UpcomingEvents.mount(selector,
+  { media: 'photo'|'icon', onEventClick? })` — `media:'photo'` reproduces
+  `coming-soon`'s original card carousel exactly (image, format badge,
+  description, timer bar, prev/next, counter, arrow-key nav);
+  `media:'icon'` is the new front-page treatment (icon + accent swatch,
+  event name + meta, format pill, rotation dots), both sharing the same
+  5s rotation/offline-cache/fallback logic
+- **feat:** query changed to mixed recent-past + upcoming: `eventDate >=
+  (today − 10 days)`, ascending, `limit(5)` — a single query, not two
+  merged; events age out of rotation automatically 10 days after their date,
+  no manual cleanup routine
+- **feat:** per-event kicker label computed per rotation frame — "Recently
+  on Seduh Score" for past `eventDate`, "Upcoming on Seduh Score" for
+  future — not a static header
+- **feat:** BTC format/icon added (👥, purple `--pu`) — the only format
+  without an existing badge colour. Purple's only existing UI meaning is
+  Throwdown's redemption feature and demo-mode flag; an event-listing badge
+  is a different surface, so this doesn't collide with the locked semantic
+  colour contract (blue=rounds, green=completion/winners, purple=redemption,
+  red=destructive/ties, amber=brand)
+- **fix (guard):** event docs missing `eventFormat`/`eventId` fall back to a
+  generic amber pill/icon rather than erroring — old docs untouched, not
+  migrated
+- **deviation from POA-42-PART-B-CODE-HANDOFF.md:** the brief specified a new
+  `format` field, but the admin panel already writes `eventFormat` for this
+  exact fact. Adding a second field for the same value would just be a new
+  drift source, so this module reads/writes the existing `eventFormat`
+  field (adding a `btc` option to it) instead of introducing a parallel one
+
+### coming-soon/index.html
+
+- **refactor:** inline carousel/data logic stripped, replaced with
+  `UpcomingEvents.mount('#cs-carousel', { media: 'photo' })`. Visual output
+  and behavior unchanged apart from the intentional mixed-window query and
+  the new per-event kicker label (not a regression — extends the same
+  data-driven-label logic added for the front-page banner to this page too)
+
+### index.html
+
+- **feat:** front-page "Now on Seduh Score" banner — previously a
+  hand-typed string frozen at "Liga Seduh Bawah Tanah, 14 June 2026" —
+  replaced with `UpcomingEvents.mount('#fd-events', { media: 'icon' })`.
+  Full-bleed, icon-based, 5s rotation, format pill + dots, per mockup
+  reviewed in the strategy chat. Old `.fd-ribbon-rail/-main/-title/-meta/-cta`
+  CSS removed as dead code (unused after the markup swap); `.fd-ribbon`/
+  `.fd-ribbon-in` retained as the shared full-bleed container
+
+### admin/index.html
+
+- **feat:** `ev-format` select gains a `BTC` option (previously
+  Throwdown/Liga/Cup Taster only) — matching badge CSS and label added
+- **feat:** new event docs (create path only) get an auto-derived `eventId`
+  slug (`slugifyEvent()` — kebab-cased event name + short timestamp suffix)
+  for future results-page deep-linking. No new form input — this doesn't
+  require an organiser decision, so it's generated silently. Edit path
+  (`updateDoc`) does not backfill `eventId` on older docs — out of scope
+  per the brief, guarded rather than migrated
+
+### shared/version.js
+
+- **fix:** `SEDUH_VERSION` bumped to `5.5.2`. The brief listed this file as
+  do-not-touch, but that instruction predates this being a two-patch
+  session — the constant's own contract (bump alongside CHANGELOG's
+  top-line version, per its header comment) means leaving it at `5.5.1`
+  would reproduce the exact staleness bug Part A shipped to prevent. No
+  change to the file's design or mechanism, just the value
+
+### firestore.rules
+
+- **No change.** Confirmed `upcoming_events` is still public-read,
+  super-admin-write only — the schema additions (`eventId`, new `btc`
+  format value) don't need a rules change
+
+### Not touched (per brief scope)
+
+`shared/gates.js`, `shared/auth.js`, `shared/firebase.js`, `shared/version.js`;
+any module file (`throwdown/`, `bbtc/`, `liga/`, `cup-taster/`, `timer/`);
+results/current-event destination page (`onEventClick` stays a no-op stub —
+deferred to right after the 30 Aug Throwdown once POA-40's archive has real
+data); product screenshots/demo section (Item #4, needs a Design pass first)
+
+---
+
 ## [5.5.1] — Front-page version pill fix (POA-42 Part A) · July 2026
 
 Part A of POA-42 only. Part B (shared `upcoming-events` module + front-page

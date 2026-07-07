@@ -32,20 +32,9 @@
   .plat-hdr-actions .btn-p,.plat-hdr-actions .btn-o{white-space:nowrap}
   .plat-hdr-sub{margin-left:.5rem}
 
-  /* ——— featured event ribbon (full-bleed, architectural — not a card) ——— */
+  /* ——— featured event banner (full-bleed; content rendered by shared/upcoming-events.js) ——— */
   .fd-ribbon{background:linear-gradient(100deg,var(--accent-bg),var(--surface2));border-bottom:1.5px solid var(--accent-bd)}
-  .fd-ribbon-in{max-width:var(--container);margin:0 auto;padding:clamp(20px,3vw,28px) clamp(16px,4vw,40px);
-    display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 30px}
-  .fd-ribbon-main{min-width:0;display:flex;gap:16px;align-items:stretch}
-  .fd-ribbon-rail{width:5px;align-self:stretch;min-height:56px;background:var(--accent);border-radius:3px;flex-shrink:0}
-  .fd-now{display:flex;align-items:center;gap:8px;margin-bottom:9px}
-  .fd-livedot{width:8px;height:8px;border-radius:50%;background:var(--gn);box-shadow:0 0 0 3px var(--gn-bg);animation:pulse 1.8s ease-in-out infinite}
-  .fd-ribbon-title{font-family:var(--font-display);font-weight:800;font-size:clamp(22px,2.9vw,32px);letter-spacing:-.02em;line-height:1.02;color:var(--ink)}
-  .fd-ribbon-meta{display:flex;flex-wrap:wrap;gap:7px 22px;margin-top:11px}
-  .fd-ribbon-meta span{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink2)}
-  .fd-ribbon-meta svg{width:15px;height:15px;color:var(--accent);flex-shrink:0}
-  .fd-ribbon-cta{border-radius:var(--rad-s);white-space:nowrap;display:inline-flex;align-items:center;gap:7px;text-decoration:none;flex-shrink:0}
-  .fd-ribbon-cta svg{width:15px;height:15px}
+  .fd-ribbon-in{max-width:var(--container);margin:0 auto;padding:clamp(20px,3vw,28px) clamp(16px,4vw,40px)}
 
   /* ——— hero (two-column action console) ——— */
   .fd-hero{max-width:var(--container);margin:0 auto;padding:clamp(28px,5vw,52px) clamp(16px,4vw,40px) clamp(18px,3vw,28px)}
@@ -182,22 +171,9 @@
     </div>
   </header>
 
-  <!-- ══ Featured event — full-bleed ribbon ══ -->
+  <!-- ══ Featured event — full-bleed banner (POA-42 Part B, shared/upcoming-events.js) ══ -->
   <section class="fd-ribbon">
-    <div class="fd-ribbon-in">
-      <div class="fd-ribbon-main">
-        <span class="fd-ribbon-rail"></span>
-        <div>
-          <div class="fd-now"><span class="fd-livedot"></span><span class="eyebrow">Now on Seduh Score · Upcoming</span></div>
-          <h2 class="fd-ribbon-title">Liga Seduh Bawah Tanah</h2>
-          <div class="fd-ribbon-meta">
-            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>Sat, 14 June 2026</span>
-            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>Grey Matter Coffee Werks, BSB</span>
-          </div>
-        </div>
-      </div>
-      <a href="#" class="btn-p fd-ribbon-cta">View event <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-    </div>
+    <div class="fd-ribbon-in" id="fd-events"></div>
   </section>
 
   <!-- ══ Hero — two-column action console ══ -->
@@ -292,8 +268,10 @@
 
 <script src="shared/version.js"></script>
 <script src="shared/gates.js"></script>
+<script src="shared/upcoming-events.js"></script>
 <script>
   document.getElementById('footer-version').textContent = SEDUH_VERSION;
+  UpcomingEvents.mount('#fd-events', { media: 'icon' });
 
 (function(){
   "use strict";

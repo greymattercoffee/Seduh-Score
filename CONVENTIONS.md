@@ -1,6 +1,6 @@
 # Conventions — Seduh Score
 
-*State: v5.5.1 — matches CHANGELOG.md as of July 2026*
+*State: v5.5.2 — matches CHANGELOG.md as of July 2026*
 
 Coding patterns, architecture decisions, and development standards for the Seduh Score platform. Read this at the start of any new chat session before touching code.
 
@@ -36,6 +36,7 @@ seduh-score/
     ├── sound.js                ← synthesised timer/reveal audio cues (no audio files); used by
     │                              bbtc/index.html, liga/index.html, timer/index.html
     ├── version.js              ← v5.5.1+ platform version constant (POA-42 Part A) — sourced by index.html footer
+    ├── upcoming-events.js      ← v5.5.2+ shared event carousel (POA-42 Part B) — UpcomingEvents.mount()
     ├── timer.js
     └── assets/                 ← seduh-mark.svg + favicons
 ```
@@ -57,7 +58,7 @@ have no PDF export yet and should not include it until each gets its own scoped 
 
 **Rule:** Never copy shared component code into a module file. Always reference from `../shared/`.
 
-**Rule (B1 — locked):** Each module stays one self-contained `index.html`. No build step, no bundler. `shared/` expansion is the consistency mechanism — new shared files must be explicitly approved in the strategy chat before creation. Approved post-B1 shared files: `gates.js` (v4.3), `eventconfig.js` (v4.7), `firebase.js` and `auth.js` (v4.8), `pdf.js` (v5.4, MUA-07), `version.js` (v5.5.1, POA-42 Part A).
+**Rule (B1 — locked):** Each module stays one self-contained `index.html`. No build step, no bundler. `shared/` expansion is the consistency mechanism — new shared files must be explicitly approved in the strategy chat before creation. Approved post-B1 shared files: `gates.js` (v4.3), `eventconfig.js` (v4.7), `firebase.js` and `auth.js` (v4.8), `pdf.js` (v5.4, MUA-07), `version.js` (v5.5.1, POA-42 Part A), `upcoming-events.js` (v5.5.2, POA-42 Part B).
 
 ---
 
@@ -511,6 +512,44 @@ Loaded as a classic `<script>` (no exports, no `.mount()` — this is a constant
 component). `index.html` reads it once on load to set `#footer-version`'s text content.
 Currently `index.html`-only; not wired into any module's `index.html`.
 
+### Upcoming events carousel (`shared/upcoming-events.js`) — v5.5.2+ (POA-42 Part B)
+
+Approved sixth post-B1 shared file. Extracted from `coming-soon/index.html`'s original
+inline carousel (v5.3.1+) so `index.html`'s front-page banner and `coming-soon/index.html`
+read the same Firestore `upcoming_events` collection through one component instead of two
+independently drifting copies.
+
+```javascript
+UpcomingEvents.mount(selector, {
+  media: 'photo' | 'icon',   // 'photo' = coming-soon's original card carousel (unchanged)
+                              // 'icon'  = new full-bleed icon banner (index.html front page)
+  onEventClick: fn,          // optional — stays a no-op stub until a results/current-event
+                              // page exists (deferred to after the 30 Aug 2026 Throwdown)
+});
+```
+
+Query: `eventDate >= (today − 10 days)`, ascending, `limit(5)` — mixed recent-past +
+upcoming in one query, no manual cleanup; events age out of rotation 10 days after their
+date. Per-event kicker label ("Recently on Seduh Score" / "Upcoming on Seduh Score") is
+computed per rotation frame from that event's own `eventDate`, not a fixed header.
+
+Offline fallback: same `seduh_upcoming_events_cache` localStorage key and stale-after-1h
+flag as the original `coming-soon` implementation. Rotation: 5s auto-advance, arrow-key
+nav, shared identically between both `media` modes.
+
+**Format/colour/icon registry** (module-internal, not exposed): `throwdown` → amber ⚡,
+`liga` → green 🏆, `cup-taster` → blue ☕, `btc` → purple 👥. `btc` is the only format
+without a pre-existing badge colour elsewhere in the codebase — purple was chosen because
+its only existing UI meaning (Throwdown's redemption feature, demo-mode flag) is a
+different surface from an event-listing badge, so it doesn't collide with the semantic
+colour contract below. Docs missing `eventFormat` fall back to a generic amber pill/icon
+rather than erroring.
+
+**Schema note:** reads/writes the existing `eventFormat` field (admin panel, v5.3.1+) —
+not a new `format` field. `eventId` (auto-derived slug, admin panel create-path only,
+POA-42 Part B) is carried through for a future results-page hook but not yet read by
+this module's rendering; guard against `undefined` on any doc, old or new.
+
 ---
 
 ## CSS conventions
@@ -877,4 +916,4 @@ Before starting work in a new session — **all session types: Strategy, Code, D
 
 ---
 
-*Last updated: July 2026 — v5.5.1 (POA-42 Part A, front-page version pill fix): new `shared/version.js` documented (tree entry, B1 approved-files list, component API section). Part B of POA-42 (shared `upcoming-events` module + front-page banner) was flagged back to the strategy chat mid-session — not built, not reflected here. Prior pass — v5.5.0 (POA-40, Throwdown results archive / Seduh Records seed): Firestore live-stack table's rules row now lists the new `throwdown_records` collection. Prior pass — CONVENTIONS audit v5.4.0 (reconciling v5.1.2 → v5.4.0 CHANGELOG drift): directory tree updated (added `about/`, `coming-soon/`, `booth/`), `shared/sound.js` documented (tree entry + component API section), Firebase live-stack table split into six rows (Firestore rules/indexes and Storage/Storage rules now listed separately, per `firestore.indexes.json` and `storage.rules`), Hosting row notes the `/` → `/coming-soon/` redirect. BBTC's residual `.hdr-s`/`.hdr-t` inner-class rename is not tracked in this file (no POA cross-reference table exists here to correct) — it now lives under PLAN_OF_ACTION.md's POA-38, not the already-closed POA-06.*
+*Last updated: July 2026 — v5.5.2 (POA-42 Part B, shared upcoming-events module + front-page banner): new `shared/upcoming-events.js` documented (tree entry, B1 approved-files list, component API section) — sixth post-B1 shared file, superseding the ribbon-vs-carousel flag raised in the v5.5.1 pass. Prior pass — v5.5.1 (POA-42 Part A, front-page version pill fix): new `shared/version.js` documented (tree entry, B1 approved-files list, component API section). Prior pass — v5.5.0 (POA-40, Throwdown results archive / Seduh Records seed): Firestore live-stack table's rules row now lists the new `throwdown_records` collection. Prior pass — CONVENTIONS audit v5.4.0 (reconciling v5.1.2 → v5.4.0 CHANGELOG drift): directory tree updated (added `about/`, `coming-soon/`, `booth/`), `shared/sound.js` documented (tree entry + component API section), Firebase live-stack table split into six rows (Firestore rules/indexes and Storage/Storage rules now listed separately, per `firestore.indexes.json` and `storage.rules`), Hosting row notes the `/` → `/coming-soon/` redirect. BBTC's residual `.hdr-s`/`.hdr-t` inner-class rename is not tracked in this file (no POA cross-reference table exists here to correct) — it now lives under PLAN_OF_ACTION.md's POA-38, not the already-closed POA-06.*
