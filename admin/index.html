@@ -443,6 +443,58 @@
   }
   .adm-ev-actions button:hover { background: var(--bd2); color: var(--ink); }
   .adm-ev-actions button.del-btn:hover { background: var(--rd); color: #fff; border-color: var(--rd); }
+
+  /* ── Seduh Records (POA-40) ── */
+  .rec-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--bd);
+  }
+  .rec-row:last-child { border-bottom: none; }
+  .rec-info { flex: 1; min-width: 0; }
+  .rec-name {
+    font-size: 13px;
+    color: var(--ink);
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rec-meta {
+    font-size: 11px;
+    color: var(--ink3);
+    font-family: ui-monospace, monospace;
+    margin-top: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rec-badge {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: ui-monospace, monospace;
+    letter-spacing: .06em;
+    border: 1px solid;
+  }
+  .rec-badge-test { color: var(--am-bd); border-color: var(--am-bd); background: rgba(224,154,54,.1); }
+  .rec-badge-live { color: var(--gn); border-color: var(--gn); background: rgba(11,122,82,.12); }
+  #rec-reset-input {
+    background: var(--bg);
+    border: 1.5px solid var(--bd2);
+    border-radius: var(--rad);
+    color: var(--ink);
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    width: 100%;
+  }
+  #rec-reset-input:focus { border-color: var(--am-bd); }
 </style>
 </head>
 <body>
@@ -459,6 +511,7 @@
     <button class="adm-tab" data-tab="switches">Platform Switches</button>
     <button class="adm-tab" data-tab="frontdoor">Front Door Content</button>
     <button class="adm-tab" data-tab="events">Upcoming Events</button>
+    <button class="adm-tab" data-tab="records">Seduh Records</button>
   </div>
 
   <div class="adm-tab-panel active" id="tab-organisations">
@@ -637,6 +690,40 @@
 
   </div>
 
+  <div class="adm-tab-panel" id="tab-records">
+
+  <!-- ══ Seduh Records — Throwdown archive (POA-40) ══ -->
+  <div class="adm-section">
+    <div class="adm-section-title">Seduh Records</div>
+    <div class="adm-card">
+      <div id="rec-list"></div>
+      <div class="adm-status" id="rec-list-status"></div>
+    </div>
+  </div>
+
+  <div class="adm-section">
+    <div class="adm-section-title">Reset Test Data</div>
+    <div class="adm-card">
+      <button class="btn btn-rd" id="rec-reset-btn">Check test records</button>
+      <div class="adm-status" id="rec-reset-status"></div>
+      <div id="rec-reset-confirm" style="display:none;margin-top:14px">
+        <p style="font-size:12px;color:var(--ink2);margin-bottom:10px">
+          Type <strong>DELETE</strong> to confirm. This permanently removes only records
+          flagged <code>isTest</code> — real event records are unreachable by this tool.
+        </p>
+        <div class="adm-row">
+          <input type="text" id="rec-reset-input" placeholder="Type DELETE" autocomplete="off">
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-rd" id="rec-reset-confirm-btn" disabled>Delete test records</button>
+          <button class="btn" id="rec-reset-cancel-btn" style="background:var(--bd2);color:var(--ink2)">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+
 </div>
 
 <script type="module">
@@ -645,7 +732,7 @@ import { onAuthStateChanged, createUserWithEmailAndPassword }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFunctions, httpsCallable }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
-import { getDoc, setDoc, doc, serverTimestamp, collection, addDoc, getDocs, orderBy, query, updateDoc, deleteDoc }
+import { getDoc, setDoc, doc, serverTimestamp, collection, addDoc, getDocs, orderBy, query, updateDoc, deleteDoc, where }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
@@ -671,7 +758,7 @@ onAuthStateChanged(auth, async user => {
 });
 
 // ── Tabs ──
-const tabLoaded = { organisations: true, switches: false, frontdoor: false, events: false };
+const tabLoaded = { organisations: true, switches: false, frontdoor: false, events: false, records: false };
 
 function showTab(name) {
   document.querySelectorAll('.adm-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
@@ -681,6 +768,7 @@ function showTab(name) {
     if (name === 'switches')  loadSwitches();
     if (name === 'frontdoor') loadSlides();
     if (name === 'events')    loadEvents();
+    if (name === 'records')   loadRecords();
   }
 }
 
@@ -1163,6 +1251,84 @@ document.getElementById('ev-save-btn').addEventListener('click', async () => {
   } catch (e) {
     setStatus('ev-upload-status', 'Save failed: ' + e.message, 'error');
     document.getElementById('ev-save-btn').disabled = false;
+  }
+});
+
+// ── Seduh Records — Throwdown archive (POA-40) ──
+async function loadRecords() {
+  const list = document.getElementById('rec-list');
+  list.innerHTML = '';
+  setStatus('rec-list-status', 'Loading…', 'muted');
+  try {
+    const q = query(collection(db, 'throwdown_records'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    if (snap.empty) { setStatus('rec-list-status', 'No records yet.', 'muted'); return; }
+    setStatus('rec-list-status', '', '');
+    snap.forEach(d => {
+      const rec = d.data();
+      const row = document.createElement('div');
+      row.className = 'rec-row';
+      row.innerHTML =
+        '<div class="rec-info">' +
+          '<div class="rec-name">' + escHtml(rec.eventName || '(untitled event)') + '</div>' +
+          '<div class="rec-meta">' + escHtml(rec.eventDate || '—') + ' · Champion: ' + escHtml(rec.champion || '—') + '</div>' +
+        '</div>' +
+        '<span class="rec-badge ' + (rec.isTest ? 'rec-badge-test' : 'rec-badge-live') + '">' + (rec.isTest ? 'TEST' : 'LIVE') + '</span>';
+      list.appendChild(row);
+    });
+  } catch (e) {
+    setStatus('rec-list-status', 'Failed to load records: ' + e.message, 'error');
+  }
+}
+
+// Reset tool — double confirmation, scoped to isTest == true only.
+// The delete itself is only ever run against docs fetched from the isTest==true
+// query below, and is further enforced server-side by firestore.rules (POA-40) —
+// a real (isTest == false) record cannot be deleted by this tool even if this
+// client code were altered or bypassed.
+let recTestDocs = [];
+
+document.getElementById('rec-reset-btn').addEventListener('click', async () => {
+  setStatus('rec-reset-status', 'Checking…', 'muted');
+  document.getElementById('rec-reset-confirm').style.display = 'none';
+  try {
+    const q = query(collection(db, 'throwdown_records'), where('isTest', '==', true));
+    const snap = await getDocs(q);
+    recTestDocs = snap.docs;
+    setStatus('rec-reset-status', recTestDocs.length + ' test record' + (recTestDocs.length === 1 ? '' : 's') + ' found.', recTestDocs.length ? 'success' : 'muted');
+    if (recTestDocs.length) {
+      document.getElementById('rec-reset-input').value = '';
+      document.getElementById('rec-reset-confirm-btn').disabled = true;
+      document.getElementById('rec-reset-confirm').style.display = 'block';
+    }
+  } catch (e) {
+    setStatus('rec-reset-status', 'Check failed: ' + e.message, 'error');
+  }
+});
+
+document.getElementById('rec-reset-input').addEventListener('input', () => {
+  document.getElementById('rec-reset-confirm-btn').disabled =
+    document.getElementById('rec-reset-input').value.trim() !== 'DELETE';
+});
+
+document.getElementById('rec-reset-cancel-btn').addEventListener('click', () => {
+  document.getElementById('rec-reset-confirm').style.display = 'none';
+  recTestDocs = [];
+});
+
+document.getElementById('rec-reset-confirm-btn').addEventListener('click', async () => {
+  document.getElementById('rec-reset-confirm-btn').disabled = true;
+  setStatus('rec-reset-status', 'Deleting…', 'muted');
+  try {
+    for (const d of recTestDocs) {
+      await deleteDoc(doc(db, 'throwdown_records', d.id));
+    }
+    setStatus('rec-reset-status', 'Deleted ' + recTestDocs.length + ' test record' + (recTestDocs.length === 1 ? '' : 's') + '.', 'success');
+    recTestDocs = [];
+    document.getElementById('rec-reset-confirm').style.display = 'none';
+    loadRecords();
+  } catch (e) {
+    setStatus('rec-reset-status', 'Delete failed: ' + e.message, 'error');
   }
 });
 
