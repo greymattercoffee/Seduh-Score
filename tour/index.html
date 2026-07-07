@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tour — Seduh Score</title>
+<link rel="icon" href="../shared/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../shared/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="../shared/assets/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="../shared/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  /* ——— Tour nav link ——— */
+  .nav-link{font-size:13px;font-weight:700;color:var(--ink2);text-decoration:none;padding:9px 14px;border-radius:var(--rad-pill);transition:color .14s,background .14s;white-space:nowrap}
+  .nav-link:hover{color:var(--accent);background:var(--surface2)}
+  .nav-link.on{color:var(--accent)}
+
+  /* ——— Mobile header — scoped to home + tour pages only ——— */
+  @media(max-width:520px){
+    .plat-hdr--home{gap:10px}
+    .plat-hdr--home .plat-hdr-actions{width:100%;margin-left:0;justify-content:space-between;gap:10px;padding-top:11px;border-top:1px solid var(--border2)}
+  }
+
+  /* ——— GIF-ready image frame ——— */
+  .shot{border:1px solid var(--border);border-radius:var(--rad);overflow:hidden;box-shadow:var(--shadow-md);background:var(--surface)}
+  .shot-bar{display:flex;align-items:center;gap:8px;height:34px;padding:0 13px;background:var(--surface2);border-bottom:1px solid var(--border2)}
+  .shot-dots{display:flex;gap:6px}
+  .shot-dots i{width:9px;height:9px;border-radius:50%;background:var(--border3);display:block}
+  .shot-tab{font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .shot-media{aspect-ratio:4/3;width:100%;background:var(--bg);position:relative;overflow:hidden}
+  .shot-media > img{width:100%;height:100%;object-fit:cover;display:block}
+  .shot-note{position:absolute;left:10px;bottom:10px;font-family:var(--font-mono);font-size:8.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink4);background:rgba(255,255,255,.72);border:1px solid var(--border2);border-radius:var(--rad-pill);padding:3px 9px;backdrop-filter:blur(2px)}
+  .mk{position:absolute;inset:0;padding:14px;display:flex;flex-direction:column;gap:9px}
+  .mk-strip{display:flex;align-items:center;gap:8px}
+  .mk-eye{font-family:var(--font-mono);font-size:8px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+  .mk-rule{flex:1;height:1px;background:var(--border)}
+  .mk-row{display:flex;align-items:center;gap:9px;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px}
+  .mk-rail{width:4px;align-self:stretch;border-radius:2px;flex-shrink:0}
+  .mk-nm{font-size:11.5px;font-weight:700;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mk-vs{font-family:var(--font-mono);font-size:8px;font-weight:700;letter-spacing:.12em;color:var(--ink4)}
+  .mk-num{font-family:var(--font-display);font-weight:800;font-size:15px;line-height:1}
+  .mk-pl{font-family:var(--font-mono);font-size:7.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3)}
+  .mk-rnk{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-mono);font-size:9px;font-weight:700;color:#fff;flex-shrink:0}
+  .mk-cups{display:flex;gap:10px;justify-content:center;align-items:flex-end;flex:1}
+  .mk-cup{width:34px;display:flex;flex-direction:column;align-items:center;gap:5px}
+  .mk-cup .glass{width:32px;height:38px;border-radius:5px 5px 12px 12px;background:var(--surface);border:1.5px solid var(--border3)}
+  .mk-cup .cap{font-family:var(--font-mono);font-size:8px;font-weight:700;color:var(--ink3)}
+  .mk-tok{display:flex;gap:4px}
+  .mk-tok i{width:9px;height:9px;border-radius:50%;display:block}
+
+  /* ——— /tour page layout ——— */
+  .tour-hero{max-width:var(--container);margin:0 auto;padding:clamp(34px,5vw,64px) clamp(16px,4vw,40px) clamp(8px,2vw,20px)}
+  .tour-hero .eyebrow{display:inline-flex;align-items:center;gap:9px;margin-bottom:16px}
+  .tour-hero .eyebrow .line{height:2px;width:34px;background:var(--accent);border-radius:2px}
+  .tour-hero h1{font-family:var(--font-display);font-weight:800;letter-spacing:-.03em;line-height:1.0;color:var(--ink);font-size:clamp(34px,5.5vw,58px);max-width:15ch;text-wrap:balance}
+  .tour-hero p{font-size:clamp(15px,2vw,18px);color:var(--ink2);margin-top:16px;max-width:52ch;line-height:1.5}
+
+  .tour-list{max-width:var(--container);margin:0 auto;padding:clamp(20px,3vw,36px) clamp(16px,4vw,40px) clamp(30px,4vw,50px);display:flex;flex-direction:column;gap:clamp(28px,4vw,56px)}
+  .tour-block{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(26px,4vw,54px);align-items:center}
+  .tour-block.flip .tour-block-media{order:2}
+  .tour-block-copy{min-width:0}
+  .tour-index{font-family:var(--font-mono);font-size:var(--fs-label);font-weight:700;letter-spacing:.16em;text-transform:uppercase}
+  .tour-name{font-family:var(--font-display);font-weight:800;font-size:clamp(24px,3vw,34px);letter-spacing:-.02em;line-height:1.05;color:var(--ink);display:flex;align-items:center;gap:12px;margin-top:10px}
+  .tour-name .glyph{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;flex-shrink:0;border:1px solid}
+  .tour-fmt{font-family:var(--font-mono);font-size:var(--fs-label);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-top:12px}
+  .tour-desc{font-size:15px;color:var(--ink2);line-height:1.6;margin-top:12px;max-width:44ch;text-wrap:pretty}
+  .tour-open{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-size:13.5px;font-weight:700;text-decoration:none;padding:10px 16px;border:1.5px solid var(--border);border-radius:var(--rad-pill);transition:border-color .14s,color .14s;white-space:nowrap}
+  .tour-open:hover{border-color:currentColor}
+  .tour-open svg{width:15px;height:15px}
+
+  /* per-module accent via semantic colour tokens */
+  .tour-block[data-m="throwdown"]{--m:var(--am);--m-bg:var(--am-bg);--m-bd:var(--am-bd)}
+  .tour-block[data-m="liga"]{--m:var(--gn);--m-bg:var(--gn-bg);--m-bd:var(--gn-bd)}
+  .tour-block[data-m="cup"]{--m:var(--bl);--m-bg:var(--bl-bg);--m-bd:var(--bl-bd)}
+  .tour-block[data-m="btc"]{--m:var(--pu);--m-bg:var(--pu-bg);--m-bd:var(--pu-bd)}
+  .tour-block .tour-name .glyph{background:var(--m-bg);border-color:var(--m-bd)}
+  .tour-block .tour-fmt{color:var(--m)}
+  .tour-block .tour-open{color:var(--m)}
+  .tour-block .tour-index{color:var(--m)}
+  .tour-block .shot{border-top:3px solid var(--m)}
+
+  /* bottom CTA */
+  .tour-cta{max-width:var(--container);margin:0 auto;padding:0 clamp(16px,4vw,40px) clamp(36px,5vw,60px)}
+  .tour-cta-in{background:var(--surface-deep);color:var(--deep-ink);border-radius:var(--rad);padding:clamp(26px,4vw,44px);display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between}
+  .tour-cta-in h3{font-family:var(--font-display);font-weight:800;font-size:clamp(20px,2.6vw,28px);letter-spacing:-.02em;max-width:18ch}
+  .tour-cta-in p{color:var(--deep-sub);font-size:14px;margin-top:6px}
+  .tour-cta-in .btn-p{text-decoration:none;display:inline-flex;align-items:center;gap:8px;font-size:15px;padding:13px 24px;white-space:nowrap}
+
+  @media(max-width:760px){
+    .tour-block{grid-template-columns:1fr;gap:20px}
+    .tour-block.flip .tour-block-media{order:0}
+    .tour-block-media{order:-1}
+  }
+
+  /* footer */
+  .fd-foot{max-width:var(--container);margin:0 auto;padding:clamp(26px,4vw,38px) clamp(16px,4vw,40px);display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;border-top:1px solid var(--border)}
+  .fd-credit{font-size:12px;color:var(--ink3);line-height:1.7}
+  .fd-credit a{color:var(--am);text-decoration:none;font-weight:700}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="plat-hdr plat-hdr--home">
+    <a class="plat-hdr-logo" href="../index.html">
+      <span class="plat-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh"><circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"/><path d="M26 60 a24 24 0 0 1 48 0"/><path d="M35 60 a15 15 0 0 1 30 0"/><path d="M44 60 a6 6 0 0 1 12 0"/></svg></span>
+      <span><span class="plat-hdr-name">Seduh Score</span><span class="plat-hdr-sub">Coffee competition platform</span></span>
+    </a>
+    <div class="plat-hdr-actions">
+      <span class="plat-hdr-loc"><span class="dot"></span>Brunei Darussalam</span>
+      <a class="nav-link on" href="./">Tour</a>
+      <a class="btn-p" href="../index.html#org-login" style="padding:9px 18px;font-size:13px;white-space:nowrap;display:inline-flex;align-items:center">Org login</a>
+    </div>
+  </header>
+
+  <section class="tour-hero">
+    <span class="eyebrow"><span class="line"></span>The tour</span>
+    <h1>See every format in action.</h1>
+    <p>Four ways to run a coffee competition, all in one platform. Here's what each module looks like when it's live on the floor — brackets, league tables, blind trios and team token scoring.</p>
+  </section>
+
+  <div class="tour-list">
+
+    <!-- 01 Throwdown -->
+    <div class="tour-block" data-m="throwdown">
+      <div class="tour-block-media">
+        <div class="shot">
+          <div class="shot-bar"><span class="shot-dots"><i></i><i></i><i></i></span><span class="shot-tab">seduhscore.com / throwdown</span></div>
+          <div class="shot-media">
+            <div class="mk">
+              <div class="mk-strip"><span class="mk-eye">Bracket · Semifinal</span><span class="mk-rule"></span></div>
+              <div class="mk-row"><span class="mk-rail" style="background:var(--am)"></span><span class="mk-nm">Aliya Roslan</span><span class="mk-num" style="color:var(--am)">2</span></div>
+              <div class="mk-row" style="opacity:.55"><span class="mk-rail" style="background:var(--border3)"></span><span class="mk-nm">Darwisyah</span><span class="mk-num" style="color:var(--ink4)">1</span></div>
+              <div class="mk-strip"><span class="mk-eye">Match 2</span><span class="mk-rule"></span></div>
+              <div class="mk-row"><span class="mk-rail" style="background:var(--am)"></span><span class="mk-nm">Hafiz Zaini</span><span class="mk-num" style="color:var(--am)">3</span></div>
+              <div class="mk-row" style="opacity:.55"><span class="mk-rail" style="background:var(--border3)"></span><span class="mk-nm">Nabil Osman</span><span class="mk-num" style="color:var(--ink4)">0</span></div>
+            </div>
+            <div class="shot-note">Representative view · 4:3</div>
+          </div>
+        </div>
+      </div>
+      <div class="tour-block-copy">
+        <div class="tour-index">Module 01</div>
+        <div class="tour-name"><span class="glyph">⚡</span>Throwdown</div>
+        <div class="tour-fmt">1v1 knockout · free up to 16</div>
+        <p class="tour-desc">Two baristas, one bracket — judges pick a winner each round until the last cup's standing. Randomised seeding, a redemption round and a live audience view. Run a clean knockout with no account.</p>
+        <a class="tour-open" href="../throwdown/">Open Throwdown <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+    </div>
+
+    <!-- 02 Liga Seduh -->
+    <div class="tour-block flip" data-m="liga">
+      <div class="tour-block-media">
+        <div class="shot">
+          <div class="shot-bar"><span class="shot-dots"><i></i><i></i><i></i></span><span class="shot-tab">seduhscore.com / liga</span></div>
+          <div class="shot-media">
+            <div class="mk">
+              <div class="mk-strip"><span class="mk-eye">League table · Round 3</span><span class="mk-rule"></span></div>
+              <div class="mk-row"><span class="mk-rnk" style="background:var(--rank-1)">1</span><span class="mk-nm">Farah Idris</span><span class="mk-num" style="color:var(--gn)">14</span><span class="mk-pl">pts</span></div>
+              <div class="mk-row"><span class="mk-rnk" style="background:var(--rank-2)">2</span><span class="mk-nm">Zul Hakim</span><span class="mk-num" style="color:var(--gn)">11</span><span class="mk-pl">pts</span></div>
+              <div class="mk-row"><span class="mk-rnk" style="background:var(--rank-3)">3</span><span class="mk-nm">Mira Salleh</span><span class="mk-num" style="color:var(--gn)">9</span><span class="mk-pl">pts</span></div>
+              <div class="mk-row" style="opacity:.6"><span class="mk-rnk" style="background:var(--surface2);color:var(--ink3);border:1.5px solid var(--border)">4</span><span class="mk-nm">Daniel Wong</span><span class="mk-num" style="color:var(--ink4)">7</span><span class="mk-pl">pts</span></div>
+            </div>
+            <div class="shot-note">Representative view · 4:3</div>
+          </div>
+        </div>
+      </div>
+      <div class="tour-block-copy">
+        <div class="tour-index">Module 02</div>
+        <div class="tour-name"><span class="glyph">🏆</span>Liga Seduh</div>
+        <div class="tour-fmt">Round robin league · free up to 8</div>
+        <p class="tour-desc">A league, not a knockout — everyone brews against everyone in small groups over several rounds. Standings update live after every result, and the top brewers advance to a judged final.</p>
+        <a class="tour-open" href="../liga/">Open Liga Seduh <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+    </div>
+
+    <!-- 03 Cup Taster -->
+    <div class="tour-block" data-m="cup">
+      <div class="tour-block-media">
+        <div class="shot">
+          <div class="shot-bar"><span class="shot-dots"><i></i><i></i><i></i></span><span class="shot-tab">seduhscore.com / cup-taster</span></div>
+          <div class="shot-media">
+            <div class="mk">
+              <div class="mk-strip"><span class="mk-eye">Trio 4 · find the odd cup</span><span class="mk-rule"></span></div>
+              <div class="mk-cups">
+                <div class="mk-cup"><div class="glass"></div><div class="cap">A</div></div>
+                <div class="mk-cup"><div class="glass" style="border-color:var(--bl);box-shadow:0 0 0 3px var(--bl-bg)"></div><div class="cap" style="color:var(--bl)">B</div></div>
+                <div class="mk-cup"><div class="glass"></div><div class="cap">C</div></div>
+              </div>
+              <div class="mk-row" style="justify-content:center;border-color:var(--bl-bd);background:var(--bl-bg)"><span class="mk-nm" style="flex:none;color:var(--bl)">Odd cup identified — B</span></div>
+            </div>
+            <div class="shot-note">Representative view · 4:3</div>
+          </div>
+        </div>
+      </div>
+      <div class="tour-block-copy">
+        <div class="tour-index">Module 03</div>
+        <div class="tour-name"><span class="glyph">☕</span>Cup Taster</div>
+        <div class="tour-fmt">Blind trio sensory · free up to 8</div>
+        <p class="tour-desc">The spot-the-odd-cup sensory game. Three cups, two the same — find the different one before the clock runs out. Scored on accuracy, timed as the tiebreaker, across as many blind trios as your stage needs.</p>
+        <a class="tour-open" href="../cup-taster/">Open Cup Taster <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+    </div>
+
+    <!-- 04 BTC -->
+    <div class="tour-block flip" data-m="btc">
+      <div class="tour-block-media">
+        <div class="shot">
+          <div class="shot-bar"><span class="shot-dots"><i></i><i></i><i></i></span><span class="shot-tab">seduhscore.com / btc</span></div>
+          <div class="shot-media">
+            <div class="mk">
+              <div class="mk-strip"><span class="mk-eye">Quarterfinal · drink 4</span><span class="mk-rule"></span></div>
+              <div class="mk-row"><span class="mk-rail" style="background:var(--am)"></span><span class="mk-nm">Team Anggerek</span><span class="mk-tok"><i style="background:var(--am)"></i><i style="background:var(--am)"></i></span></div>
+              <div class="mk-row"><span class="mk-rail" style="background:var(--bl)"></span><span class="mk-nm">Team Cempaka</span><span class="mk-tok"><i style="background:var(--bl)"></i></span></div>
+              <div class="mk-strip"><span class="mk-eye">Running score</span><span class="mk-rule"></span></div>
+              <div class="mk-row" style="justify-content:space-around"><span class="mk-num" style="color:var(--am);font-size:19px">18</span><span class="mk-vs">VS</span><span class="mk-num" style="color:var(--bl);font-size:19px">14</span></div>
+            </div>
+            <div class="shot-note">Representative view · 4:3</div>
+          </div>
+        </div>
+      </div>
+      <div class="tour-block-copy">
+        <div class="tour-index">Module 04</div>
+        <div class="tour-name"><span class="glyph">👥</span>BTC</div>
+        <div class="tour-fmt">Team championship · annual only</div>
+        <p class="tour-desc">Barista Team Championship — team head-to-head in the ASEAN format. Judges award tokens cup by cup as two teams compete, feeding a seeded knockout bracket built for a full season, not a single event.</p>
+        <a class="tour-open" href="../bbtc/">About BTC <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="tour-cta">
+    <div class="tour-cta-in">
+      <div>
+        <h3>Every free format runs on this device.</h3>
+        <p>No account, no install — open a tool and start scoring.</p>
+      </div>
+      <a class="btn-p" href="../index.html#free" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;font-size:15px;padding:13px 24px;white-space:nowrap">Open a free tool <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </div>
+  </div>
+
+  <footer class="fd-foot">
+    <div class="fd-credit">Built by <a href="https://instagram.com/mfosaminumkopi" target="_blank" rel="noreferrer">Firdaus Omar</a> · Grey Matter Coffee Werks, Brunei<br>Free tools save to this device.</div>
+    <span class="live-pill"><span class="dot"></span>Seduh Score · v<span id="footer-version"></span></span>
+  </footer>
+
+</div>
+
+<script src="../shared/version.js"></script>
+<script>
+  document.getElementById('footer-version').textContent = SEDUH_VERSION;
+</script>
+</body>
+</html>

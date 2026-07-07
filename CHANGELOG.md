@@ -2,6 +2,67 @@
 
 ---
 
+## [5.6.0] — Tour page + front-page teaser + BTC rename (POA-43) · July 2026
+
+Visual direction locked via design canvas (`Tour Page + Teaser.dc.html`) before
+this session. One new public page (`tour/index.html`) and a teaser band on the
+front page. No new shared files — all styles in page-local `<style>` blocks per
+B1 convention.
+
+### tour/index.html (new)
+
+- **feat:** new public tour page at `/tour/` — four module blocks in locked
+  order: Throwdown → Liga → Cup Taster → BTC
+- **feat:** alternating left/right layout on desktop, single-column image-first
+  at 353px mobile floor (no horizontal overflow verified at that floor)
+- **feat:** GIF-ready screenshot frames — 4:3 fixed aspect ratio, app-chrome
+  dot strip + faux path bar, coloured top rail per module using existing
+  semantic tokens: amber (Throwdown `--am`), green (Liga `--gn`), blue
+  (Cup Taster `--bl`), purple (BTC `--pu`). Placeholder art this session;
+  real captures deferred (see below)
+- **feat:** one-line swap contract verified — replacing placeholder children
+  with `<img src="…" alt="…">` produces zero layout change (confirmed via
+  DOM measurement before/after swap, not assumed from design file)
+- **feat:** Tour nav link active (`.nav-link.on`) in header; Org login links
+  back to `../index.html#org-login`
+- **feat:** `.plat-hdr--home` modifier class on header — scopes full-width
+  mobile action bar treatment to this page only, not the shared `.plat-hdr`
+  rule; confirmed no effect on Throwdown/Liga/BTC/Cup Taster/Timer headers
+- **feat:** footer version pill reads `SEDUH_VERSION` from `../shared/version.js`
+
+### index.html
+
+- **feat:** tour teaser band — one Throwdown screenshot frame + "See the full
+  tour" CTA, placed after the hero section, before the free-tools cutline.
+  Single-column at 353px (verified)
+- **feat:** "Tour" quiet text nav link (`.nav-link`) added to platform header —
+  Placement A (not a pill, per strategy decision); no active state on front page
+- **feat:** `.plat-hdr--home` modifier class added to header for scoped mobile
+  treatment — same as tour page; only `index.html` + `tour/index.html` carry
+  this modifier
+- **rename:** `BBTC` → `BTC` in the org-zone module grid (the one instance in
+  the front-door grid). No other file touched for this rename
+- **flag (not fixed):** `bbtc/index.html` still contains `<title>BBTC
+  Organizer</title>`, `buildBBTCDemo()`, `loadBBTCDemo()`, and
+  `BBTC_Results_` in the CSV export filename — these are internal/technical
+  identifiers outside this session's file scope; deferred to a separate
+  `bbtc/` rename session if/when the folder path is updated
+
+### shared/version.js
+
+- **bump:** `SEDUH_VERSION` → `'5.6.0'`
+
+### Deferred from this session
+
+- Real module screenshots / GIFs — placeholder art ships; the container
+  architecture (one-line swap contract) is ready for the captures when taken
+- `admin/index.html` BBTC label — may also say "BBTC" somewhere; not checked
+  this session (outside file scope per brief §5)
+- `bbtc/` folder rename — flagged but explicitly out of scope this session
+  (larger routing change); flag separately when timing allows
+
+---
+
 ## [5.5.2] — Shared upcoming-events module + front-page banner (POA-42 Part B) · July 2026
 
 Visual direction locked via mockup review before this session — full-bleed,

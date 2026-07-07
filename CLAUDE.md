@@ -1,6 +1,6 @@
 # Seduh Score — Claude Code orientation
 
-*State: v5.5.2 — matches CHANGELOG.md as of July 2026*
+*State: v5.6.0 — matches CHANGELOG.md as of July 2026*
 
 Read these two files in full before touching anything:
 1. `CONVENTIONS.md` — all patterns, naming rules, architecture decisions
