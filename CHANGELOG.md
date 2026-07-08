@@ -2,6 +2,71 @@
 
 ---
 
+## [5.7.1] — Source fix: `.btn-p` / `.btn-o` display on `<a>` elements (POA-46) · July 2026
+
+Root-cause fix for a bug found and instance-patched twice (POA-43 on
+`tour/index.html`, POA-45 on `index.html`): `.btn-p` and `.btn-o` in
+`shared/theme.css` had no `display` property, so any `<a>` element using
+either class defaulted to `display:inline` and `min-height:44px` had no
+centering or height effect. Both prior patches fixed call sites with inline
+styles rather than the shared rule.
+
+### shared/theme.css
+
+- **fix:** added `display:inline-flex;align-items:center;white-space:nowrap`
+  to `.btn-p` — fixes text misalignment on all `<a class="btn-p">` elements
+  sitewide. `white-space:nowrap` is consistent with every prior instance
+  patch and appropriate for primary call-to-action labels
+- **fix:** added `display:inline-flex;align-items:center;white-space:nowrap`
+  to `.btn-o` — same root cause; two silent instances confirmed
+
+### Audit findings (site-wide grep)
+
+**`<a class="btn-p">` — 5 instances:**
+- `index.html:217` — "Org login" pill in header — patched in POA-45
+  (intentional size overrides `padding:9px 18px;font-size:13px` kept)
+- `index.html:236` — "Open a free tool" hero CTA — **silent bug**, now fixed
+  by shared rule only
+- `tour/index.html:112` — "Org login" in tour header — patched in POA-43
+  (same intentional size overrides kept)
+- `tour/index.html:239` — "Open a free tool" tour CTA — patched in POA-43
+  (`text-decoration:none;gap:8px;font-size:15px;padding:13px 24px` kept)
+- `booth/display/index.html:46` — "Guess the Bean →" — **silent bug**, now
+  fixed by shared rule only
+
+**`<a class="btn-o">` — 2 instances:**
+- `index.html:237` — "Org sign-in" alongside hero CTA — **silent bug**
+- `booth/display/index.html:47` — "Grinder Challenge →" — **silent bug**
+
+**Sibling colour classes (`.btn-am/.btn-bl/.btn-gn/.btn-rd/.btn-pu`) —**
+no `<a>` instances found anywhere in the codebase; not affected in practice.
+
+### Instance-patch cleanup (Step 3)
+
+The three patched call sites all had `display:inline-flex;align-items:center`
+and `white-space:nowrap` in their inline styles. All three were cleaned:
+
+- `index.html:217` — removed `white-space:nowrap;display:inline-flex;
+  align-items:center`; retained `padding:9px 18px;font-size:13px`
+- `tour/index.html:112` — same cleanup; same overrides retained
+- `tour/index.html:239` — removed `display:inline-flex;align-items:center;
+  white-space:nowrap`; retained `text-decoration:none;gap:8px;
+  font-size:15px;padding:13px 24px`
+
+### shared/version.js
+
+- **bump:** `SEDUH_VERSION` → `'5.7.1'`
+  (was `'5.6.1'` — two versions behind; corrected here)
+
+### Not touched
+
+`.btn-sm`, `.btn-am`, `.btn-bl`, `.btn-gn`, `.btn-rd`, `.btn-pu` — no
+`min-height` on these and confirmed no `<a>` usage anywhere in the repo.
+`.tb-*` toolbar classes (MUA-06 chrome), all module `index.html` files
+except the call-site cleanups above, all Firebase config, all shared JS.
+
+---
+
 ## [5.7.0] — Super Admin org roster, search & visibility (POA-41, Codename Pagon) · July 2026
 
 Architecture locked in Strategy session prior to build — see PAGON-SPEC.md for full
