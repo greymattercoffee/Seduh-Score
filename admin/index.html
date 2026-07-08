@@ -496,6 +496,191 @@
     width: 100%;
   }
   #rec-reset-input:focus { border-color: var(--am-bd); }
+
+  /* ── Org Roster (POA-41) ── */
+  .org-strip {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  .org-strip-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--card);
+    border: 1px solid var(--bd);
+    border-radius: var(--rad);
+    min-width: 68px;
+    text-align: center;
+  }
+  .chip-num {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+    font-family: ui-monospace, monospace;
+  }
+  .chip-lbl {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    color: var(--ink4);
+    font-family: ui-monospace, monospace;
+    margin-top: 4px;
+  }
+  .org-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .org-controls input { flex: 1; min-width: 0; }
+  .org-roster-hdr {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .org-sort-btns {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--ink4);
+    font-family: ui-monospace, monospace;
+  }
+  .org-sort-btn {
+    padding: 3px 8px;
+    font-size: 10px;
+    font-family: ui-monospace, monospace;
+    background: transparent;
+    border: 1px solid var(--bd2);
+    border-radius: 4px;
+    color: var(--ink3);
+    cursor: pointer;
+    transition: background .12s, color .12s;
+  }
+  .org-sort-btn:hover, .org-sort-btn.active { background: var(--bd2); color: var(--ink); }
+  .org-row {
+    border: 1px solid var(--bd);
+    border-radius: var(--rad);
+    background: var(--card);
+    margin-bottom: 6px;
+    overflow: hidden;
+  }
+  .org-row-hd {
+    display: flex;
+    align-items: center;
+    padding: 11px 14px;
+    cursor: pointer;
+    gap: 12px;
+    user-select: none;
+    transition: background .12s;
+  }
+  .org-row-hd:hover { background: rgba(255,255,255,.03); }
+  .org-row-main { flex: 1; min-width: 0; }
+  .org-name {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .org-email {
+    display: block;
+    font-size: 11px;
+    color: var(--ink3);
+    font-family: ui-monospace, monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+  .org-row-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .org-badge {
+    padding: 2px 7px;
+    border-radius: 99px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    font-family: ui-monospace, monospace;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .org-badge-pending  { color: var(--am-bd); border-color: var(--am-bd); background: rgba(224,154,54,.1); }
+  .org-badge-active   { color: var(--gn);    border-color: var(--gn);    background: rgba(11,122,82,.12); }
+  .org-badge-archived { color: var(--ink4);  border-color: var(--ink4);  background: transparent; }
+  .org-tier {
+    font-size: 11px;
+    color: var(--ink3);
+    font-family: ui-monospace, monospace;
+    white-space: nowrap;
+  }
+  .org-expiry {
+    font-size: 10px;
+    color: var(--ink4);
+    font-family: ui-monospace, monospace;
+    white-space: nowrap;
+  }
+  .org-chevron { font-size: 10px; color: var(--ink4); }
+  .org-row-detail { border-top: 1px solid var(--bd); background: var(--bg); }
+  .org-detail-inner { padding: 16px; }
+  .org-detail-section { margin-bottom: 20px; }
+  .org-detail-section:last-child { margin-bottom: 0; }
+  .org-detail-hint { font-size: 11px; color: var(--ink3); margin-bottom: 10px; }
+  .org-notes-ta {
+    background: var(--card);
+    border: 1.5px solid var(--bd2);
+    border-radius: var(--rad);
+    color: var(--ink);
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    resize: vertical;
+    min-height: 72px;
+    width: 100%;
+    transition: border-color .14s;
+  }
+  .org-notes-ta:focus { border-color: var(--am-bd); }
+  .org-audit-list { display: flex; flex-direction: column; }
+  .audit-entry {
+    padding: 7px 0;
+    border-bottom: 1px solid var(--bd);
+  }
+  .audit-entry:last-child { border-bottom: none; }
+  .audit-row1 { display: flex; gap: 8px; align-items: baseline; }
+  .audit-action {
+    font-size: 10px;
+    font-weight: 700;
+    font-family: ui-monospace, monospace;
+    color: var(--am-bd);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .audit-meta {
+    font-size: 10px;
+    color: var(--ink4);
+    font-family: ui-monospace, monospace;
+    word-break: break-all;
+  }
+  .audit-detail {
+    font-size: 11px;
+    color: var(--ink2);
+    margin-top: 2px;
+  }
 </style>
 </head>
 <body>
@@ -517,9 +702,71 @@
 
   <div class="adm-tab-panel active" id="tab-organisations">
 
-  <!-- ══ Create Org ══ -->
+  <!-- ══ Dashboard summary strip ══ -->
+  <div class="org-strip">
+    <div class="org-strip-chip" id="chip-pending">
+      <span class="chip-num">—</span><span class="chip-lbl">Pending</span>
+    </div>
+    <div class="org-strip-chip" id="chip-active">
+      <span class="chip-num">—</span><span class="chip-lbl">Active</span>
+    </div>
+    <div class="org-strip-chip" id="chip-annual">
+      <span class="chip-num">—</span><span class="chip-lbl">Annual</span>
+    </div>
+    <div class="org-strip-chip" id="chip-per-event">
+      <span class="chip-num">—</span><span class="chip-lbl">Per-Event</span>
+    </div>
+    <div class="org-strip-chip" id="chip-archived">
+      <span class="chip-num">—</span><span class="chip-lbl">Archived</span>
+    </div>
+  </div>
+
+  <!-- ══ Roster controls + create form ══ -->
   <div class="adm-section">
-    <div class="adm-section-title">Create Org</div>
+    <div class="org-controls">
+      <input id="org-search" type="text" placeholder="Search name or email…" autocomplete="off">
+      <button class="btn btn-am" id="org-new-btn">+ New Org</button>
+      <button class="btn" id="roster-refresh-btn" style="background:var(--bd2);color:var(--ink2)" title="Refresh roster">↻</button>
+    </div>
+
+    <div class="adm-add-form" id="org-create-form">
+      <div>
+        <label>Display name</label>
+        <input type="text" id="new-org-name" placeholder="e.g. Grey Matter Coffee Werks">
+      </div>
+      <div>
+        <label>Email</label>
+        <input type="email" id="new-org-email" placeholder="organiser@cafe.com" autocomplete="off">
+      </div>
+      <div>
+        <label>Notes (optional)</label>
+        <textarea id="new-org-notes" placeholder="Internal notes, payment reference, etc."></textarea>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-am" id="org-create-submit">Create Org</button>
+        <button class="btn" id="org-create-cancel" style="background:var(--bd2);color:var(--ink2)">Cancel</button>
+      </div>
+      <div class="adm-status" id="org-create-status"></div>
+    </div>
+  </div>
+
+  <!-- ══ Org Roster ══ -->
+  <div class="adm-section">
+    <div class="org-roster-hdr">
+      <div class="adm-section-title" style="margin-bottom:0">Org Roster</div>
+      <div class="org-sort-btns">
+        Sort:
+        <button class="org-sort-btn" id="sort-tier-btn">Tier</button>
+        <button class="org-sort-btn" id="sort-expiry-btn">Expiry</button>
+      </div>
+    </div>
+    <div id="org-roster"></div>
+    <div class="adm-status" id="org-roster-status"></div>
+  </div>
+
+  <!-- ══ Auth Account (legacy utility — create Firebase Auth account only) ══ -->
+  <div class="adm-section">
+    <div class="adm-section-title">Auth Account</div>
     <div class="adm-card">
       <div class="adm-row">
         <span class="adm-row-label">Email</span>
@@ -536,7 +783,7 @@
     </div>
   </div>
 
-  <!-- ══ Org Management ══ -->
+  <!-- ══ Org Management (legacy — find by email, set claims) ══ -->
   <div class="adm-section">
     <div class="adm-section-title">Org Management</div>
 
@@ -744,6 +991,10 @@ import { getApp }
 const fns             = getFunctions(getApp());
 const getOrgByEmailFn = httpsCallable(fns, 'getOrgByEmail');
 const setOrgClaimsFn  = httpsCallable(fns, 'setOrgClaims');
+const createOrgFn      = httpsCallable(fns, 'createOrg');
+const activateOrgFn    = httpsCallable(fns, 'activateOrg');
+const updateOrgNotesFn = httpsCallable(fns, 'updateOrgNotes');
+const archiveOrgFn     = httpsCallable(fns, 'archiveOrg');
 
 let currentOrg = null;
 
@@ -757,6 +1008,7 @@ onAuthStateChanged(auth, async user => {
   }
   document.getElementById('panel').style.display = 'block';
   showTab('organisations');
+  loadRoster();
 });
 
 // ── Tabs ──
@@ -1343,6 +1595,385 @@ document.getElementById('rec-reset-confirm-btn').addEventListener('click', async
     loadRecords();
   } catch (e) {
     setStatus('rec-reset-status', 'Delete failed: ' + e.message, 'error');
+  }
+});
+
+// ── Pagon (POA-41) — Org Roster ─────────────────────────────────────────────
+
+let orgsCache      = [];
+let orgExpandedId  = null;
+let rosterSortKey  = 'createdAt';
+let rosterSortDir  = 'desc';
+
+const TIER_LABELS   = { community: 'Community', per_event: 'Per-Event', annual: 'Annual' };
+const STATUS_LABELS = { pending: 'Pending', active: 'Active', archived: 'Archived' };
+const STATUS_CLASS  = { pending: 'org-badge-pending', active: 'org-badge-active', archived: 'org-badge-archived' };
+
+function tierOrder(t) { return { annual: 3, per_event: 2, community: 1 }[t] ?? 0; }
+
+async function loadRoster() {
+  setStatus('org-roster-status', 'Loading…', 'muted');
+  document.getElementById('org-roster').innerHTML = '';
+  try {
+    const q    = query(collection(db, 'orgs'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    orgsCache  = [];
+    snap.forEach(d => orgsCache.push({ id: d.id, ...d.data() }));
+    renderSummaryStrip(orgsCache);
+    renderRoster();
+    setStatus('org-roster-status', '', '');
+  } catch (e) {
+    setStatus('org-roster-status', 'Failed to load: ' + e.message, 'error');
+  }
+}
+
+function renderSummaryStrip(orgs) {
+  const c = { pending: 0, active: 0, archived: 0, annual: 0, per_event: 0 };
+  orgs.forEach(o => {
+    if (o.status === 'pending')  c.pending++;
+    if (o.status === 'active')   c.active++;
+    if (o.status === 'archived') c.archived++;
+    if (o.tier === 'annual')     c.annual++;
+    if (o.tier === 'per_event')  c.per_event++;
+  });
+  [['chip-pending', c.pending], ['chip-active', c.active],
+   ['chip-annual', c.annual], ['chip-per-event', c.per_event],
+   ['chip-archived', c.archived]].forEach(([id, n]) => {
+    const el = document.getElementById(id);
+    if (el) el.querySelector('.chip-num').textContent = n;
+  });
+}
+
+function filterAndSort(orgs) {
+  const q = (document.getElementById('org-search')?.value || '').toLowerCase();
+  let list = q
+    ? orgs.filter(o =>
+        (o.displayName || '').toLowerCase().includes(q) ||
+        (o.email       || '').toLowerCase().includes(q))
+    : [...orgs];
+  list.sort((a, b) => {
+    let va, vb;
+    if (rosterSortKey === 'tier') {
+      va = tierOrder(a.tier); vb = tierOrder(b.tier);
+    } else if (rosterSortKey === 'expiry') {
+      va = a.expiry ?? 0; vb = b.expiry ?? 0;
+    } else {
+      va = a.createdAt?.seconds ?? 0; vb = b.createdAt?.seconds ?? 0;
+    }
+    return rosterSortDir === 'asc' ? va - vb : vb - va;
+  });
+  return list;
+}
+
+function renderRoster() {
+  const list      = filterAndSort(orgsCache);
+  const container = document.getElementById('org-roster');
+  if (!list.length) {
+    container.innerHTML = '<p style="font-size:12px;color:var(--ink4);padding:10px 0">No orgs found.</p>';
+    return;
+  }
+  container.innerHTML = list.map(renderOrgRow).join('');
+  container.querySelectorAll('.org-row-hd').forEach(hd => {
+    hd.addEventListener('click', () => toggleOrgExpand(hd.dataset.id));
+  });
+  if (orgExpandedId) {
+    const detail = document.getElementById('org-detail-' + orgExpandedId);
+    if (detail) {
+      detail.style.display = 'block';
+      updateChevron(orgExpandedId, true);
+      attachDetailHandlers(orgExpandedId);
+    }
+  }
+}
+
+function renderOrgRow(o) {
+  const tierLabel = o.tier ? (TIER_LABELS[o.tier] ?? o.tier) : '—';
+  const expiryStr = o.expiry
+    ? new Date(o.expiry * 1000).toLocaleDateString('en-BN', { timeZone: 'Asia/Brunei' })
+    : '—';
+  const isOpen = orgExpandedId === o.id;
+  return (
+    '<div class="org-row">' +
+      '<div class="org-row-hd" data-id="' + o.id + '">' +
+        '<div class="org-row-main">' +
+          '<span class="org-name">'  + escHtml(o.displayName || '(no name)') + '</span>' +
+          '<span class="org-email">' + escHtml(o.email || '') + '</span>' +
+        '</div>' +
+        '<div class="org-row-meta">' +
+          '<span class="org-badge ' + (STATUS_CLASS[o.status] || '') + '">' +
+            (STATUS_LABELS[o.status] || o.status) + '</span>' +
+          '<span class="org-tier">'   + escHtml(tierLabel)  + '</span>' +
+          '<span class="org-expiry">' + escHtml(expiryStr)  + '</span>' +
+          '<span class="org-chevron" id="chev-' + o.id + '">' + (isOpen ? '▲' : '▼') + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="org-row-detail" id="org-detail-' + o.id + '" style="display:' + (isOpen ? 'block' : 'none') + '">' +
+        renderOrgDetail(o) +
+      '</div>' +
+    '</div>'
+  );
+}
+
+function renderOrgDetail(o) {
+  let actionSection = '';
+  if (o.status === 'pending') {
+    actionSection =
+      '<div class="org-detail-section">' +
+        '<div class="adm-section-title" style="margin-bottom:6px">Activate Org</div>' +
+        '<div class="org-detail-hint">Creates a Firebase Auth account and sets the subscription tier in one step.</div>' +
+        '<div class="adm-row"><span class="adm-row-label">Password</span>' +
+          '<input type="password" id="act-pw-' + o.id + '" autocomplete="new-password" placeholder="Login password for this org"></div>' +
+        '<div class="adm-row"><span class="adm-row-label">Tier</span>' +
+          '<select id="act-tier-' + o.id + '">' +
+            '<option value="community">Community</option>' +
+            '<option value="per_event">Per-Event</option>' +
+            '<option value="annual">Annual</option>' +
+          '</select></div>' +
+        '<div class="adm-row"><span class="adm-row-label">Expiry</span>' +
+          '<input type="datetime-local" id="act-expiry-' + o.id + '"></div>' +
+        '<div class="btn-group">' +
+          '<button class="btn btn-am" id="act-btn-' + o.id + '" data-id="' + o.id + '" data-status="pending" data-email="' + escHtml(o.email) + '">Activate</button>' +
+        '</div>' +
+        '<div class="adm-status" id="act-status-' + o.id + '"></div>' +
+      '</div>';
+  } else if (o.status === 'active') {
+    actionSection =
+      '<div class="org-detail-section">' +
+        '<div class="adm-section-title" style="margin-bottom:6px">Set Tier</div>' +
+        '<div class="adm-row"><span class="adm-row-label">UID</span>' +
+          '<input type="text" id="act-uid-' + o.id + '" placeholder="Looking up…" style="font-family:ui-monospace,monospace;font-size:11px"></div>' +
+        '<div class="adm-row"><span class="adm-row-label">Tier</span>' +
+          '<select id="act-tier-' + o.id + '">' +
+            '<option value="community"' + (o.tier === 'community' ? ' selected' : '') + '>Community</option>' +
+            '<option value="per_event"' + (o.tier === 'per_event' ? ' selected' : '') + '>Per-Event</option>' +
+            '<option value="annual"'    + (o.tier === 'annual'    ? ' selected' : '') + '>Annual</option>' +
+          '</select></div>' +
+        '<div class="adm-row"><span class="adm-row-label">Expiry</span>' +
+          '<input type="datetime-local" id="act-expiry-' + o.id + '"></div>' +
+        '<div class="btn-group">' +
+          '<button class="btn btn-am" id="act-btn-' + o.id + '" data-id="' + o.id + '" data-status="active" data-email="' + escHtml(o.email) + '">Update Tier</button>' +
+          '<button class="btn btn-rd" id="arch-btn-' + o.id + '" data-id="' + o.id + '">Archive</button>' +
+        '</div>' +
+        '<div class="adm-status" id="act-status-' + o.id + '"></div>' +
+      '</div>';
+  }
+
+  return (
+    '<div class="org-detail-inner">' +
+      '<div class="org-detail-section">' +
+        '<div class="adm-section-title" style="margin-bottom:8px">Notes</div>' +
+        '<textarea class="org-notes-ta" id="notes-' + o.id + '" rows="3">' + escHtml(o.notes || '') + '</textarea>' +
+        '<div class="btn-group" style="margin-top:8px">' +
+          '<button class="btn btn-am" id="notes-save-' + o.id + '" data-id="' + o.id + '">Save notes</button>' +
+        '</div>' +
+        '<div class="adm-status" id="notes-status-' + o.id + '"></div>' +
+      '</div>' +
+      actionSection +
+      '<div class="org-detail-section">' +
+        '<div class="adm-section-title" style="margin-bottom:8px">Audit history</div>' +
+        '<div class="org-audit-list" id="audit-' + o.id + '"><span style="color:var(--ink4);font-size:11px">Loading…</span></div>' +
+      '</div>' +
+    '</div>'
+  );
+}
+
+function updateChevron(orgId, open) {
+  const chev = document.getElementById('chev-' + orgId);
+  if (chev) chev.textContent = open ? '▲' : '▼';
+}
+
+async function toggleOrgExpand(orgId) {
+  if (orgExpandedId === orgId) {
+    document.getElementById('org-detail-' + orgId).style.display = 'none';
+    updateChevron(orgId, false);
+    orgExpandedId = null;
+    return;
+  }
+  if (orgExpandedId) {
+    const prev = document.getElementById('org-detail-' + orgExpandedId);
+    if (prev) prev.style.display = 'none';
+    updateChevron(orgExpandedId, false);
+  }
+  orgExpandedId = orgId;
+  const detail = document.getElementById('org-detail-' + orgId);
+  if (!detail) return;
+  detail.style.display = 'block';
+  updateChevron(orgId, true);
+  attachDetailHandlers(orgId);
+  await loadOrgAudit(orgId);
+  // Auto-fill UID for active orgs
+  const org = orgsCache.find(o => o.id === orgId);
+  if (org?.status === 'active') {
+    getOrgByEmailFn({ email: org.email })
+      .then(r => {
+        const uidInput = document.getElementById('act-uid-' + orgId);
+        if (uidInput) uidInput.value = r.data.uid;
+      })
+      .catch(() => {});
+  }
+}
+
+function attachDetailHandlers(orgId) {
+  const notesSaveBtn = document.getElementById('notes-save-' + orgId);
+  if (notesSaveBtn && !notesSaveBtn._bound) {
+    notesSaveBtn._bound = true;
+    notesSaveBtn.addEventListener('click', async () => {
+      const notes = document.getElementById('notes-' + orgId)?.value ?? '';
+      notesSaveBtn.disabled = true;
+      setStatus('notes-status-' + orgId, 'Saving…', 'muted');
+      try {
+        await updateOrgNotesFn({ orgId, notes });
+        const cached = orgsCache.find(o => o.id === orgId);
+        if (cached) cached.notes = notes;
+        setStatus('notes-status-' + orgId, 'Saved.', 'success');
+        await loadOrgAudit(orgId);
+      } catch (e) {
+        setStatus('notes-status-' + orgId, e.message, 'error');
+      } finally {
+        notesSaveBtn.disabled = false;
+      }
+    });
+  }
+
+  const actBtn = document.getElementById('act-btn-' + orgId);
+  if (actBtn && !actBtn._bound) {
+    actBtn._bound = true;
+    actBtn.addEventListener('click', async () => {
+      const status  = actBtn.dataset.status;
+      const email   = actBtn.dataset.email;
+      const tier    = document.getElementById('act-tier-' + orgId)?.value;
+      const expVal  = document.getElementById('act-expiry-' + orgId)?.value;
+      const expiry  = expVal ? Math.floor(new Date(expVal).getTime() / 1000) : null;
+      actBtn.disabled = true;
+      setStatus('act-status-' + orgId, 'Working…', 'muted');
+      try {
+        let uid;
+        if (status === 'pending') {
+          const pw = document.getElementById('act-pw-' + orgId)?.value;
+          if (!pw) { setStatus('act-status-' + orgId, 'Password required.', 'error'); actBtn.disabled = false; return; }
+          const cred = await createUserWithEmailAndPassword(auth, email, pw);
+          uid = cred.user.uid;
+        } else {
+          uid = document.getElementById('act-uid-' + orgId)?.value.trim();
+          if (!uid) { setStatus('act-status-' + orgId, 'UID required — check Org Management above.', 'error'); actBtn.disabled = false; return; }
+        }
+        await activateOrgFn({ orgId, uid, tier, expiry });
+        setStatus('act-status-' + orgId, 'Done.', 'success');
+        await loadRoster();
+      } catch (e) {
+        setStatus('act-status-' + orgId, e.message, 'error');
+        actBtn.disabled = false;
+      }
+    });
+  }
+
+  const archBtn = document.getElementById('arch-btn-' + orgId);
+  if (archBtn && !archBtn._bound) {
+    archBtn._bound = true;
+    archBtn.addEventListener('click', async () => {
+      if (!confirm('Archive this org? Their subscription claims remain until expiry.')) return;
+      archBtn.disabled = true;
+      setStatus('act-status-' + orgId, 'Archiving…', 'muted');
+      try {
+        await archiveOrgFn({ orgId });
+        await loadRoster();
+      } catch (e) {
+        setStatus('act-status-' + orgId, e.message, 'error');
+        archBtn.disabled = false;
+      }
+    });
+  }
+}
+
+async function loadOrgAudit(orgId) {
+  const container = document.getElementById('audit-' + orgId);
+  if (!container) return;
+  try {
+    const q    = query(collection(db, 'orgs', orgId, 'audit'), orderBy('timestamp', 'asc'));
+    const snap = await getDocs(q);
+    if (snap.empty) {
+      container.innerHTML = '<span style="color:var(--ink4);font-size:11px">No audit entries yet.</span>';
+      return;
+    }
+    const rows = [];
+    snap.forEach(d => {
+      const e  = d.data();
+      const ts = e.timestamp?.toDate
+        ? e.timestamp.toDate().toLocaleString('en-BN', { timeZone: 'Asia/Brunei' })
+        : '—';
+      rows.push(
+        '<div class="audit-entry">' +
+          '<div class="audit-row1">' +
+            '<span class="audit-action">' + escHtml(e.action) + '</span>' +
+            '<span class="audit-meta">' + escHtml(ts) + ' · ' + escHtml(e.actor) + '</span>' +
+          '</div>' +
+          (e.details ? '<div class="audit-detail">' + escHtml(e.details) + '</div>' : '') +
+        '</div>'
+      );
+    });
+    container.innerHTML = rows.join('');
+  } catch (e) {
+    container.innerHTML = '<span style="color:var(--rd);font-size:11px">' + escHtml(e.message) + '</span>';
+  }
+}
+
+// Roster: search (client-side, no new query)
+document.getElementById('org-search').addEventListener('input', () => renderRoster());
+
+// Roster: sort buttons
+document.getElementById('sort-tier-btn').addEventListener('click', () => {
+  rosterSortKey = 'tier';
+  rosterSortDir = rosterSortDir === 'desc' ? 'asc' : 'desc';
+  document.getElementById('sort-tier-btn').classList.add('active');
+  document.getElementById('sort-expiry-btn').classList.remove('active');
+  renderRoster();
+});
+document.getElementById('sort-expiry-btn').addEventListener('click', () => {
+  rosterSortKey = 'expiry';
+  rosterSortDir = rosterSortDir === 'desc' ? 'asc' : 'desc';
+  document.getElementById('sort-expiry-btn').classList.add('active');
+  document.getElementById('sort-tier-btn').classList.remove('active');
+  renderRoster();
+});
+
+// Roster: refresh
+document.getElementById('roster-refresh-btn').addEventListener('click', loadRoster);
+
+// Create Org form toggle
+document.getElementById('org-new-btn').addEventListener('click', () => {
+  document.getElementById('org-create-form').classList.toggle('open');
+  setStatus('org-create-status', '', '');
+});
+document.getElementById('org-create-cancel').addEventListener('click', () => {
+  document.getElementById('org-create-form').classList.remove('open');
+  document.getElementById('new-org-name').value  = '';
+  document.getElementById('new-org-email').value = '';
+  document.getElementById('new-org-notes').value = '';
+  setStatus('org-create-status', '', '');
+});
+document.getElementById('org-create-submit').addEventListener('click', async () => {
+  const displayName = document.getElementById('new-org-name').value.trim();
+  const email       = document.getElementById('new-org-email').value.trim();
+  const notes       = document.getElementById('new-org-notes').value.trim();
+  if (!displayName || !email) {
+    setStatus('org-create-status', 'Display name and email are required.', 'error');
+    return;
+  }
+  const submitBtn = document.getElementById('org-create-submit');
+  submitBtn.disabled = true;
+  setStatus('org-create-status', 'Creating…', 'muted');
+  try {
+    await createOrgFn({ displayName, email, notes });
+    document.getElementById('new-org-name').value  = '';
+    document.getElementById('new-org-email').value = '';
+    document.getElementById('new-org-notes').value = '';
+    document.getElementById('org-create-form').classList.remove('open');
+    setStatus('org-create-status', '', '');
+    await loadRoster();
+  } catch (e) {
+    setStatus('org-create-status', e.message, 'error');
+  } finally {
+    submitBtn.disabled = false;
   }
 });
 

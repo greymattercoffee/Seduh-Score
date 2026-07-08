@@ -2,6 +2,72 @@
 
 ---
 
+## [5.7.0] — Super Admin org roster, search & visibility (POA-41, Codename Pagon) · July 2026
+
+Architecture locked in Strategy session prior to build — see PAGON-SPEC.md for full
+detail. Ships as an independent ticket in the same pre-August window as POA-40
+(Throwdown Records, still in its own 27 Jul–9 Aug test cycle) — different data domain,
+tracked separately per standing convention.
+
+### orgs Firestore collection (new)
+
+- **feat:** unified `orgs` collection — designed to serve both this ticket's roster and
+  a future (not yet ticketed) public onboarding intake form from the same schema, so
+  onboarding won't require a later migration off a separate `orgRequests` collection.
+  Full field list in PAGON-SPEC.md §3.
+- **decision:** Firebase Auth account and custom claims are provisioned only at
+  activation (`activateOrg`), never at doc creation (`createOrg`). A `pending` org
+  cannot log in under any circumstance. Logged as an architectural decision, not a bug
+  — see PAGON-SPEC.md §4.
+- **feat:** `orgs/{orgId}/audit` subcollection — every status transition and notes edit
+  is logged. Audit writes are server-side only; Firestore rules deny all client writes
+  to this subcollection regardless of claim.
+
+### admin/index.html
+
+- **feat:** org roster table, sortable by tier and expiry
+- **feat:** autocomplete search — client-side filter over the cached roster array, no
+  new query fired per keystroke
+- **feat:** dashboard summary strip — tier counts, computed client-side from the same
+  cached array
+- **feat:** notes field per org — edits trigger exactly one server-side `note_added`
+  audit entry
+- **feat:** audit history view — chronological, per org
+- **feat:** manual org creation flow — lands at `status: 'pending'`; a separate
+  activation step (via `activateOrg`) is required to go live
+- **verified clean:** "BBTC" label flagged as unchecked in POA-43 — confirmed zero
+  occurrences remain in this file; no change was needed
+
+### Cloud Functions
+
+- **feat:** `createOrg` — writes `orgs` doc only, no Auth/claims side effect
+- **feat:** `activateOrg` — provisions Auth + custom claims, sets
+  `status`/`activatedAt`/`activatedBy`, writes the `activated` audit entry
+- **feat:** `updateOrgNotes` — updates `notes`, writes exactly one `note_added` audit
+  entry
+- **feat:** `writeAudit()` — internal-only audit writer, not client-callable
+
+### firestore.rules
+
+- **feat:** `orgs` — read/write restricted to `super_admin` custom claim
+- **feat:** `orgs/{orgId}/audit` — deny all client writes regardless of claim;
+  server/Admin SDK only
+
+### Deferred from this session
+
+- Bulk tier-set — deferred, overlaps BNCC parent-child hierarchy work, stays blocked
+  pending BNCC requirements (per STRATEGY.md)
+- Public onboarding intake form — not yet ticketed; schema-compatible whenever opened
+- Archive action (setting `status: 'archived'`) and the associated custom-claims
+  revocation-vs-stale question (PAGON-SPEC.md §10) — not resolved this session, carried
+  forward as open
+- **`bbtc/index.html` untouched** — POA-39 (`.hdr-s`/`.hdr-t` rename) and the remainder
+  of POA-44 (folder, function names, CSV filename) remain backlog, scoped to a future
+  session that touches `bbtc/index.html` internals. Explicitly re-affirmed here so it
+  isn't lost now that Pagon is closed.
+
+---
+
 ## [5.6.0] — Tour page + front-page teaser + BTC rename (POA-43) · July 2026
 
 Visual direction locked via design canvas (`Tour Page + Teaser.dc.html`) before

@@ -50,6 +50,18 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Org roster (POA-41) — super admin read/write only.
+    // Audit subcollection: super admin read; client writes denied entirely —
+    // all audit entries are written server-side via Admin SDK (Cloud Functions).
+    match /orgs/{orgId} {
+      allow read, write: if request.auth != null && request.auth.token.super_admin == true;
+
+      match /audit/{entryId} {
+        allow read:  if request.auth != null && request.auth.token.super_admin == true;
+        allow write: if false;
+      }
+    }
+
     // Catch-all — deny everything else
     match /{document=**} {
       allow read, write: if false;
