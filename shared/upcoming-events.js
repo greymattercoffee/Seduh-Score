@@ -207,7 +207,7 @@
         const meta = fmtMeta(ev);
         const metaParts = [formatDate(ev.eventDate), ev.eventVenue].filter(Boolean);
         return '<div class="ue-icon-slide' + (i === idx ? ' ue-active' : '') + '">' +
-          '<div class="ue-icon-swatch" style="background:' + meta.bg + ';color:' + meta.color + '">' + meta.icon + '</div>' +
+          '<div class="ue-icon-swatch" style="background:' + meta.bg + ';color:' + meta.color + ';border:1.5px solid ' + meta.bd + '">' + meta.icon + '</div>' +
           '<div class="ue-icon-main">' +
             '<div class="ue-icon-kicker"><span class="ue-icon-dot"></span><span class="eyebrow">' + esc(kickerLabel(ev)) + '</span></div>' +
             '<div class="ue-icon-name">' + esc(ev.eventName) + '</div>' +

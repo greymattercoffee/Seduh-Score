@@ -68,6 +68,48 @@ tracked separately per standing convention.
 
 ---
 
+## [5.6.1] — Front-page visual fixes (POA-45) · July 2026
+
+Three independent, low-risk front-page fixes found during a visual audit.
+Only `index.html` and `shared/upcoming-events.js` were touched.
+`tour/index.html`, the org zone, and `coming-soon/index.html` are untouched.
+
+### index.html
+
+- **fix:** "Org login" pill in header was sitting visibly above centre — root
+  cause: `.btn-p` on an `<a>` element has no `display` property in `theme.css`,
+  so the `<a>` defaults to `display:inline` and `min-height:44px` has no
+  alignment effect. `tour/index.html` received `display:inline-flex;align-items:
+  center` in its inline style during POA-43; the front page was not updated at
+  the same time. Fixed by adding the same `white-space:nowrap;display:inline-flex;
+  align-items:center` to the front-page button's inline style. No `theme.css`
+  change — the shared `.btn-p` rule is intentionally not touched here; tour page
+  re-checked post-fix and still renders correctly, unchanged
+- **fix:** "Open a free tool" hero CTA was linking to `#free` (the cutline just
+  above the org zone), not to the free-tools panel. Added `id="free-tools"` to
+  `.fd-panel` and updated the CTA `href` to `#free-tools`. The `#free` cutline
+  and org zone are untouched
+- **fix:** added `html{scroll-behavior:smooth}` to the page-local `<style>`
+  block — smooth scroll animation for all same-page anchor links on the front
+  page
+
+### shared/upcoming-events.js
+
+- **fix:** icon swatch in `media:'icon'` mode lacked a visible border/ring,
+  causing the amber (Throwdown) swatch to camouflage against the cream page
+  background. Added `border:1.5px solid <meta.bd>` to the `.ue-icon-swatch`
+  inline style in `renderIcon()`. All four formats now show a border using
+  existing contract tokens: throwdown → `--am-bd`, liga → `--gn-bd`,
+  cup-taster → `--bl-bd`, btc → `--pu-bd`. No new tokens introduced; the `bd`
+  values were already present in the internal `FORMAT_META` registry
+
+### Not touched
+
+`tour/index.html`, org zone cards/gating, `coming-soon/index.html`'s photo-mode
+carousel, any Firestore schema/query logic in `upcoming-events.js`
+
+---
+
 ## [5.6.0] — Tour page + front-page teaser + BTC rename (POA-43) · July 2026
 
 Visual direction locked via design canvas (`Tour Page + Teaser.dc.html`) before

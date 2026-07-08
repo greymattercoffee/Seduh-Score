@@ -28,6 +28,8 @@
   ════════════════════════════════════════════════════════════════════
 -->
 <style>
+  html{scroll-behavior:smooth}
+
   /* keep the front-door header label on one line */
   .plat-hdr-actions .btn-p,.plat-hdr-actions .btn-o{white-space:nowrap}
   .plat-hdr-sub{margin-left:.5rem}
@@ -212,7 +214,7 @@
     <div class="plat-hdr-actions">
       <span class="plat-hdr-loc"><span class="dot"></span>Brunei Darussalam</span>
       <a class="nav-link" href="tour/">Tour</a>
-      <a class="btn-p when-out" href="#org-login" style="padding:9px 18px;font-size:13px">Org login</a>
+      <a class="btn-p when-out" href="#org-login" style="padding:9px 18px;font-size:13px;white-space:nowrap;display:inline-flex;align-items:center">Org login</a>
       <span class="fd-org when-in"><span class="dot"></span><span id="org-chip-email"></span></span>
       <button class="btn-o when-in" data-act="signout" style="border-radius:var(--rad-pill)">Sign out</button>
     </div>
@@ -231,12 +233,12 @@
         <h1 class="hero-name">Every format. One platform.</h1>
         <p class="hero-sub">Brackets, leagues, sensory rounds and the court timer — score it the way it actually runs in the room.</p>
         <div class="fd-cta">
-          <a class="btn-p" href="#free">Open a free tool</a>
+          <a class="btn-p" href="#free-tools">Open a free tool</a>
           <a class="btn-o" href="#org-login">Org sign-in</a>
         </div>
       </div>
       <div>
-        <div class="fd-panel">
+        <div class="fd-panel" id="free-tools">
           <div class="fd-panel-hd">Jump straight in — free<em>No account</em></div>
           <div class="fd-panel-body">
             <div class="fd-row-wrap"><a class="fd-row" href="throwdown/index.html"><span class="ic">⚡</span><span class="tt"><b>Throwdown Basic</b><span>1v1 knockout · up to 16</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><button class="mod-info-btn" data-module-key="throwdown" data-module-name="Throwdown" aria-label="About Throwdown">ℹ</button></div>
