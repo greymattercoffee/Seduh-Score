@@ -2,6 +2,109 @@
 
 ---
 
+## [5.8.0] — Unlisted investor/customer pitch page (POA-52) · July 2026
+
+### pitch/index.html (new)
+
+- **feat:** outward-facing animated roadmap/pitch page — hero with count-up
+  stats, scroll-driven "extraction" timeline of shipped phases, current-cycle
+  cards with live countdown to the 30 Aug 2026 event, abstracted Seduh ID
+  section, and codename-spiral visual naming only the current cycle (Seria),
+  per the ROADMAP.md codename protocol
+- Unlisted by design: `noindex, nofollow`, zero inbound links from any page,
+  not in any sitemap. Unlisted ≠ secured — Gates-based access control
+  deliberately deferred (see PLAN_OF_ACTION.md backlog)
+- Hero stat definition: "50+ versioned releases shipped in 2026" = numbered
+  CHANGELOG.md release entries dated 2026, docs-only entries excluded
+- **Deviation (logged, intentional):** page uses its own typefaces
+  (Gloock / Sora / Space Mono via Google Fonts CDN) rather than platform
+  `--font-*` tokens — a deliberate marketing-register choice made in Strategy;
+  a "marketing type register" Design exploration has been queued. Page is
+  fully self-contained per B1; loads only `shared/version.js`
+- Countdown to 30 Aug 2026 is intentionally hardcoded — post-event rewrite/
+  takedown follow-up logged in PLAN_OF_ACTION.md
+
+### shared/version.js
+
+- `SEDUH_VERSION` bumped to `5.8.0`
+
+## [5.7.3] — Source fix: `.plat-hdr-sub` spacing (POA-51) · July 2026
+
+Root-cause fix for a spacing bug patched locally on `index.html` in v4.8.1
+instead of being promoted to `shared/theme.css`. Same root-cause shape as
+POA-46: the fix went to the call site rather than the definition. When Tour
+(`tour/index.html`) was built in POA-43 (v5.6.0) using the same `.plat-hdr-sub`
+tagline lockup, it never inherited the fix — reproducing the identical
+"Seduh Score / Coffee competition platform" cramped spacing. Confirmed by
+July 2026 front-page/Tour visual comparison.
+
+### shared/theme.css
+
+- **fix:** added `margin-left:.5rem` to `.plat-hdr-sub` — promotes the v4.8.1
+  patch to the source rule; fixes all consumers via the shared stylesheet alone
+
+### index.html
+
+- **fix (cleanup):** removed redundant local override `.plat-hdr-sub{margin-left:.5rem}`
+  from the page-level `<style>` block — now correctly inherited from `shared/theme.css`
+
+### Audit findings (site-wide grep)
+
+**Marketing header lockup (`.plat-hdr-name` + `.plat-hdr-sub`) — 4 consumers:**
+- `index.html:212` — had local patch, removed; now inherits from shared rule ✅
+- `tour/index.html:107` — **silent bug**, fixed by shared rule alone ✅
+- `about/index.html:62` — fixed by shared rule alone ✅
+- `coming-soon/index.html:37` — fixed by shared rule alone ✅
+
+**Eyebrow-label usage (full inline style overrides — different pattern, not the lockup):**
+- `booth/display/index.html`, `booth/setup/index.html`, `booth/guess/index.html`,
+  `booth/grinder/index.html`, `booth/display/guess/index.html`,
+  `booth/display/grinder/index.html` — `margin-left:.5rem` now inherited; harmless
+  in their layout context; booth pages not yet publicly deployed
+- `cup-taster/index.html:519`, `liga/index.html:549`, `throwdown/index.html:786` —
+  JS template strings using `.plat-hdr-sub` as eyebrow labels with full inline
+  overrides; same disposition
+
+---
+
+## [docs] — Org roster/throwdown records rules deploy gap · July 2026
+
+Organisations tab in the Super Admin panel failed to load with a
+Firestore `permission-denied` error despite correct rules content in
+the repo and a confirmed-valid `super_admin` custom claim on the test
+account. Root cause: the `/orgs/{orgId}` (POA-41) and
+`/throwdown_records/{recordId}` (POA-40) match blocks existed in the
+repo's `firestore.rules` but had never been deployed to the live
+project — confirmed by comparing the repo file against the actual live
+rules shown in Firebase Console (not just the editor's displayed text),
+and independently confirmed via a raw REST call to the Firestore API
+that bypassed the SDK and browser entirely, isolating the failure to
+the server's rules evaluation rather than any client-side cause.
+
+This is the second occurrence of a rules-deploy gap in this codebase
+(the first being `upcoming_events`, noted in the 5.3.1-rules entry) —
+worth treating rules-deploy-after-code-ship as a standing checklist
+item for any future ticket that adds a new Firestore collection or
+match block, rather than assuming a rules commit implies a rules
+deploy.
+
+Resolved by running `firebase deploy --only firestore:rules` from the
+local repo against the already-correct rules file. No rule content
+changed. Diagnostic logging temporarily added to `admin/index.html`
+during investigation (forced token refresh, claims/raw-token console
+output, error-code logging in `loadRoster()`'s catch block) has been
+reverted — see this session's revert.
+
+---
+
+## [5.7.2] — Fix: org roster search box unstyled in Admin panel · July 2026
+
+### admin/index.html
+
+- **fix: text input styling** — `input[type="text"]` added to the shared CSS selector group in the admin panel's inline `<style>` block (alongside the existing `email`, `password`, `datetime-local`, `select` entries); the org roster search box now matches the dark theme styling of every other input field. Root cause: same shape as the v4.8.1 `password` fix — a new input type added to the panel without being included in the selector group. All higher-specificity scoped rules (`.adm-add-form input[type="text"]`, `#rec-reset-input`) are unaffected.
+
+---
+
 ## [5.7.1] — Source fix: `.btn-p` / `.btn-o` display on `<a>` elements (POA-46) · July 2026
 
 Root-cause fix for a bug found and instance-patched twice (POA-43 on
