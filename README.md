@@ -61,7 +61,6 @@ That's it. That's the app. Scroll on if you want the nerdy stuff — no judgment
 | Event Config | `shared/eventconfig.js` | Organiser branding/customisation (accent colour, logo, event details) |
 | Timer | `shared/timer.js` | 5 / 7 / 10 / 15 min countdown with fullscreen display |
 | Audience View | `shared/audience.js` | Projector overlay — live standings and results |
-| PDF Export | `shared/pdf.js` | Shared, format-agnostic PDF export module. Currently used by BBTC only (v5.4.0, MUA-07 pilot). Public API: `PdfExport.open({ pages, fallbackTitle })`, `.close()`, `.print()` |
 | Sound | `shared/sound.js` | Synthesised timer/reveal audio cues, no audio files. Used by BBTC, Liga, and Timer. API: `unlock()` / `beep()` / `horn()` |
 
 ---
