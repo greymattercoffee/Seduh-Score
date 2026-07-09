@@ -67,6 +67,36 @@ July 2026 front-page/Tour visual comparison.
 
 ---
 
+## [docs] — Org roster/throwdown records rules deploy gap · July 2026
+
+Organisations tab in the Super Admin panel failed to load with a
+Firestore `permission-denied` error despite correct rules content in
+the repo and a confirmed-valid `super_admin` custom claim on the test
+account. Root cause: the `/orgs/{orgId}` (POA-41) and
+`/throwdown_records/{recordId}` (POA-40) match blocks existed in the
+repo's `firestore.rules` but had never been deployed to the live
+project — confirmed by comparing the repo file against the actual live
+rules shown in Firebase Console (not just the editor's displayed text),
+and independently confirmed via a raw REST call to the Firestore API
+that bypassed the SDK and browser entirely, isolating the failure to
+the server's rules evaluation rather than any client-side cause.
+
+This is the second occurrence of a rules-deploy gap in this codebase
+(the first being `upcoming_events`, noted in the 5.3.1-rules entry) —
+worth treating rules-deploy-after-code-ship as a standing checklist
+item for any future ticket that adds a new Firestore collection or
+match block, rather than assuming a rules commit implies a rules
+deploy.
+
+Resolved by running `firebase deploy --only firestore:rules` from the
+local repo against the already-correct rules file. No rule content
+changed. Diagnostic logging temporarily added to `admin/index.html`
+during investigation (forced token refresh, claims/raw-token console
+output, error-code logging in `loadRoster()`'s catch block) has been
+reverted — see this session's revert.
+
+---
+
 ## [5.7.1] — Source fix: `.btn-p` / `.btn-o` display on `<a>` elements (POA-46) · July 2026
 
 Root-cause fix for a bug found and instance-patched twice (POA-43 on
