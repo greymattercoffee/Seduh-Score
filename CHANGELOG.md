@@ -2,6 +2,32 @@
 
 ---
 
+## [5.8.0] — Unlisted investor/customer pitch page (POA-52) · July 2026
+
+### pitch/index.html (new)
+
+- **feat:** outward-facing animated roadmap/pitch page — hero with count-up
+  stats, scroll-driven "extraction" timeline of shipped phases, current-cycle
+  cards with live countdown to the 30 Aug 2026 event, abstracted Seduh ID
+  section, and codename-spiral visual naming only the current cycle (Seria),
+  per the ROADMAP.md codename protocol
+- Unlisted by design: `noindex, nofollow`, zero inbound links from any page,
+  not in any sitemap. Unlisted ≠ secured — Gates-based access control
+  deliberately deferred (see PLAN_OF_ACTION.md backlog)
+- Hero stat definition: "50+ versioned releases shipped in 2026" = numbered
+  CHANGELOG.md release entries dated 2026, docs-only entries excluded
+- **Deviation (logged, intentional):** page uses its own typefaces
+  (Gloock / Sora / Space Mono via Google Fonts CDN) rather than platform
+  `--font-*` tokens — a deliberate marketing-register choice made in Strategy;
+  a "marketing type register" Design exploration has been queued. Page is
+  fully self-contained per B1; loads only `shared/version.js`
+- Countdown to 30 Aug 2026 is intentionally hardcoded — post-event rewrite/
+  takedown follow-up logged in PLAN_OF_ACTION.md
+
+### shared/version.js
+
+- `SEDUH_VERSION` bumped to `5.8.0`
+
 ## [5.7.1] — Source fix: `.btn-p` / `.btn-o` display on `<a>` elements (POA-46) · July 2026
 
 Root-cause fix for a bug found and instance-patched twice (POA-43 on
