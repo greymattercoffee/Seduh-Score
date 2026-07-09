@@ -2,6 +2,626 @@
 
 ---
 
+## [5.7.1] — Source fix: `.btn-p` / `.btn-o` display on `<a>` elements (POA-46) · July 2026
+
+Root-cause fix for a bug found and instance-patched twice (POA-43 on
+`tour/index.html`, POA-45 on `index.html`): `.btn-p` and `.btn-o` in
+`shared/theme.css` had no `display` property, so any `<a>` element using
+either class defaulted to `display:inline` and `min-height:44px` had no
+centering or height effect. Both prior patches fixed call sites with inline
+styles rather than the shared rule.
+
+### shared/theme.css
+
+- **fix:** added `display:inline-flex;align-items:center;white-space:nowrap`
+  to `.btn-p` — fixes text misalignment on all `<a class="btn-p">` elements
+  sitewide. `white-space:nowrap` is consistent with every prior instance
+  patch and appropriate for primary call-to-action labels
+- **fix:** added `display:inline-flex;align-items:center;white-space:nowrap`
+  to `.btn-o` — same root cause; two silent instances confirmed
+
+### Audit findings (site-wide grep)
+
+**`<a class="btn-p">` — 5 instances:**
+- `index.html:217` — "Org login" pill in header — patched in POA-45
+  (intentional size overrides `padding:9px 18px;font-size:13px` kept)
+- `index.html:236` — "Open a free tool" hero CTA — **silent bug**, now fixed
+  by shared rule only
+- `tour/index.html:112` — "Org login" in tour header — patched in POA-43
+  (same intentional size overrides kept)
+- `tour/index.html:239` — "Open a free tool" tour CTA — patched in POA-43
+  (`text-decoration:none;gap:8px;font-size:15px;padding:13px 24px` kept)
+- `booth/display/index.html:46` — "Guess the Bean →" — **silent bug**, now
+  fixed by shared rule only
+
+**`<a class="btn-o">` — 2 instances:**
+- `index.html:237` — "Org sign-in" alongside hero CTA — **silent bug**
+- `booth/display/index.html:47` — "Grinder Challenge →" — **silent bug**
+
+**Sibling colour classes (`.btn-am/.btn-bl/.btn-gn/.btn-rd/.btn-pu`) —**
+no `<a>` instances found anywhere in the codebase; not affected in practice.
+
+### Instance-patch cleanup (Step 3)
+
+The three patched call sites all had `display:inline-flex;align-items:center`
+and `white-space:nowrap` in their inline styles. All three were cleaned:
+
+- `index.html:217` — removed `white-space:nowrap;display:inline-flex;
+  align-items:center`; retained `padding:9px 18px;font-size:13px`
+- `tour/index.html:112` — same cleanup; same overrides retained
+- `tour/index.html:239` — removed `display:inline-flex;align-items:center;
+  white-space:nowrap`; retained `text-decoration:none;gap:8px;
+  font-size:15px;padding:13px 24px`
+
+### shared/version.js
+
+- **bump:** `SEDUH_VERSION` → `'5.7.1'`
+  (was `'5.6.1'` — two versions behind; corrected here)
+
+### Not touched
+
+`.btn-sm`, `.btn-am`, `.btn-bl`, `.btn-gn`, `.btn-rd`, `.btn-pu` — no
+`min-height` on these and confirmed no `<a>` usage anywhere in the repo.
+`.tb-*` toolbar classes (MUA-06 chrome), all module `index.html` files
+except the call-site cleanups above, all Firebase config, all shared JS.
+
+---
+
+## [5.7.0] — Super Admin org roster, search & visibility (POA-41, Codename Pagon) · July 2026
+
+Architecture locked in Strategy session prior to build — see PAGON-SPEC.md for full
+detail. Ships as an independent ticket in the same pre-August window as POA-40
+(Throwdown Records, still in its own 27 Jul–9 Aug test cycle) — different data domain,
+tracked separately per standing convention.
+
+### orgs Firestore collection (new)
+
+- **feat:** unified `orgs` collection — designed to serve both this ticket's roster and
+  a future (not yet ticketed) public onboarding intake form from the same schema, so
+  onboarding won't require a later migration off a separate `orgRequests` collection.
+  Full field list in PAGON-SPEC.md §3.
+- **decision:** Firebase Auth account and custom claims are provisioned only at
+  activation (`activateOrg`), never at doc creation (`createOrg`). A `pending` org
+  cannot log in under any circumstance. Logged as an architectural decision, not a bug
+  — see PAGON-SPEC.md §4.
+- **feat:** `orgs/{orgId}/audit` subcollection — every status transition and notes edit
+  is logged. Audit writes are server-side only; Firestore rules deny all client writes
+  to this subcollection regardless of claim.
+
+### admin/index.html
+
+- **feat:** org roster table, sortable by tier and expiry
+- **feat:** autocomplete search — client-side filter over the cached roster array, no
+  new query fired per keystroke
+- **feat:** dashboard summary strip — tier counts, computed client-side from the same
+  cached array
+- **feat:** notes field per org — edits trigger exactly one server-side `note_added`
+  audit entry
+- **feat:** audit history view — chronological, per org
+- **feat:** manual org creation flow — lands at `status: 'pending'`; a separate
+  activation step (via `activateOrg`) is required to go live
+- **verified clean:** "BBTC" label flagged as unchecked in POA-43 — confirmed zero
+  occurrences remain in this file; no change was needed
+
+### Cloud Functions
+
+- **feat:** `createOrg` — writes `orgs` doc only, no Auth/claims side effect
+- **feat:** `activateOrg` — provisions Auth + custom claims, sets
+  `status`/`activatedAt`/`activatedBy`, writes the `activated` audit entry
+- **feat:** `updateOrgNotes` — updates `notes`, writes exactly one `note_added` audit
+  entry
+- **feat:** `writeAudit()` — internal-only audit writer, not client-callable
+
+### firestore.rules
+
+- **feat:** `orgs` — read/write restricted to `super_admin` custom claim
+- **feat:** `orgs/{orgId}/audit` — deny all client writes regardless of claim;
+  server/Admin SDK only
+
+### Deferred from this session
+
+- Bulk tier-set — deferred, overlaps BNCC parent-child hierarchy work, stays blocked
+  pending BNCC requirements (per STRATEGY.md)
+- Public onboarding intake form — not yet ticketed; schema-compatible whenever opened
+- Archive action (setting `status: 'archived'`) and the associated custom-claims
+  revocation-vs-stale question (PAGON-SPEC.md §10) — not resolved this session, carried
+  forward as open
+- **`bbtc/index.html` untouched** — POA-39 (`.hdr-s`/`.hdr-t` rename) and the remainder
+  of POA-44 (folder, function names, CSV filename) remain backlog, scoped to a future
+  session that touches `bbtc/index.html` internals. Explicitly re-affirmed here so it
+  isn't lost now that Pagon is closed.
+
+---
+
+## [5.6.1] — Front-page visual fixes (POA-45) · July 2026
+
+Three independent, low-risk front-page fixes found during a visual audit.
+Only `index.html` and `shared/upcoming-events.js` were touched.
+`tour/index.html`, the org zone, and `coming-soon/index.html` are untouched.
+
+### index.html
+
+- **fix:** "Org login" pill in header was sitting visibly above centre — root
+  cause: `.btn-p` on an `<a>` element has no `display` property in `theme.css`,
+  so the `<a>` defaults to `display:inline` and `min-height:44px` has no
+  alignment effect. `tour/index.html` received `display:inline-flex;align-items:
+  center` in its inline style during POA-43; the front page was not updated at
+  the same time. Fixed by adding the same `white-space:nowrap;display:inline-flex;
+  align-items:center` to the front-page button's inline style. No `theme.css`
+  change — the shared `.btn-p` rule is intentionally not touched here; tour page
+  re-checked post-fix and still renders correctly, unchanged
+- **fix:** "Open a free tool" hero CTA was linking to `#free` (the cutline just
+  above the org zone), not to the free-tools panel. Added `id="free-tools"` to
+  `.fd-panel` and updated the CTA `href` to `#free-tools`. The `#free` cutline
+  and org zone are untouched
+- **fix:** added `html{scroll-behavior:smooth}` to the page-local `<style>`
+  block — smooth scroll animation for all same-page anchor links on the front
+  page
+
+### shared/upcoming-events.js
+
+- **fix:** icon swatch in `media:'icon'` mode lacked a visible border/ring,
+  causing the amber (Throwdown) swatch to camouflage against the cream page
+  background. Added `border:1.5px solid <meta.bd>` to the `.ue-icon-swatch`
+  inline style in `renderIcon()`. All four formats now show a border using
+  existing contract tokens: throwdown → `--am-bd`, liga → `--gn-bd`,
+  cup-taster → `--bl-bd`, btc → `--pu-bd`. No new tokens introduced; the `bd`
+  values were already present in the internal `FORMAT_META` registry
+
+### Not touched
+
+`tour/index.html`, org zone cards/gating, `coming-soon/index.html`'s photo-mode
+carousel, any Firestore schema/query logic in `upcoming-events.js`
+
+---
+
+## [5.6.0] — Tour page + front-page teaser + BTC rename (POA-43) · July 2026
+
+Visual direction locked via design canvas (`Tour Page + Teaser.dc.html`) before
+this session. One new public page (`tour/index.html`) and a teaser band on the
+front page. No new shared files — all styles in page-local `<style>` blocks per
+B1 convention.
+
+### tour/index.html (new)
+
+- **feat:** new public tour page at `/tour/` — four module blocks in locked
+  order: Throwdown → Liga → Cup Taster → BTC
+- **feat:** alternating left/right layout on desktop, single-column image-first
+  at 353px mobile floor (no horizontal overflow verified at that floor)
+- **feat:** GIF-ready screenshot frames — 4:3 fixed aspect ratio, app-chrome
+  dot strip + faux path bar, coloured top rail per module using existing
+  semantic tokens: amber (Throwdown `--am`), green (Liga `--gn`), blue
+  (Cup Taster `--bl`), purple (BTC `--pu`). Placeholder art this session;
+  real captures deferred (see below)
+- **feat:** one-line swap contract verified — replacing placeholder children
+  with `<img src="…" alt="…">` produces zero layout change (confirmed via
+  DOM measurement before/after swap, not assumed from design file)
+- **feat:** Tour nav link active (`.nav-link.on`) in header; Org login links
+  back to `../index.html#org-login`
+- **feat:** `.plat-hdr--home` modifier class on header — scopes full-width
+  mobile action bar treatment to this page only, not the shared `.plat-hdr`
+  rule; confirmed no effect on Throwdown/Liga/BTC/Cup Taster/Timer headers
+- **feat:** footer version pill reads `SEDUH_VERSION` from `../shared/version.js`
+
+### index.html
+
+- **feat:** tour teaser band — one Throwdown screenshot frame + "See the full
+  tour" CTA, placed after the hero section, before the free-tools cutline.
+  Single-column at 353px (verified)
+- **feat:** "Tour" quiet text nav link (`.nav-link`) added to platform header —
+  Placement A (not a pill, per strategy decision); no active state on front page
+- **feat:** `.plat-hdr--home` modifier class added to header for scoped mobile
+  treatment — same as tour page; only `index.html` + `tour/index.html` carry
+  this modifier
+- **rename:** `BBTC` → `BTC` in the org-zone module grid (the one instance in
+  the front-door grid). No other file touched for this rename
+- **flag (not fixed):** `bbtc/index.html` still contains `<title>BBTC
+  Organizer</title>`, `buildBBTCDemo()`, `loadBBTCDemo()`, and
+  `BBTC_Results_` in the CSV export filename — these are internal/technical
+  identifiers outside this session's file scope; deferred to a separate
+  `bbtc/` rename session if/when the folder path is updated
+
+### shared/version.js
+
+- **bump:** `SEDUH_VERSION` → `'5.6.0'`
+
+### Deferred from this session
+
+- Real module screenshots / GIFs — placeholder art ships; the container
+  architecture (one-line swap contract) is ready for the captures when taken
+- `admin/index.html` BBTC label — may also say "BBTC" somewhere; not checked
+  this session (outside file scope per brief §5)
+- `bbtc/` folder rename — flagged but explicitly out of scope this session
+  (larger routing change); flag separately when timing allows
+
+---
+
+## [5.5.2] — Shared upcoming-events module + front-page banner (POA-42 Part B) · July 2026
+
+Visual direction locked via mockup review before this session — full-bleed,
+icon-based front-page banner, no photos. Both `index.html` and
+`coming-soon/index.html` now read `upcoming_events` through one shared module
+instead of independent inline carousels.
+
+### shared/upcoming-events.js (new)
+
+- **feat:** approved fifth post-B1 shared file. `UpcomingEvents.mount(selector,
+  { media: 'photo'|'icon', onEventClick? })` — `media:'photo'` reproduces
+  `coming-soon`'s original card carousel exactly (image, format badge,
+  description, timer bar, prev/next, counter, arrow-key nav);
+  `media:'icon'` is the new front-page treatment (icon + accent swatch,
+  event name + meta, format pill, rotation dots), both sharing the same
+  5s rotation/offline-cache/fallback logic
+- **feat:** query changed to mixed recent-past + upcoming: `eventDate >=
+  (today − 10 days)`, ascending, `limit(5)` — a single query, not two
+  merged; events age out of rotation automatically 10 days after their date,
+  no manual cleanup routine
+- **feat:** per-event kicker label computed per rotation frame — "Recently
+  on Seduh Score" for past `eventDate`, "Upcoming on Seduh Score" for
+  future — not a static header
+- **feat:** BTC format/icon added (👥, purple `--pu`) — the only format
+  without an existing badge colour. Purple's only existing UI meaning is
+  Throwdown's redemption feature and demo-mode flag; an event-listing badge
+  is a different surface, so this doesn't collide with the locked semantic
+  colour contract (blue=rounds, green=completion/winners, purple=redemption,
+  red=destructive/ties, amber=brand)
+- **fix (guard):** event docs missing `eventFormat`/`eventId` fall back to a
+  generic amber pill/icon rather than erroring — old docs untouched, not
+  migrated
+- **deviation from POA-42-PART-B-CODE-HANDOFF.md:** the brief specified a new
+  `format` field, but the admin panel already writes `eventFormat` for this
+  exact fact. Adding a second field for the same value would just be a new
+  drift source, so this module reads/writes the existing `eventFormat`
+  field (adding a `btc` option to it) instead of introducing a parallel one
+
+### coming-soon/index.html
+
+- **refactor:** inline carousel/data logic stripped, replaced with
+  `UpcomingEvents.mount('#cs-carousel', { media: 'photo' })`. Visual output
+  and behavior unchanged apart from the intentional mixed-window query and
+  the new per-event kicker label (not a regression — extends the same
+  data-driven-label logic added for the front-page banner to this page too)
+
+### index.html
+
+- **feat:** front-page "Now on Seduh Score" banner — previously a
+  hand-typed string frozen at "Liga Seduh Bawah Tanah, 14 June 2026" —
+  replaced with `UpcomingEvents.mount('#fd-events', { media: 'icon' })`.
+  Full-bleed, icon-based, 5s rotation, format pill + dots, per mockup
+  reviewed in the strategy chat. Old `.fd-ribbon-rail/-main/-title/-meta/-cta`
+  CSS removed as dead code (unused after the markup swap); `.fd-ribbon`/
+  `.fd-ribbon-in` retained as the shared full-bleed container
+
+### admin/index.html
+
+- **feat:** `ev-format` select gains a `BTC` option (previously
+  Throwdown/Liga/Cup Taster only) — matching badge CSS and label added
+- **feat:** new event docs (create path only) get an auto-derived `eventId`
+  slug (`slugifyEvent()` — kebab-cased event name + short timestamp suffix)
+  for future results-page deep-linking. No new form input — this doesn't
+  require an organiser decision, so it's generated silently. Edit path
+  (`updateDoc`) does not backfill `eventId` on older docs — out of scope
+  per the brief, guarded rather than migrated
+
+### shared/version.js
+
+- **fix:** `SEDUH_VERSION` bumped to `5.5.2`. The brief listed this file as
+  do-not-touch, but that instruction predates this being a two-patch
+  session — the constant's own contract (bump alongside CHANGELOG's
+  top-line version, per its header comment) means leaving it at `5.5.1`
+  would reproduce the exact staleness bug Part A shipped to prevent. No
+  change to the file's design or mechanism, just the value
+
+### firestore.rules
+
+- **No change.** Confirmed `upcoming_events` is still public-read,
+  super-admin-write only — the schema additions (`eventId`, new `btc`
+  format value) don't need a rules change
+
+### Not touched (per brief scope)
+
+`shared/gates.js`, `shared/auth.js`, `shared/firebase.js`, `shared/version.js`;
+any module file (`throwdown/`, `bbtc/`, `liga/`, `cup-taster/`, `timer/`);
+results/current-event destination page (`onEventClick` stays a no-op stub —
+deferred to right after the 30 Aug Throwdown once POA-40's archive has real
+data); product screenshots/demo section (Item #4, needs a Design pass first)
+
+---
+
+## [5.5.1] — Front-page version pill fix (POA-42 Part A) · July 2026
+
+Part A of POA-42 only. Part B (shared `upcoming-events` module + front-page
+banner) was scoped during the Code session and flagged back to the strategy
+chat rather than built — see "Deferred" below.
+
+### shared/version.js (new)
+
+- **feat:** new single-source-of-truth version constant, `SEDUH_VERSION`.
+  Replaces the footer's hardcoded literal, which had drifted since POA-32
+  (`v4.6.1`) — every version from v4.7.0 through v5.5.0 shipped without
+  updating it
+- Approved as the fourth post-B1 shared file (locked in POA-42-CODE-HANDOFF.md,
+  option (a) of the two proposed approaches). Option (b) — sourcing from
+  whatever `scripts/check-doc-versions.sh` treats as ground truth — was ruled
+  out: that script greps Tier A/B markdown files and has no client-side
+  runtime equivalent
+
+### index.html
+
+- **fix:** footer now reads `Seduh Score · v` + `SEDUH_VERSION` via a
+  `#footer-version` span, set from `shared/version.js` on load, instead of a
+  hand-edited string. Bumping the constant is now the single required step —
+  no other footer content or layout touched
+
+### Deferred — Part B (front-page banner)
+
+`index.html`'s "Now on Seduh Score" banner (`.fd-ribbon` — a thin full-bleed
+strip) and `coming-soon/index.html`'s carousel (a tall boxed image card with
+format badge, description, and rotation controls) turned out to be
+structurally different components, not a container-sizing mismatch as
+anticipated in POA-42-DRAFT.md. Per the brief's own instruction to stop
+rather than improvise a visual fix, this was flagged back rather than
+decided unilaterally in the Code session. Candidate direction raised for the
+strategy chat: a second, slimmer render mode inside `shared/upcoming-events.js`
+that reuses the ribbon's existing markup/CSS — this would reopen the
+"carousel only, no static mode" decision locked in POA-42-DRAFT.md, so it
+needs to go through the strategy chat rather than be built ahead of that
+call. The front-page banner still shows the stale June 2026 hardcoded event
+as of this entry.
+
+---
+
+## [5.5.0] — Throwdown results archive, Seduh Records seed (POA-40) · July 2026
+
+First permanent record-keeping from a live Seduh Score event. Full spec:
+`THROWDOWN-ARCHIVE-SPEC.md` (registered Tier C in KB-PROTOCOL.md). Locked ready
+date remains 23 August 2026; this entry covers the build, not the go-live.
+
+### throwdown/index.html
+
+- **feat:** new Firestore collection `throwdown_records` — a finalized event
+  archives automatically the moment a champion is confirmed, as a side effect
+  of `render()` rather than patching each of the four call sites that can set
+  `S.bracket.phase = 'done'` (`advanceBracket()` ×2 branches,
+  `continueAfterWildCard()`, `skipWildCard()`). `render()` runs unconditionally
+  after all four, so hooking the shared choke point is the single, reliable
+  trigger. Guarded by a persisted `S.bracket._archived` flag — fires exactly
+  once per event, survives reloads, verified via three repeated `render()`
+  calls producing zero further write attempts
+- **feat:** non-blocking, fail-open by design — the write is never awaited by
+  `render()`, and `archiveThrowdownRecord()` catches all errors internally
+  (`console.warn`, no user-facing state). Verified against an unauthenticated
+  session: write correctly rejected (`permission-denied`), champion reveal and
+  podium display unaffected
+- **feat:** no write fires if the bracket never reaches `phase: 'done'`
+  (event abandoned mid-bracket) — verified
+- **feat:** new "Seduh Records" setup-screen card — `isTest` toggle ("This is
+  a test run"), defaulting to `true` (the safer default per
+  THROWDOWN-ARCHIVE-SPEC.md §10's open question). Written into every record
+  produced by that event session
+- **feat:** new additive `type="module"` script block bridges the signed-in
+  org's uid to the classic-script scope as `window._tdUid`, via
+  `onAuthStateChanged` imported directly from `shared/firebase.js`'s existing
+  `auth` export. Mirrors the `window._sdDb` bridge `gates.js` already uses.
+  `shared/firebase.js` and `shared/auth.js` themselves are untouched — this
+  pattern is not yet promoted to CONVENTIONS.md; revisit if a second classic-script
+  module ever needs the same bridge
+- **deviation from spec:** `eventDate` is written as the free-text string
+  already stored in `S.eventDate` (e.g. "14 June 2025"), not a Firestore
+  `timestamp` as THROWDOWN-ARCHIVE-SPEC.md §4 specifies. Throwdown's setup
+  screen has no date picker and enforces no format — parsing unvalidated
+  free text into a `Timestamp` was judged an unsafe guess rather than a
+  faithful implementation of the spec. Revisit if/when the setup screen gets
+  a real date input
+- **feat:** `participants[].roundReached` computed from the furthest round
+  each name appears in across `S.bracket.rounds` (later rounds overwrite
+  earlier ones as the array is walked in chronological order); `revivalUsed`
+  reuses the existing `b.revivedNames` array; `redemptionUsed` is `!!S.redemption`
+
+### admin/index.html
+
+- **feat:** new "Seduh Records" tab — view (event name, date, champion,
+  `isTest` badge, newest first) and a reset tool for test data
+- **feat:** reset tool is double-confirmation: reveals a live count scoped to
+  `isTest == true` before any action is possible, then requires typing
+  `DELETE` exactly to enable the final delete button. The delete path only
+  ever operates on documents returned by the `isTest == true` query, and is
+  additionally enforced server-side (see firestore.rules below) — a real
+  event record cannot be deleted by this tool even if the client code were
+  altered, not just by UI discipline
+
+### firestore.rules
+
+- **feat:** `throwdown_records/{recordId}` — create: authenticated org only,
+  and only where `orgId` matches the writing user's own uid (no cross-org
+  writes); read: `super_admin` only for v1, per spec (public read deferred
+  until Seduh ID actually consumes this data); delete: `super_admin` **and**
+  `resource.data.isTest == true` — the structural guarantee behind the admin
+  reset tool. No `update` permission — not needed for v1
+
+### Not touched (per spec, v1 scope)
+
+Liga Seduh, Cup Taster, BBTC archiving; public read access to
+`throwdown_records`; competitor profile linking (Seduh ID v6.1 territory);
+`Store()` / `load()` / any localStorage persistence path — fully decoupled
+from the v5.0 storage-adapter precondition; `shared/gates.js`, `shared/auth.js`,
+`shared/firebase.js` used as-is
+
+### Deferred
+
+- POA-41 (Super Admin org roster/search, Codename Pagon) — same v5.5.0 window,
+  tracked as a separate ticket, not part of this entry
+- Manual date input for Throwdown's setup screen, which would resolve the
+  `eventDate` string-vs-timestamp deviation above
+
+---
+
+## [docs] — KB-PROTOCOL.md amended · July 2026
+KB-PROTOCOL.md amended — Section 5 now requires reconciling other version references in a document whenever its stamp is corrected, closing the gap that caused the README.md footer contradiction.
+
+---
+
+## [docs] — README.md self-contradiction fix · same-day follow-up to KB Consistency Protocol adoption · July 2026
+
+### README.md
+- **fix:** the `*State: v5.4.0*` stamp added in the prior session's KB Consistency
+  Protocol adoption commit (`03b2c0e`) still left the footer reading "Current
+  version: v5.3.3" — the document contradicted its own top-line stamp, the exact
+  failure mode the version-stamp contract in KB-PROTOCOL.md exists to prevent.
+  Footer updated to v5.4.0 to match
+- **docs:** Shared Components table gained two rows missing since their respective
+  ships — `shared/pdf.js` (v5.4.0, MUA-07, BBTC-only pilot) and `shared/sound.js`
+  (used by BBTC, Liga, Timer)
+
+### Verified
+`./scripts/check-doc-versions.sh` re-run — README.md still reports OK (the script
+checks only the stamp line, not the footer or table, so the footer/stamp agreement
+was confirmed by direct read, not by the script).
+
+### Not touched
+Module files, shared JS/CSS files, all other KB documents.
+
+---
+
+## [docs] — KB Consistency Protocol adopted · July 2026
+
+### KB-PROTOCOL.md (new)
+- docs: new dedicated protocol document — document registry with authority tiers
+  (Ground truth / Tier A / Tier B / Tier C), the version-stamp contract (`*State:
+  vX.Y.Z — matches CHANGELOG.md as of [Month Year]*`, first line after the title),
+  a reconciliation trigger matrix, severity levels (cosmetic / status drift / fact
+  drift), and the audit procedure. Root cause captured: the prior session-close
+  checklist only mandatorily re-checked CLAUDE.md/CONVENTIONS.md on a version bump —
+  ROADMAP.md, STRATEGY.md, and PLAN_OF_ACTION.md sat behind a conditional trigger
+  that a Code-session bump never fired, which is exactly how the v5.4.0 drift
+  described below accumulated
+
+### scripts/check-doc-versions.sh (new)
+- feat: mechanical companion script — extracts each Tier A/B document's version
+  stamp and diffs it against CHANGELOG.md's latest numbered header; exit 0 (clean),
+  1 (drift), or 2 (setup error). Checks version-stamp drift only — status drift and
+  fact drift still require the read-through in KB-PROTOCOL.md's audit procedure
+
+### CONVENTIONS.md
+- docs: new "Knowledge base consistency" subsection added (between "Before closing
+  any session" and "Before building any new module") pointing to KB-PROTOCOL.md as
+  the single home for the audit protocol
+- docs: the prior standing-habit paragraph (spot-check CLAUDE.md every bump,
+  CONVENTIONS.md itself at major/minor boundaries only) replaced with a pointer to
+  run the KB-PROTOCOL.md audit on every CHANGELOG.md version bump — removes the
+  asymmetry that caused the drift
+- docs: top-line version stamp added
+
+### Version stamps added
+`*State: v5.4.0 — matches CHANGELOG.md as of July 2026*` added as the first line
+after the title in `CLAUDE.md`, `README.md`, `STRATEGY.md`, and `PLAN_OF_ACTION.md`
+(`ROADMAP.md` and `CONVENTIONS.md` covered above/below).
+
+### MUA-07 status correction
+- `PLAN_OF_ACTION.md`: NEXT UP line no longer names MUA-07 as active (it shipped at
+  v5.4.0) — sequence log gained an explicit `✅ MUA-07` line; NEXT UP now points to
+  the 30 August throwdown per ROADMAP.md/STRATEGY.md
+- `ROADMAP.md`: Executive Summary and "Current State" header version references
+  updated v5.3.0 → v5.4.0; Master Version Timeline's v5.4.0 row changed from
+  "🔵 Next active" to "✅ Jul 2026" (MUA-07 shipped, rescoped to BBTC pilot per
+  MUA-07-SPEC-V2.md); footer note reconciled to v5.4.0 / MUA-02–07 complete
+
+### Verified
+`./scripts/check-doc-versions.sh` run before and after — baseline showed
+`README.md`/`PLAN_OF_ACTION.md`/`ROADMAP.md`/`STRATEGY.md` mismatched and
+`CLAUDE.md` with no stamp; after this session's edits, all six tracked documents
+report `OK` against CHANGELOG.md's v5.4.0.
+
+### Not touched
+Module files, shared JS/CSS files, ROADMAP.md's Codenames table and Strategic
+Principles sections.
+
+---
+
+## [docs] — Session-discipline cadence adopted, POA-38/39 · July 2026
+
+### CONVENTIONS.md
+- docs: "Before closing any session" checklist gained a standing post-CHANGELOG-bump
+  spot-check — CLAUDE.md's architecture tree/Repo section/known-quirks on every version
+  bump, same spot-check against CONVENTIONS.md itself at major/minor boundaries only
+
+### PLAN_OF_ACTION.md
+- docs: POA-38 (Docs/KB reconciliation cadence) closed — resolved via the standing
+  CONVENTIONS.md checklist item above; no dedicated recurring session needed
+- docs: POA-39 opened — BBTC .hdr-s/.hdr-t inner class rename (cosmetic naming debt
+  split out of POA-38's closing note); backlog, no urgency
+
+### Not touched
+CLAUDE.md, ROADMAP.md, STRATEGY.md, module/shared JS/CSS files.
+
+---
+
+## [docs] — CONVENTIONS.md reconciliation pass · July 2026
+
+### CONVENTIONS.md
+- docs: directory tree updated — added about/, coming-soon/, booth/ (shipped [5.3.1]–[5.3.3],
+  [5.3.0-booth]–[5.3.1-booth]; booth flagged not yet publicly deployed)
+- docs: shared/sound.js documented — tree entry + new component API section (unlock/beep/horn)
+- docs: Firebase live-stack table split into six rows — firestore.indexes.json ([5.3.1-booth])
+  and storage.rules ([5.3.1-rules]) now listed as separate deployables from firestore.rules/
+  firebase.json; Hosting row notes the "/" → "/coming-soon/" redirect ([5.3.2]/[5.3.3])
+- docs: footer stamp updated to July 2026 / v5.4.0
+- docs: .hdr-s/.hdr-t rename confirmed untracked in this file — flagged under POA-38
+  in PLAN_OF_ACTION.md
+
+### Not touched
+CLAUDE.md, ROADMAP.md, STRATEGY.md, PLAN_OF_ACTION*.md, module/shared JS/CSS files.
+
+---
+
+## [5.4.0] — Shared PDF export module, BBTC pilot · July 2026
+
+MUA-07, rescoped. Original draft assumed all four modules had an existing PDF export
+needing a shared header — a codebase check found only BBTC has PDF export at all, and
+its header was hardcoded, not handoff-driven. See MUA-07-SPEC-V2.md for the rescoping.
+Throwdown, Liga, and Cup Taster have no PDF export today; adoption is separate future work.
+
+### shared/pdf.js (new)
+
+- **feat:** new shared, format-agnostic PDF export module. Public API: `PdfExport.open({
+  pages, fallbackTitle })`, `PdfExport.close()`, `PdfExport.print()`. Owns the `#pdf-overlay`
+  lifecycle and renders the event-identity header/footer; the module supplies only its own
+  report markup per page (`sectionTitle`, `metaHtml`, `bodyHtml`)
+- **feat:** reads `seduh_handoff` (v2) directly, same convention as `audience.js` —
+  `eventName` always renders as plain text (falls back to `fallbackTitle` if unset);
+  `logoUrl`, `eventSubtitle`, `eventDate`, `eventVenue` render only when
+  `Gates.canAccess('pdf_branding').allowed`. `bgColor` never propagates to the PDF header,
+  on any tier — stays scoped to `.event-band` per D1
+
+### shared/gates.js
+
+- **feat:** new `pdf_branding` feature key, `{ minTier: 'per_event' }` — gates the full
+  identity block (logo + subtitle + date + venue) as one unit
+
+### shared/theme.css
+
+- **refactor:** `#pdf-overlay`, `.pdf-toolbar*`, `.btn-print`, `.pdf-page`, `.pdf-logo-row`,
+  `.pdf-event-name`, `.pdf-event-sub`, `.pdf-meta`, `.pdf-section-title`, `.pdf-footer`, and
+  the print media query moved here from BBTC's inline `<style>` — same pattern as `.aud-*`.
+  Two new classes added: `.pdf-id-block`, `.pdf-logo` (org logo image next to the Seduh mark
+  line). Contract tokens (`#pdf-overlay`, `.pdf-*` print rules) unchanged, per CLAUDE.md
+
+### bbtc/index.html
+
+- **fix:** `generatePDF()` no longer hardcodes `"Barista Team Championship"` and the Seduh
+  attribution line — both now come from `PdfExport.open()`'s header logic, reading the
+  organiser's `eventName`/`logoUrl`/`eventSubtitle`/`eventDate`/`eventVenue` from the v2
+  handoff instead of module-local state
+- **refactor:** `#pdf-print`/`#pdf-close` toolbar buttons now call `PdfExport.print()` /
+  `PdfExport.close()` instead of touching `#pdf-overlay` classList directly
+- BBTC's own report tables (`.pdf-lb-table`, `.pdf-res-table`, rank/score/badge classes)
+  are unchanged and stay in BBTC's own `<style>` block
+
+### CONVENTIONS.md / CLAUDE.md
+
+- **docs:** `shared/pdf.js` added to architecture trees and B1 approved-shared-files list;
+  new "PDF export (`shared/pdf.js`)" section documents the public API and field mapping
+
 ## [5.3.3] — Root routing fix: rewrite → redirect · July 2026
 
 ### firebase.json

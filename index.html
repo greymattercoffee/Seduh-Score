@@ -28,24 +28,15 @@
   ════════════════════════════════════════════════════════════════════
 -->
 <style>
+  html{scroll-behavior:smooth}
+
   /* keep the front-door header label on one line */
   .plat-hdr-actions .btn-p,.plat-hdr-actions .btn-o{white-space:nowrap}
   .plat-hdr-sub{margin-left:.5rem}
 
-  /* ——— featured event ribbon (full-bleed, architectural — not a card) ——— */
+  /* ——— featured event banner (full-bleed; content rendered by shared/upcoming-events.js) ——— */
   .fd-ribbon{background:linear-gradient(100deg,var(--accent-bg),var(--surface2));border-bottom:1.5px solid var(--accent-bd)}
-  .fd-ribbon-in{max-width:var(--container);margin:0 auto;padding:clamp(20px,3vw,28px) clamp(16px,4vw,40px);
-    display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 30px}
-  .fd-ribbon-main{min-width:0;display:flex;gap:16px;align-items:stretch}
-  .fd-ribbon-rail{width:5px;align-self:stretch;min-height:56px;background:var(--accent);border-radius:3px;flex-shrink:0}
-  .fd-now{display:flex;align-items:center;gap:8px;margin-bottom:9px}
-  .fd-livedot{width:8px;height:8px;border-radius:50%;background:var(--gn);box-shadow:0 0 0 3px var(--gn-bg);animation:pulse 1.8s ease-in-out infinite}
-  .fd-ribbon-title{font-family:var(--font-display);font-weight:800;font-size:clamp(22px,2.9vw,32px);letter-spacing:-.02em;line-height:1.02;color:var(--ink)}
-  .fd-ribbon-meta{display:flex;flex-wrap:wrap;gap:7px 22px;margin-top:11px}
-  .fd-ribbon-meta span{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink2)}
-  .fd-ribbon-meta svg{width:15px;height:15px;color:var(--accent);flex-shrink:0}
-  .fd-ribbon-cta{border-radius:var(--rad-s);white-space:nowrap;display:inline-flex;align-items:center;gap:7px;text-decoration:none;flex-shrink:0}
-  .fd-ribbon-cta svg{width:15px;height:15px}
+  .fd-ribbon-in{max-width:var(--container);margin:0 auto;padding:clamp(20px,3vw,28px) clamp(16px,4vw,40px)}
 
   /* ——— hero (two-column action console) ——— */
   .fd-hero{max-width:var(--container);margin:0 auto;padding:clamp(28px,5vw,52px) clamp(16px,4vw,40px) clamp(18px,3vw,28px)}
@@ -143,6 +134,52 @@
     .fd-deep-grid{grid-template-columns:1fr}
   }
 
+  /* ——— Tour nav link ——— */
+  .nav-link{font-size:13px;font-weight:700;color:var(--ink2);text-decoration:none;padding:9px 14px;border-radius:var(--rad-pill);transition:color .14s,background .14s;white-space:nowrap}
+  .nav-link:hover{color:var(--accent);background:var(--surface2)}
+  .nav-link.on{color:var(--accent)}
+
+  /* ——— Mobile header — scoped to home + tour pages only, not .plat-hdr platform-wide ——— */
+  @media(max-width:520px){
+    .plat-hdr--home{gap:10px}
+    .plat-hdr--home .plat-hdr-actions{width:100%;margin-left:0;justify-content:space-between;gap:10px;padding-top:11px;border-top:1px solid var(--border2)}
+  }
+
+  /* ——— Front-page teaser band ——— */
+  .teaser{max-width:var(--container);margin:0 auto;padding:clamp(20px,3.5vw,34px) clamp(16px,4vw,40px)}
+  .teaser-card{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(22px,3.5vw,44px);align-items:center;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);box-shadow:var(--shadow-sm);
+    padding:clamp(18px,2.5vw,26px);overflow:hidden}
+  .teaser-copy .eyebrow{margin-bottom:12px;display:inline-flex;align-items:center;gap:9px}
+  .teaser-copy .eyebrow .line{height:2px;width:26px;background:var(--accent);border-radius:2px}
+  .teaser-copy h2{font-family:var(--font-display);font-weight:800;font-size:clamp(21px,2.6vw,28px);letter-spacing:-.02em;line-height:1.08;color:var(--ink);max-width:16ch}
+  .teaser-copy p{font-size:14.5px;color:var(--ink2);line-height:1.55;margin-top:12px;max-width:42ch}
+  .teaser-cta{display:inline-flex;align-items:center;gap:9px;margin-top:20px;background:var(--accent);color:var(--accent-ink);
+    text-decoration:none;font-weight:700;font-size:14px;padding:12px 20px;border-radius:var(--rad-s);
+    transition:background .14s,transform .12s;min-height:44px;box-sizing:border-box;white-space:nowrap}
+  .teaser-cta:hover{background:var(--accent-h)}
+  .teaser-cta:active{transform:scale(.99)}
+  .teaser-cta svg{width:16px;height:16px}
+  @media(max-width:760px){.teaser-card{grid-template-columns:1fr;gap:20px}}
+
+  /* ——— GIF-ready image frame (teaser) ——— */
+  .shot{border:1px solid var(--border);border-radius:var(--rad);overflow:hidden;box-shadow:var(--shadow-md);background:var(--surface)}
+  .shot-bar{display:flex;align-items:center;gap:8px;height:34px;padding:0 13px;background:var(--surface2);border-bottom:1px solid var(--border2)}
+  .shot-dots{display:flex;gap:6px}
+  .shot-dots i{width:9px;height:9px;border-radius:50%;background:var(--border3);display:block}
+  .shot-tab{font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .shot-media{aspect-ratio:4/3;width:100%;background:var(--bg);position:relative;overflow:hidden}
+  .shot-media > img{width:100%;height:100%;object-fit:cover;display:block}
+  .shot-note{position:absolute;left:10px;bottom:10px;font-family:var(--font-mono);font-size:8.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink4);background:rgba(255,255,255,.72);border:1px solid var(--border2);border-radius:var(--rad-pill);padding:3px 9px;backdrop-filter:blur(2px)}
+  .mk{position:absolute;inset:0;padding:14px;display:flex;flex-direction:column;gap:9px}
+  .mk-strip{display:flex;align-items:center;gap:8px}
+  .mk-eye{font-family:var(--font-mono);font-size:8px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+  .mk-rule{flex:1;height:1px;background:var(--border)}
+  .mk-row{display:flex;align-items:center;gap:9px;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px}
+  .mk-rail{width:4px;align-self:stretch;border-radius:2px;flex-shrink:0}
+  .mk-nm{font-size:11.5px;font-weight:700;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mk-num{font-family:var(--font-display);font-weight:800;font-size:15px;line-height:1}
+
   /* ——— module info button + modal ——— */
   .fd-row-wrap{position:relative}
   .fd-dmod{position:relative}
@@ -169,35 +206,23 @@
 <div class="shell">
 
   <!-- ══ Permanent platform lockup (Seduh / Grey Matter) ══ -->
-  <header class="plat-hdr">
+  <header class="plat-hdr plat-hdr--home">
     <a class="plat-hdr-logo" href="index.html">
       <span class="plat-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh"><circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"/><path d="M26 60 a24 24 0 0 1 48 0"/><path d="M35 60 a15 15 0 0 1 30 0"/><path d="M44 60 a6 6 0 0 1 12 0"/></svg></span>
       <span><span class="plat-hdr-name">Seduh Score</span><span class="plat-hdr-sub">Coffee competition platform</span></span>
     </a>
     <div class="plat-hdr-actions">
       <span class="plat-hdr-loc"><span class="dot"></span>Brunei Darussalam</span>
+      <a class="nav-link" href="tour/">Tour</a>
       <a class="btn-p when-out" href="#org-login" style="padding:9px 18px;font-size:13px">Org login</a>
       <span class="fd-org when-in"><span class="dot"></span><span id="org-chip-email"></span></span>
       <button class="btn-o when-in" data-act="signout" style="border-radius:var(--rad-pill)">Sign out</button>
     </div>
   </header>
 
-  <!-- ══ Featured event — full-bleed ribbon ══ -->
+  <!-- ══ Featured event — full-bleed banner (POA-42 Part B, shared/upcoming-events.js) ══ -->
   <section class="fd-ribbon">
-    <div class="fd-ribbon-in">
-      <div class="fd-ribbon-main">
-        <span class="fd-ribbon-rail"></span>
-        <div>
-          <div class="fd-now"><span class="fd-livedot"></span><span class="eyebrow">Now on Seduh Score · Upcoming</span></div>
-          <h2 class="fd-ribbon-title">Liga Seduh Bawah Tanah</h2>
-          <div class="fd-ribbon-meta">
-            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>Sat, 14 June 2026</span>
-            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>Grey Matter Coffee Werks, BSB</span>
-          </div>
-        </div>
-      </div>
-      <a href="#" class="btn-p fd-ribbon-cta">View event <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-    </div>
+    <div class="fd-ribbon-in" id="fd-events"></div>
   </section>
 
   <!-- ══ Hero — two-column action console ══ -->
@@ -208,12 +233,12 @@
         <h1 class="hero-name">Every format. One platform.</h1>
         <p class="hero-sub">Brackets, leagues, sensory rounds and the court timer — score it the way it actually runs in the room.</p>
         <div class="fd-cta">
-          <a class="btn-p" href="#free">Open a free tool</a>
+          <a class="btn-p" href="#free-tools">Open a free tool</a>
           <a class="btn-o" href="#org-login">Org sign-in</a>
         </div>
       </div>
       <div>
-        <div class="fd-panel">
+        <div class="fd-panel" id="free-tools">
           <div class="fd-panel-hd">Jump straight in — free<em>No account</em></div>
           <div class="fd-panel-body">
             <div class="fd-row-wrap"><a class="fd-row" href="throwdown/index.html"><span class="ic">⚡</span><span class="tt"><b>Throwdown Basic</b><span>1v1 knockout · up to 16</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><button class="mod-info-btn" data-module-key="throwdown" data-module-name="Throwdown" aria-label="About Throwdown">ℹ</button></div>
@@ -224,6 +249,34 @@
         </div>
         <div class="fd-slideshow" id="fd-slideshow">
           <!-- slides injected by JS -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ Tour teaser — one screenshot + CTA (POA-43) ══ -->
+  <section class="teaser">
+    <div class="teaser-card">
+      <div class="teaser-copy">
+        <span class="eyebrow"><span class="line"></span>See it in action</span>
+        <h2>This is what scoring looks like in the room.</h2>
+        <p>Live brackets, leagues and sensory rounds — running on real competition days in Brunei. Take the full tour of every module.</p>
+        <a class="teaser-cta" href="tour/">See the full tour <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+      <div class="teaser-media">
+        <div class="shot" style="border-top:3px solid var(--am)">
+          <div class="shot-bar"><span class="shot-dots"><i></i><i></i><i></i></span><span class="shot-tab">seduhscore.com / throwdown</span></div>
+          <div class="shot-media">
+            <div class="mk">
+              <div class="mk-strip"><span class="mk-eye">Bracket · Semifinal</span><span class="mk-rule"></span></div>
+              <div class="mk-row"><span class="mk-rail" style="background:var(--am)"></span><span class="mk-nm">Aliya Roslan</span><span class="mk-num" style="color:var(--am)">2</span></div>
+              <div class="mk-row" style="opacity:.55"><span class="mk-rail" style="background:var(--border3)"></span><span class="mk-nm">Darwisyah</span><span class="mk-num" style="color:var(--ink4)">1</span></div>
+              <div class="mk-strip"><span class="mk-eye">Match 2</span><span class="mk-rule"></span></div>
+              <div class="mk-row"><span class="mk-rail" style="background:var(--am)"></span><span class="mk-nm">Hafiz Zaini</span><span class="mk-num" style="color:var(--am)">3</span></div>
+              <div class="mk-row" style="opacity:.55"><span class="mk-rail" style="background:var(--border3)"></span><span class="mk-nm">Nabil Osman</span><span class="mk-num" style="color:var(--ink4)">0</span></div>
+            </div>
+            <div class="shot-note">Representative view · 4:3</div>
+          </div>
         </div>
       </div>
     </div>
@@ -242,7 +295,7 @@
           <p class="fd-deep-sub">Unlimited fields, persistent data and branded exports across every module.</p>
           <div class="fd-dgrid">
             <div class="fd-dmod" data-gate="throwdown_redemption" onclick="if(document.documentElement.dataset.auth!=='in'||event.target.closest('.mod-info-btn'))return;location.href='throwdown/index.html'"><b>⚡ Throwdown <small>— full</small></b><p>Unlimited brewers, redemption + revival draw, report.</p><button class="mod-info-btn" data-module-key="throwdown" data-module-name="Throwdown" aria-label="About Throwdown">ℹ</button></div>
-            <div class="fd-dmod" data-gate="btc" onclick="if(document.documentElement.dataset.auth!=='in'||event.target.closest('.mod-info-btn'))return;if(!Gates.canAccess('btc').allowed)return;location.href='bbtc/index.html'"><b>☕ BBTC <span class="fd-annual">Annual</span></b><p>Team championship · cup-by-cup token bracket.</p><button class="mod-info-btn" data-module-key="btc" data-module-name="Barista Team Championship" aria-label="About Barista Team Championship">ℹ</button></div>
+            <div class="fd-dmod" data-gate="btc" onclick="if(document.documentElement.dataset.auth!=='in'||event.target.closest('.mod-info-btn'))return;if(!Gates.canAccess('btc').allowed)return;location.href='bbtc/index.html'"><b>☕ BTC <span class="fd-annual">Annual</span></b><p>Team championship · cup-by-cup token bracket.</p><button class="mod-info-btn" data-module-key="btc" data-module-name="Barista Team Championship" aria-label="About Barista Team Championship">ℹ</button></div>
             <div class="fd-dmod" data-gate="liga_unlimited" onclick="if(document.documentElement.dataset.auth!=='in'||event.target.closest('.mod-info-btn'))return;location.href='liga/index.html'"><b>🏆 Liga Seduh <small>— full</small></b><p>Unlimited brewers, device tracking, CSV, report.</p><button class="mod-info-btn" data-module-key="liga" data-module-name="Liga Seduh" aria-label="About Liga Seduh">ℹ</button></div>
             <div class="fd-dmod" data-gate="cup_taster_unlimited" onclick="if(document.documentElement.dataset.auth!=='in'||event.target.closest('.mod-info-btn'))return;location.href='cup-taster/index.html'"><b>☕ Cup Taster <small>— full</small></b><p>Unlimited sets, round analytics, report.</p><button class="mod-info-btn" data-module-key="cup_taster" data-module-name="Cup Taster" aria-label="About Cup Taster">ℹ</button></div>
           </div>
@@ -273,7 +326,7 @@
 
   <footer class="fd-foot">
     <div class="fd-credit">Built by <a href="https://instagram.com/mfosaminumkopi" target="_blank" rel="noreferrer">Firdaus Omar</a> · Grey Matter Coffee Werks, Brunei<br>Free tools save to this device.</div>
-    <span class="live-pill"><span class="dot"></span>Seduh Score · v4.6.1</span>
+    <span class="live-pill"><span class="dot"></span>Seduh Score · v<span id="footer-version"></span></span>
   </footer>
 
   <!-- module info modal -->
@@ -290,8 +343,13 @@
 
 </div>
 
+<script src="shared/version.js"></script>
 <script src="shared/gates.js"></script>
+<script src="shared/upcoming-events.js"></script>
 <script>
+  document.getElementById('footer-version').textContent = SEDUH_VERSION;
+  UpcomingEvents.mount('#fd-events', { media: 'icon' });
+
 (function(){
   "use strict";
 

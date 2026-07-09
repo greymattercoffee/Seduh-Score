@@ -168,6 +168,7 @@ const DEFAULT_STATE = () => ({
   thirdPlace: false,
   manualBracket: false,  // organiser assigns names to slots manually
   manualSlots: 0,        // number of slots (set independently of participant count)
+  isTest: true,          // Seduh Records archive flag (POA-40) — default true, safer
   participants: [],
   bracket: null,
   matches: [],
@@ -774,6 +775,7 @@ function render() {
   save();
   document.getElementById('app').innerHTML = rMain();
   bind();
+  maybeArchiveChampion();
 }
 
 function rMain() {
@@ -861,6 +863,13 @@ function rSetup() {
     + '<div class="redemption-row"><input type="checkbox" class="big-check" id="tp-enable"'+(S.thirdPlace?' checked':'')+'>'
     + '<div><div style="font-size:13px;font-weight:700;margin-bottom:4px">Enable 3rd place match</div>'
     + '<p class="hint">The two semi-final losers play a 3rd place match before the Final. Winner takes 3rd, loser takes 4th.</p>'
+    + '</div></div>'
+    + '</div></div>'
+
+    + '<div class="card"><div class="card-hdr">Seduh Records</div><div class="card-body">'
+    + '<div class="redemption-row"><input type="checkbox" class="big-check" id="td-test-enable"'+(S.isTest?' checked':'')+'>'
+    + '<div><div style="font-size:13px;font-weight:700;margin-bottom:4px">This is a test run</div>'
+    + '<p class="hint">When the champion is confirmed, this event\'s result is archived automatically. Leave checked while testing — uncheck only for a real event so the archive counts as a live record.</p>'
     + '</div></div>'
     + '</div></div>'
 
@@ -1182,6 +1191,54 @@ function showAudience() {
   });
 }
 
+/* ── Seduh Records archive (POA-40) ──
+   Fires once per event, as a side effect of the shared champion-confirmation
+   choke point (render(), called by every path that sets b.phase = 'done').
+   Non-blocking, fail-open — never awaited by render(), errors caught silently. */
+function computeParticipantRounds(b) {
+  const reached = {};
+  b.rounds.forEach(r => {
+    const names = r.phase === 'redemption' ? (r.pairs.flatMap(p => p.brewers || [])) : r.pairs.flatMap(p => [p.t1, p.t2].filter(Boolean));
+    names.forEach(n => { reached[n] = r.label; }); // later rounds overwrite — furthest round reached
+  });
+  return reached;
+}
+
+function maybeArchiveChampion() {
+  const b = S.bracket;
+  if (!b || b.phase !== 'done' || b._archived) return;
+  const finalRound = b.rounds.filter(r => r.phase === 'main' && r.label === 'Final').slice(-1)[0];
+  const finalPair = finalRound?.pairs[0];
+  if (!finalPair?.winner) return; // event abandoned mid-bracket — no confirmed champion, no write
+
+  b._archived = true; // set + persist immediately so a reload can never re-fire this
+  save();
+
+  const reached = computeParticipantRounds(b);
+  const record = {
+    eventName: S.eventName || '',
+    eventDate: S.eventDate || '', // string, not timestamp — see CHANGELOG (spec deviation)
+    orgId: window._tdUid || null,
+    champion: finalPair.winner,
+    runnerUp: finalPair.loser || '',
+    participants: S.participants.map(p => ({ name: p.name, roundReached: reached[p.name] || 'Round 1' })),
+    revivalUsed: b.revivedNames || [],
+    redemptionUsed: !!S.redemption,
+    isTest: S.isTest !== false,
+  };
+  archiveThrowdownRecord(record);
+}
+
+async function archiveThrowdownRecord(record) {
+  try {
+    const { collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await addDoc(collection(window._sdDb, 'throwdown_records'), { ...record, createdAt: serverTimestamp() });
+  } catch (e) {
+    // Fail silently by design — localStorage remains the record of truth for this event.
+    console.warn('Seduh Records archive failed (non-blocking):', e);
+  }
+}
+
 /* ── MUA-06 chrome ── */
 function doReset() {
   if (confirm('Reset ALL throwdown data? Cannot be undone.')) {
@@ -1342,6 +1399,7 @@ function bind() {
   // Wild card
   on('wc-enable','change',() => { S.wildCard = $('wc-enable').checked; save(); });
   on('tp-enable','change',() => { S.thirdPlace = $('tp-enable').checked; save(); });
+  on('td-test-enable','change',() => { S.isTest = $('td-test-enable').checked; save(); });
   on('do-draw-wc','click',() => { drawWildCard(); });
   on('wc-continue','click',() => { const btn = $('wc-continue'); continueAfterWildCard(+(btn?.dataset.round||0)); });
   on('skip-wc','click',() => { skipWildCard(); });
@@ -1497,6 +1555,14 @@ window.addEventListener('seduh:gates-ready', () => render(), { once: true });
 </script>
 <script type="module" src="../shared/firebase.js"></script>
 <script type="module" src="../shared/auth.js"></script>
+<script type="module">
+// POA-40 — bridges the signed-in org's uid to classic-script land for the
+// Seduh Records archive write (orgId field). Additive only — firebase.js/auth.js
+// untouched; mirrors the same window.__ bridge pattern _sdDb already uses.
+import { auth } from '../shared/firebase.js';
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+onAuthStateChanged(auth, user => { window._tdUid = user ? user.uid : null; });
+</script>
 
 <div class="sheet-scrim" id="sheet-scrim" style="position:fixed"></div>
 <div class="more-sheet" id="more-sheet" style="position:fixed">
