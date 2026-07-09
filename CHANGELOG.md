@@ -28,6 +28,45 @@
 
 - `SEDUH_VERSION` bumped to `5.8.0`
 
+## [5.7.3] — Source fix: `.plat-hdr-sub` spacing (POA-51) · July 2026
+
+Root-cause fix for a spacing bug patched locally on `index.html` in v4.8.1
+instead of being promoted to `shared/theme.css`. Same root-cause shape as
+POA-46: the fix went to the call site rather than the definition. When Tour
+(`tour/index.html`) was built in POA-43 (v5.6.0) using the same `.plat-hdr-sub`
+tagline lockup, it never inherited the fix — reproducing the identical
+"Seduh Score / Coffee competition platform" cramped spacing. Confirmed by
+July 2026 front-page/Tour visual comparison.
+
+### shared/theme.css
+
+- **fix:** added `margin-left:.5rem` to `.plat-hdr-sub` — promotes the v4.8.1
+  patch to the source rule; fixes all consumers via the shared stylesheet alone
+
+### index.html
+
+- **fix (cleanup):** removed redundant local override `.plat-hdr-sub{margin-left:.5rem}`
+  from the page-level `<style>` block — now correctly inherited from `shared/theme.css`
+
+### Audit findings (site-wide grep)
+
+**Marketing header lockup (`.plat-hdr-name` + `.plat-hdr-sub`) — 4 consumers:**
+- `index.html:212` — had local patch, removed; now inherits from shared rule ✅
+- `tour/index.html:107` — **silent bug**, fixed by shared rule alone ✅
+- `about/index.html:62` — fixed by shared rule alone ✅
+- `coming-soon/index.html:37` — fixed by shared rule alone ✅
+
+**Eyebrow-label usage (full inline style overrides — different pattern, not the lockup):**
+- `booth/display/index.html`, `booth/setup/index.html`, `booth/guess/index.html`,
+  `booth/grinder/index.html`, `booth/display/guess/index.html`,
+  `booth/display/grinder/index.html` — `margin-left:.5rem` now inherited; harmless
+  in their layout context; booth pages not yet publicly deployed
+- `cup-taster/index.html:519`, `liga/index.html:549`, `throwdown/index.html:786` —
+  JS template strings using `.plat-hdr-sub` as eyebrow labels with full inline
+  overrides; same disposition
+
+---
+
 ## [5.7.1] — Source fix: `.btn-p` / `.btn-o` display on `<a>` elements (POA-46) · July 2026
 
 Root-cause fix for a bug found and instance-patched twice (POA-43 on
