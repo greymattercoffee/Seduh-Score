@@ -97,6 +97,14 @@ reverted — see this session's revert.
 
 ---
 
+## [5.7.2] — Fix: org roster search box unstyled in Admin panel · July 2026
+
+### admin/index.html
+
+- **fix: text input styling** — `input[type="text"]` added to the shared CSS selector group in the admin panel's inline `<style>` block (alongside the existing `email`, `password`, `datetime-local`, `select` entries); the org roster search box now matches the dark theme styling of every other input field. Root cause: same shape as the v4.8.1 `password` fix — a new input type added to the panel without being included in the selector group. All higher-specificity scoped rules (`.adm-add-form input[type="text"]`, `#rec-reset-input`) are unaffected.
+
+---
+
 ## [5.7.1] — Source fix: `.btn-p` / `.btn-o` display on `<a>` elements (POA-46) · July 2026
 
 Root-cause fix for a bug found and instance-patched twice (POA-43 on
