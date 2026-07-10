@@ -55,6 +55,7 @@ independently maintained.
 | `ROADMAP.md` | Version sequencing, phase status, Current State table | **A** | No |
 | `STRATEGY.md` | Business model, pricing, tiers, BNCC status | **B** | No |
 | `LIGA-SPEC.md`, `CUP-TASTER-SPEC.md`, `MUA_mobile_audit.md`, `PLAN_OF_ACTION_MUA.md`, `AUDIT.md`, `THROWDOWN-ARCHIVE-SPEC.md`, and similar single-initiative documents | Historical record of a closed initiative | **C** | No |
+| `FIREBASE-AUTH-SPEC.md` | Historical record — **partially superseded**: its "Org Management" section (manual find/set-claims panel, `setOrgClaims`/`getOrgByEmail`) was removed as of v5.10.1 (POA-57), flagged inline at that section rather than a whole-document stamp, since the document's Auth/Gates pillars are still current and load-bearing (real Firebase Auth login, `gates.js` custom claims). Do not apply a blanket `Superseded as of vX.Y` stamp to this one — check the inline flag at the Org Management section instead. Was previously unregistered in this table; added retroactively | **C** (partial) | No |
 
 **Tier definitions:**
 - **Ground truth** — CHANGELOG.md. Everything else is checked *against* it, never the reverse.
