@@ -137,15 +137,25 @@ exports.createOrg = onCall(async (request) => {
   return { orgId: ref.id };
 });
 
-// activateOrg — set Auth custom claims + update org doc status + write audit.
+// activateOrg — creates the org's Firebase Auth account server-side (first
+// activation only), sets custom claims, updates the org doc, writes audit.
 // Works for both pending→active and tier changes on an already-active org.
 // Writes 'activated' audit entry for first activation, 'tier_changed' for
 // subsequent updates (determined by reading the current status from Firestore).
+//
+// POA-56: Auth user creation lives here, server-side, on purpose — it used
+// to happen client-side via createUserWithEmailAndPassword() called on the
+// admin's own signed-in Auth instance, which signs the client in as the
+// newly-created user the instant it resolves. That silently ended the
+// admin's super_admin session, so the activateOrgFn call that followed ran
+// unauthenticated and was rejected by requireSuperAdmin below — activation
+// never actually completed. Do not reintroduce client-side Auth user
+// creation for orgs; resolve the account here instead.
 exports.activateOrg = onCall(async (request) => {
   requireSuperAdmin(request.auth);
-  const { orgId, uid, tier, expiry } = request.data;
-  if (!orgId || !uid || !tier) {
-    throw new HttpsError('invalid-argument', 'orgId, uid, and tier are required.');
+  const { orgId, password, tier, expiry, start } = request.data;
+  if (!orgId || !tier) {
+    throw new HttpsError('invalid-argument', 'orgId and tier are required.');
   }
   const db     = getFirestore();
   const orgRef = db.collection('orgs').doc(orgId);
@@ -153,21 +163,65 @@ exports.activateOrg = onCall(async (request) => {
   if (!snap.exists) {
     throw new HttpsError('not-found', 'Org not found.');
   }
-  const wasActive  = snap.data().status === 'active';
-  const expiryVal  = expiry ?? null;
+  const orgData   = snap.data();
+  const email     = orgData.email;
+  const wasActive = orgData.status === 'active';
+  const expiryVal = expiry ?? null;
+  // start: an explicit value always wins. Omitted on a fresh pending→active
+  // activation defaults to "now" (preserves the old immediate-access
+  // behaviour). Omitted on an already-active org's tier update preserves
+  // whatever start was set before — a blank field must never silently
+  // reset an org's start to "now", which would grant early access to an
+  // org that was deliberately scheduled ahead of their event.
+  const startVal = start ?? (wasActive
+    ? (orgData.start ?? Math.floor(Date.now() / 1000))
+    : Math.floor(Date.now() / 1000));
 
-  await getAuth().setCustomUserClaims(uid, {
-    subscription_tier:   tier,
-    subscription_expiry: expiryVal,
-  });
-  await orgRef.update({
-    status:      'active',
-    tier,
-    expiry:      expiryVal,
-    activatedAt: FieldValue.serverTimestamp(),
-    activatedBy: request.auth.uid,
-  });
-  await writeAudit(orgId, wasActive ? 'tier_changed' : 'activated', request.auth.uid, tier);
+  // Resolve (or create) the org's Auth account by email — the orgs doc's
+  // own email field is the source of truth, never a client-supplied one.
+  // Re-activating an org, or a duplicate public-form submission for the
+  // same email, both land here with an existing account: reuse it rather
+  // than erroring, per POA-56 handoff step 1.7.
+  let userRecord;
+  let createdNewUser = false;
+  try {
+    userRecord = await getAuth().getUserByEmail(email);
+  } catch (e) {
+    if (e.code !== 'auth/user-not-found') throw e;
+    if (!password) {
+      throw new HttpsError('invalid-argument', 'Password is required to activate a new org account.');
+    }
+    userRecord = await getAuth().createUser({ email, password });
+    createdNewUser = true;
+  }
+
+  try {
+    await getAuth().setCustomUserClaims(userRecord.uid, {
+      subscription_tier:   tier,
+      subscription_expiry: expiryVal,
+      subscription_start:  startVal,
+    });
+    await orgRef.update({
+      status:      'active',
+      tier,
+      expiry:      expiryVal,
+      start:       startVal,
+      activatedAt: FieldValue.serverTimestamp(),
+      activatedBy: request.auth.uid,
+    });
+    const detail = tier + ' · starts ' + new Date(startVal * 1000).toISOString()
+      + ' · expires ' + (expiryVal ? new Date(expiryVal * 1000).toISOString() : 'never');
+    await writeAudit(orgId, wasActive ? 'tier_changed' : 'activated', request.auth.uid, detail);
+  } catch (e) {
+    // Don't leave an orphaned Auth account with no matching org record if
+    // anything after creation fails — roll it back rather than silently
+    // stranding it. Only ever rolls back a user this same call just created.
+    if (createdNewUser) {
+      await getAuth().deleteUser(userRecord.uid).catch(() => {});
+    }
+    throw e;
+  }
+
   return { success: true };
 });
 

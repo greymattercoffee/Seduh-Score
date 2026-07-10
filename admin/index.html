@@ -1757,7 +1757,7 @@ function renderOrgDetail(o) {
         '<div class="adm-row"><span class="adm-row-label">Expiry</span>' +
           '<input type="datetime-local" id="act-expiry-' + o.id + '"></div>' +
         '<div class="btn-group">' +
-          '<button class="btn btn-am" id="act-btn-' + o.id + '" data-id="' + o.id + '" data-status="pending" data-email="' + escHtml(o.email) + '">Activate</button>' +
+          '<button class="btn btn-am" id="act-btn-' + o.id + '" data-id="' + o.id + '" data-status="pending">Activate</button>' +
         '</div>' +
         '<div class="adm-status" id="act-status-' + o.id + '"></div>' +
       '</div>';
@@ -1765,8 +1765,6 @@ function renderOrgDetail(o) {
     actionSection =
       '<div class="org-detail-section">' +
         '<div class="adm-section-title" style="margin-bottom:6px">Set Tier</div>' +
-        '<div class="adm-row"><span class="adm-row-label">UID</span>' +
-          '<input type="text" id="act-uid-' + o.id + '" placeholder="Looking up…" style="font-family:ui-monospace,monospace;font-size:11px"></div>' +
         '<div class="adm-row"><span class="adm-row-label">Tier</span>' +
           '<select id="act-tier-' + o.id + '">' +
             '<option value="community"' + (o.tier === 'community' ? ' selected' : '') + '>Community</option>' +
@@ -1776,7 +1774,7 @@ function renderOrgDetail(o) {
         '<div class="adm-row"><span class="adm-row-label">Expiry</span>' +
           '<input type="datetime-local" id="act-expiry-' + o.id + '"></div>' +
         '<div class="btn-group">' +
-          '<button class="btn btn-am" id="act-btn-' + o.id + '" data-id="' + o.id + '" data-status="active" data-email="' + escHtml(o.email) + '">Update Tier</button>' +
+          '<button class="btn btn-am" id="act-btn-' + o.id + '" data-id="' + o.id + '" data-status="active">Update Tier</button>' +
           '<button class="btn btn-rd" id="arch-btn-' + o.id + '" data-id="' + o.id + '">Archive</button>' +
         '</div>' +
         '<div class="adm-status" id="act-status-' + o.id + '"></div>' +
@@ -1826,16 +1824,6 @@ async function toggleOrgExpand(orgId) {
   updateChevron(orgId, true);
   attachDetailHandlers(orgId);
   await loadOrgAudit(orgId);
-  // Auto-fill UID for active orgs
-  const org = orgsCache.find(o => o.id === orgId);
-  if (org?.status === 'active') {
-    getOrgByEmailFn({ email: org.email })
-      .then(r => {
-        const uidInput = document.getElementById('act-uid-' + orgId);
-        if (uidInput) uidInput.value = r.data.uid;
-      })
-      .catch(() => {});
-  }
 }
 
 function attachDetailHandlers(orgId) {
@@ -1865,24 +1853,24 @@ function attachDetailHandlers(orgId) {
     actBtn._bound = true;
     actBtn.addEventListener('click', async () => {
       const status  = actBtn.dataset.status;
-      const email   = actBtn.dataset.email;
       const tier    = document.getElementById('act-tier-' + orgId)?.value;
       const expVal  = document.getElementById('act-expiry-' + orgId)?.value;
       const expiry  = expVal ? Math.floor(new Date(expVal).getTime() / 1000) : null;
+      // Password is only meaningful — and only required — the first time an
+      // org is activated (activateOrg creates the Auth account server-side).
+      // On a later tier update the account already exists, so this stays
+      // empty and the function ignores it.
+      const password = status === 'pending'
+        ? document.getElementById('act-pw-' + orgId)?.value
+        : undefined;
+      if (status === 'pending' && !password) {
+        setStatus('act-status-' + orgId, 'Password required.', 'error');
+        return;
+      }
       actBtn.disabled = true;
       setStatus('act-status-' + orgId, 'Working…', 'muted');
       try {
-        let uid;
-        if (status === 'pending') {
-          const pw = document.getElementById('act-pw-' + orgId)?.value;
-          if (!pw) { setStatus('act-status-' + orgId, 'Password required.', 'error'); actBtn.disabled = false; return; }
-          const cred = await createUserWithEmailAndPassword(auth, email, pw);
-          uid = cred.user.uid;
-        } else {
-          uid = document.getElementById('act-uid-' + orgId)?.value.trim();
-          if (!uid) { setStatus('act-status-' + orgId, 'UID required — check Org Management above.', 'error'); actBtn.disabled = false; return; }
-        }
-        await activateOrgFn({ orgId, uid, tier, expiry });
+        await activateOrgFn({ orgId, password, tier, expiry });
         setStatus('act-status-' + orgId, 'Done.', 'success');
         await loadRoster();
       } catch (e) {
