@@ -45,6 +45,16 @@
     padding-bottom: 16px;
     border-bottom: 1px solid var(--bd);
   }
+  .adm-back {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink4);
+    text-decoration: none;
+    margin-bottom: 10px;
+    transition: color .14s;
+  }
+  .adm-back:hover { color: var(--am); }
   .adm-hdr h1 {
     font-size: 20px;
     font-weight: 700;
@@ -79,10 +89,6 @@
     padding: 18px 20px;
     margin-bottom: 10px;
   }
-
-  /* ── Find row ── */
-  .find-row { display: flex; gap: 8px; }
-  .find-row input { flex: 1; }
 
   /* ── Inputs / Select ── */
   input[type="text"],
@@ -129,46 +135,6 @@
     font-family: ui-monospace, monospace;
   }
 
-  /* ── Divider ── */
-  .adm-divider { height: 1px; background: var(--bd); margin: 16px 0; }
-
-  /* ── Org result fields ── */
-  .adm-result { display: none; }
-  .adm-field {
-    display: flex;
-    gap: 14px;
-    align-items: baseline;
-    padding: 7px 0;
-    border-bottom: 1px solid var(--bd);
-  }
-  .adm-field:last-child { border-bottom: none; }
-  .adm-field .k {
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--ink4);
-    font-family: ui-monospace, monospace;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    width: 52px;
-    flex-shrink: 0;
-  }
-  .adm-field .v {
-    font-size: 13px;
-    color: var(--ink);
-    font-family: ui-monospace, monospace;
-    word-break: break-all;
-  }
-
-  /* ── Set access form ── */
-  .set-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--ink4);
-    font-family: ui-monospace, monospace;
-    margin-bottom: 14px;
-  }
   .adm-row {
     display: flex;
     gap: 8px;
@@ -622,6 +588,19 @@
   .org-badge-pending  { color: var(--am-bd); border-color: var(--am-bd); background: rgba(224,154,54,.1); }
   .org-badge-active   { color: var(--gn);    border-color: var(--gn);    background: rgba(11,122,82,.12); }
   .org-badge-archived { color: var(--ink4);  border-color: var(--ink4);  background: transparent; }
+  .org-source {
+    padding: 2px 7px;
+    border-radius: 99px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    font-family: ui-monospace, monospace;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .org-source-public { color: var(--bl); border-color: var(--bl); background: rgba(37,99,235,.1); }
+  .org-source-manual { color: var(--ink4); border-color: var(--bd); background: transparent; }
   .org-tier {
     font-size: 11px;
     color: var(--ink3);
@@ -631,6 +610,12 @@
   .org-expiry {
     font-size: 10px;
     color: var(--ink4);
+    font-family: ui-monospace, monospace;
+    white-space: nowrap;
+  }
+  .org-starts {
+    font-size: 10px;
+    color: var(--bl);
     font-family: ui-monospace, monospace;
     white-space: nowrap;
   }
@@ -689,6 +674,7 @@
 <div id="panel">
 
   <div class="adm-hdr">
+    <a href="../index.html" class="adm-back">← Back to seduhscore.com</a>
     <h1>Admin Panel</h1>
     <p>Seduh Score · Super admin · Internal tool</p>
   </div>
@@ -765,70 +751,6 @@
     <div class="adm-status" id="org-roster-status"></div>
   </div>
 
-  <!-- ══ Auth Account (legacy utility — create Firebase Auth account only) ══ -->
-  <div class="adm-section">
-    <div class="adm-section-title">Auth Account</div>
-    <div class="adm-card">
-      <div class="adm-row">
-        <span class="adm-row-label">Email</span>
-        <input id="create-email" type="email" placeholder="organiser@cafe.com" autocomplete="off">
-      </div>
-      <div class="adm-row">
-        <span class="adm-row-label">Password</span>
-        <input id="create-password" type="password" autocomplete="new-password">
-      </div>
-      <div class="btn-group">
-        <button class="btn btn-am" id="create-btn">Create Account</button>
-      </div>
-      <div class="adm-status" id="create-status"></div>
-    </div>
-  </div>
-
-  <!-- ══ Org Management (legacy — find by email, set claims) ══ -->
-  <div class="adm-section">
-    <div class="adm-section-title">Org Management</div>
-
-    <div class="adm-card">
-      <div class="find-row">
-        <input id="find-email" type="email" placeholder="organiser@cafe.com" autocomplete="off">
-        <button class="btn btn-am" id="find-btn">Find</button>
-      </div>
-      <div class="adm-status" id="find-status"></div>
-
-      <div class="adm-result" id="org-result">
-        <div class="adm-divider"></div>
-        <div class="adm-field"><span class="k">Email</span><span  class="v" id="res-email"></span></div>
-        <div class="adm-field"><span class="k">UID</span><span    class="v" id="res-uid"></span></div>
-        <div class="adm-field"><span class="k">Tier</span><span   class="v" id="res-tier"></span></div>
-        <div class="adm-field"><span class="k">Expiry</span><span class="v" id="res-expiry"></span></div>
-      </div>
-    </div>
-
-    <div class="adm-card adm-result" id="org-set">
-      <div class="set-label">Set access</div>
-      <div class="adm-row">
-        <span class="adm-row-label">Tier</span>
-        <select id="set-tier">
-          <option value="community">Community</option>
-          <option value="per_event">Per-Event</option>
-          <option value="annual">Annual</option>
-        </select>
-      </div>
-      <div class="adm-row">
-        <span class="adm-row-label">Start</span>
-        <input type="datetime-local" id="set-start">
-      </div>
-      <div class="adm-row">
-        <span class="adm-row-label">End</span>
-        <input type="datetime-local" id="set-end">
-      </div>
-      <div class="btn-group">
-        <button class="btn btn-am" id="set-btn">Set Window</button>
-        <button class="btn btn-rd" id="revoke-btn">Revoke Now</button>
-      </div>
-      <div class="adm-status" id="set-status"></div>
-    </div>
-  </div>
 
   </div>
 
@@ -978,7 +900,7 @@
 
 <script type="module">
 import { auth, db, storage } from '../shared/firebase.js';
-import { onAuthStateChanged, createUserWithEmailAndPassword }
+import { onAuthStateChanged }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFunctions, httpsCallable }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
@@ -989,15 +911,11 @@ import { ref, uploadBytesResumable, getDownloadURL, deleteObject }
 import { getApp }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 
-const fns             = getFunctions(getApp());
-const getOrgByEmailFn = httpsCallable(fns, 'getOrgByEmail');
-const setOrgClaimsFn  = httpsCallable(fns, 'setOrgClaims');
-const createOrgFn      = httpsCallable(fns, 'createOrg');
-const activateOrgFn    = httpsCallable(fns, 'activateOrg');
-const updateOrgNotesFn = httpsCallable(fns, 'updateOrgNotes');
-const archiveOrgFn     = httpsCallable(fns, 'archiveOrg');
-
-let currentOrg = null;
+const fns               = getFunctions(getApp());
+const createOrgFn       = httpsCallable(fns, 'createOrg');
+const activateOrgFn     = httpsCallable(fns, 'activateOrg');
+const updateOrgNotesFn  = httpsCallable(fns, 'updateOrgNotes');
+const archiveOrgFn      = httpsCallable(fns, 'archiveOrg');
 
 // ── Auth gate — first thing, before any UI is shown ──
 onAuthStateChanged(auth, async user => {
@@ -1030,88 +948,6 @@ function showTab(name) {
 document.querySelectorAll('.adm-tab').forEach(btn => {
   btn.addEventListener('click', () => showTab(btn.dataset.tab));
 });
-
-// ── Create Org ──
-document.getElementById('create-btn').addEventListener('click', () => {
-  const email    = document.getElementById('create-email').value.trim();
-  const password = document.getElementById('create-password').value;
-  if (!email || !password) { setStatus('create-status', 'Email and password required.', 'error'); return; }
-  setStatus('create-status', 'Creating…', 'muted');
-  createUserWithEmailAndPassword(auth, email, password)
-    .then(cred => {
-      setStatus('create-status', 'Account created. UID: ' + cred.user.uid, 'ok');
-      document.getElementById('create-email').value    = '';
-      document.getElementById('create-password').value = '';
-      document.getElementById('find-email').value = email;
-      setTimeout(findOrg, 1000);
-    })
-    .catch(err => setStatus('create-status', err.message, 'error'));
-});
-
-// ── Org Management ──
-document.getElementById('find-btn').addEventListener('click', findOrg);
-document.getElementById('find-email').addEventListener('keydown', e => { if (e.key === 'Enter') findOrg(); });
-document.getElementById('set-btn').addEventListener('click', setWindow);
-document.getElementById('revoke-btn').addEventListener('click', revokeNow);
-
-function findOrg() {
-  const email = document.getElementById('find-email').value.trim();
-  if (!email) return;
-  setStatus('find-status', 'Looking up…', 'muted');
-  document.getElementById('org-result').style.display = 'none';
-  document.getElementById('org-set').style.display    = 'none';
-  currentOrg = null;
-
-  getOrgByEmailFn({ email })
-    .then(r => {
-      currentOrg = r.data;
-      renderOrgResult(currentOrg);
-      setStatus('find-status', '', '');
-    })
-    .catch(err => setStatus('find-status', err.message || 'Not found.', 'error'));
-}
-
-function renderOrgResult(org) {
-  document.getElementById('res-email').textContent  = org.email;
-  document.getElementById('res-uid').textContent    = org.uid;
-  document.getElementById('res-tier').textContent   = org.claims.subscription_tier   ?? 'community';
-  document.getElementById('res-expiry').textContent = org.claims.subscription_expiry
-    ? new Date(org.claims.subscription_expiry * 1000)
-        .toLocaleString('en-BN', { timeZone: 'Asia/Brunei' }) + ' BNT'
-    : '— none';
-  document.getElementById('set-tier').value = org.claims.subscription_tier ?? 'community';
-  document.getElementById('org-result').style.display = 'block';
-  document.getElementById('org-set').style.display    = 'block';
-  setStatus('set-status', '', '');
-}
-
-function setWindow() {
-  if (!currentOrg) return;
-  const tier   = document.getElementById('set-tier').value;
-  const endVal = document.getElementById('set-end').value;
-  const expiry = endVal ? Math.floor(new Date(endVal).getTime() / 1000) : null;
-  setOrgClaimsFn({ uid: currentOrg.uid, subscription_tier: tier, subscription_expiry: expiry })
-    .then(() => {
-      currentOrg.claims.subscription_tier   = tier;
-      currentOrg.claims.subscription_expiry = expiry;
-      renderOrgResult(currentOrg);
-      setStatus('set-status', 'Claims updated.', 'success');
-    })
-    .catch(err => setStatus('set-status', err.message, 'error'));
-}
-
-function revokeNow() {
-  if (!currentOrg) return;
-  const expiry = Math.floor(Date.now() / 1000) - 1;
-  const tier   = currentOrg.claims.subscription_tier ?? 'community';
-  setOrgClaimsFn({ uid: currentOrg.uid, subscription_tier: tier, subscription_expiry: expiry })
-    .then(() => {
-      currentOrg.claims.subscription_expiry = expiry;
-      renderOrgResult(currentOrg);
-      setStatus('set-status', 'Access revoked.', 'error');
-    })
-    .catch(err => setStatus('set-status', err.message, 'error'));
-}
 
 // ── Platform Switches ──
 async function loadSwitches() {
@@ -1612,6 +1448,23 @@ const STATUS_CLASS  = { pending: 'org-badge-pending', active: 'org-badge-active'
 
 function tierOrder(t) { return { annual: 3, per_event: 2, community: 1 }[t] ?? 0; }
 
+// wa.me deep-link for manual outreach — strips everything but digits (wa.me
+// takes a bare country-code-prefixed number, no + or separators).
+function waLink(phone) {
+  const digits = (phone || '').replace(/\D/g, '');
+  return digits ? 'https://wa.me/' + digits : null;
+}
+
+// Local "now" formatted for a datetime-local input's value attribute —
+// used to default the Start field to immediate activation so leaving it
+// untouched preserves the pre-existing behaviour.
+function nowLocalInputValue() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
+    + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
 async function loadRoster() {
   setStatus('org-roster-status', 'Loading…', 'muted');
   document.getElementById('org-roster').innerHTML = '';
@@ -1692,6 +1545,12 @@ function renderOrgRow(o) {
   const expiryStr = o.expiry
     ? new Date(o.expiry * 1000).toLocaleDateString('en-BN', { timeZone: 'Asia/Brunei' })
     : '—';
+  // Only surface Start on the row when it's still in the future — a past/
+  // present start is just "active", not worth a permanent badge.
+  const startsFuture = o.start && (o.start * 1000) > Date.now();
+  const startStr = startsFuture
+    ? 'Starts ' + new Date(o.start * 1000).toLocaleDateString('en-BN', { timeZone: 'Asia/Brunei' })
+    : null;
   const isOpen = orgExpandedId === o.id;
   return (
     '<div class="org-row">' +
@@ -1701,9 +1560,12 @@ function renderOrgRow(o) {
           '<span class="org-email">' + escHtml(o.email || '') + '</span>' +
         '</div>' +
         '<div class="org-row-meta">' +
+          '<span class="org-source ' + (o.source === 'public_form' ? 'org-source-public' : 'org-source-manual') + '">' +
+            (o.source === 'public_form' ? 'Public form' : 'Manual') + '</span>' +
           '<span class="org-badge ' + (STATUS_CLASS[o.status] || '') + '">' +
             (STATUS_LABELS[o.status] || o.status) + '</span>' +
           '<span class="org-tier">'   + escHtml(tierLabel)  + '</span>' +
+          (startStr ? '<span class="org-starts">' + escHtml(startStr) + '</span>' : '') +
           '<span class="org-expiry">' + escHtml(expiryStr)  + '</span>' +
           '<span class="org-chevron" id="chev-' + o.id + '">' + (isOpen ? '▲' : '▼') + '</span>' +
         '</div>' +
@@ -1718,10 +1580,12 @@ function renderOrgRow(o) {
 function renderOrgDetail(o) {
   let actionSection = '';
   if (o.status === 'pending') {
+    const wa = waLink(o.contactPhone);
     actionSection =
       '<div class="org-detail-section">' +
         '<div class="adm-section-title" style="margin-bottom:6px">Activate Org</div>' +
         '<div class="org-detail-hint">Creates a Firebase Auth account and sets the subscription tier in one step.</div>' +
+        (wa ? '<div class="btn-group" style="margin-bottom:10px"><a class="btn btn-gn" href="' + wa + '" target="_blank" rel="noreferrer">WhatsApp ' + escHtml(o.contactName || 'contact') + '</a></div>' : '') +
         '<div class="adm-row"><span class="adm-row-label">Password</span>' +
           '<input type="password" id="act-pw-' + o.id + '" autocomplete="new-password" placeholder="Login password for this org"></div>' +
         '<div class="adm-row"><span class="adm-row-label">Tier</span>' +
@@ -1730,10 +1594,13 @@ function renderOrgDetail(o) {
             '<option value="per_event">Per-Event</option>' +
             '<option value="annual">Annual</option>' +
           '</select></div>' +
+        '<div class="adm-row"><span class="adm-row-label">Starts</span>' +
+          '<input type="datetime-local" id="act-start-' + o.id + '" value="' + nowLocalInputValue() + '"></div>' +
         '<div class="adm-row"><span class="adm-row-label">Expiry</span>' +
           '<input type="datetime-local" id="act-expiry-' + o.id + '"></div>' +
+        '<div class="org-detail-hint">Leave Starts as-is to activate immediately, or set it ahead for a scheduled event — access unlocks on its own at that time, no follow-up needed.</div>' +
         '<div class="btn-group">' +
-          '<button class="btn btn-am" id="act-btn-' + o.id + '" data-id="' + o.id + '" data-status="pending" data-email="' + escHtml(o.email) + '">Activate</button>' +
+          '<button class="btn btn-am" id="act-btn-' + o.id + '" data-id="' + o.id + '" data-status="pending">Activate</button>' +
         '</div>' +
         '<div class="adm-status" id="act-status-' + o.id + '"></div>' +
       '</div>';
@@ -1741,18 +1608,19 @@ function renderOrgDetail(o) {
     actionSection =
       '<div class="org-detail-section">' +
         '<div class="adm-section-title" style="margin-bottom:6px">Set Tier</div>' +
-        '<div class="adm-row"><span class="adm-row-label">UID</span>' +
-          '<input type="text" id="act-uid-' + o.id + '" placeholder="Looking up…" style="font-family:ui-monospace,monospace;font-size:11px"></div>' +
         '<div class="adm-row"><span class="adm-row-label">Tier</span>' +
           '<select id="act-tier-' + o.id + '">' +
             '<option value="community"' + (o.tier === 'community' ? ' selected' : '') + '>Community</option>' +
             '<option value="per_event"' + (o.tier === 'per_event' ? ' selected' : '') + '>Per-Event</option>' +
             '<option value="annual"'    + (o.tier === 'annual'    ? ' selected' : '') + '>Annual</option>' +
           '</select></div>' +
+        '<div class="adm-row"><span class="adm-row-label">Starts</span>' +
+          '<input type="datetime-local" id="act-start-' + o.id + '"></div>' +
         '<div class="adm-row"><span class="adm-row-label">Expiry</span>' +
           '<input type="datetime-local" id="act-expiry-' + o.id + '"></div>' +
+        '<div class="org-detail-hint">Leave Starts blank to keep the existing window unless you\'re deliberately rescheduling it.</div>' +
         '<div class="btn-group">' +
-          '<button class="btn btn-am" id="act-btn-' + o.id + '" data-id="' + o.id + '" data-status="active" data-email="' + escHtml(o.email) + '">Update Tier</button>' +
+          '<button class="btn btn-am" id="act-btn-' + o.id + '" data-id="' + o.id + '" data-status="active">Update Tier</button>' +
           '<button class="btn btn-rd" id="arch-btn-' + o.id + '" data-id="' + o.id + '">Archive</button>' +
         '</div>' +
         '<div class="adm-status" id="act-status-' + o.id + '"></div>' +
@@ -1802,16 +1670,6 @@ async function toggleOrgExpand(orgId) {
   updateChevron(orgId, true);
   attachDetailHandlers(orgId);
   await loadOrgAudit(orgId);
-  // Auto-fill UID for active orgs
-  const org = orgsCache.find(o => o.id === orgId);
-  if (org?.status === 'active') {
-    getOrgByEmailFn({ email: org.email })
-      .then(r => {
-        const uidInput = document.getElementById('act-uid-' + orgId);
-        if (uidInput) uidInput.value = r.data.uid;
-      })
-      .catch(() => {});
-  }
 }
 
 function attachDetailHandlers(orgId) {
@@ -1841,24 +1699,26 @@ function attachDetailHandlers(orgId) {
     actBtn._bound = true;
     actBtn.addEventListener('click', async () => {
       const status  = actBtn.dataset.status;
-      const email   = actBtn.dataset.email;
       const tier    = document.getElementById('act-tier-' + orgId)?.value;
+      const startVal = document.getElementById('act-start-' + orgId)?.value;
+      const start   = startVal ? Math.floor(new Date(startVal).getTime() / 1000) : null;
       const expVal  = document.getElementById('act-expiry-' + orgId)?.value;
       const expiry  = expVal ? Math.floor(new Date(expVal).getTime() / 1000) : null;
+      // Password is only meaningful — and only required — the first time an
+      // org is activated (activateOrg creates the Auth account server-side).
+      // On a later tier update the account already exists, so this stays
+      // empty and the function ignores it.
+      const password = status === 'pending'
+        ? document.getElementById('act-pw-' + orgId)?.value
+        : undefined;
+      if (status === 'pending' && !password) {
+        setStatus('act-status-' + orgId, 'Password required.', 'error');
+        return;
+      }
       actBtn.disabled = true;
       setStatus('act-status-' + orgId, 'Working…', 'muted');
       try {
-        let uid;
-        if (status === 'pending') {
-          const pw = document.getElementById('act-pw-' + orgId)?.value;
-          if (!pw) { setStatus('act-status-' + orgId, 'Password required.', 'error'); actBtn.disabled = false; return; }
-          const cred = await createUserWithEmailAndPassword(auth, email, pw);
-          uid = cred.user.uid;
-        } else {
-          uid = document.getElementById('act-uid-' + orgId)?.value.trim();
-          if (!uid) { setStatus('act-status-' + orgId, 'UID required — check Org Management above.', 'error'); actBtn.disabled = false; return; }
-        }
-        await activateOrgFn({ orgId, uid, tier, expiry });
+        await activateOrgFn({ orgId, password, tier, expiry, start });
         setStatus('act-status-' + orgId, 'Done.', 'success');
         await loadRoster();
       } catch (e) {

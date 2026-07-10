@@ -243,7 +243,7 @@ button{cursor:pointer}
 
 /* ── Inputs ── */
 .ir{display:flex;gap:8px}.ir input{flex:1}
-input[type=text],input[type=number],input[type=date],select,textarea{
+input[type=text],input[type=number],input[type=date],input[type=email],input[type=tel],select,textarea{
   border:1.5px solid var(--border);border-radius:var(--rad-s);padding:10px 12px;font-size:14px;
   background:var(--surface2);color:var(--ink);outline:none;width:100%;transition:border-color .14s,box-shadow .14s,background .14s}
 input:focus,select:focus,textarea:focus{border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px var(--accent-bg)}

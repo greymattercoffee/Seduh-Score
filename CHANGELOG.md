@@ -2,6 +2,380 @@
 
 ---
 
+## [5.10.2] — POA-58: not_started banner states the actual start time · July 2026
+
+Closes the one gap found in the prior verification session's item 4: the
+`auth.js` informational banner for an org signing in before their access
+window begins was fixed/generic text — it never said *when* access
+actually starts. Strategy's call: for a 48–72h paid window, an organiser
+who paid deserves the specific date/time, not just "check back later" —
+and the claim already carries the real timestamp, so it's cheap to get
+right.
+
+### shared/gates.js
+
+- **feat:** `Gates.getStartTime()` — returns the raw `subscription_start`
+  Unix-seconds value (or `null`), auth.js-only per the existing
+  `isExpired()`/`isNotYetStarted()` convention (never called from modules)
+
+### shared/auth.js
+
+- **fix:** the not-started banner now reads "Your access window starts
+  `{date}` — paid features unlock automatically, no need to check back,"
+  formatted `en-BN` / `Asia/Brunei` + `BNT` suffix — matching the format
+  already used for expiry/audit timestamps in `admin/index.html`, for
+  consistency across the app
+
+### shared/version.js
+
+- `SEDUH_VERSION` bumped to `5.10.2`
+
+### Re-verification (item 4 only, per handoff — items 1/2/3/5/6/7 already
+### confirmed clean in the prior session and untouched by this change)
+
+Signed in as the same future-start test org used before: banner now
+reads "Your access window starts 7/12/2026, 12:30:00 AM BNT — paid
+features unlock automatically, no need to check back." No console
+errors. `Gates.canAccess()` still correctly returns `{allowed:false,
+reason:'not_started'}` — the enforcement path is unaffected by this
+copy-only change, as expected.
+
+**POA-58 is now ✅ in PLAN_OF_ACTION.md.** POA-56, POA-57, and POA-58 are
+all verified and ready to bundle into commits for the `dev` → `main` PR.
+
+## [docs] — POA-58 verification: start-window "not_started" rejection path · July 2026
+
+No code shipped this session — verification only, against the Firebase
+Emulator Suite, using the real `admin/index.html` Activate flow and real
+org sign-ins (not direct function calls) for the core path.
+
+**6/7 items clean pass:**
+- A future-start org, activated through the real Activate button, is
+  correctly denied (`Gates.canAccess()` → `{allowed:false,
+  reason:'not_started'}`) for a real gated feature, signed in as a
+  separate session from the admin.
+- Confirmed the check is a **live** comparison, not evaluated once at
+  sign-in: the same signed-in browser session, with no re-authentication
+  and no page reload, flipped from denied to allowed purely because
+  real-world clock time passed the `subscription_start` threshold.
+- Default/omitted-start immediate-activation path is regression-clean —
+  unaffected by the new check.
+- An org that's both past-start and past-expiry is correctly denied via
+  the pre-existing `reason:'tier'` mechanism, never confused with
+  `reason:'not_started'`.
+
+**One gap found, not fixed (per handoff — verification only, no
+unsupervised fixes on this security-sensitive path):** `auth.js`'s
+informational banner renders and triggers under exactly the right
+condition, but its message is fixed/generic ("...unlock automatically
+once it begins, no need to check back") — it does not state the org's
+actual start date/time. POA-58 stays 🟠 in PLAN_OF_ACTION.md (not ✅)
+pending a decision on whether that's acceptable as shipped or the banner
+needs the specific date/time added.
+
+## [5.10.1] — POA-57: remove legacy Org Management panel · July 2026
+
+`admin/index.html` carried a legacy "Auth Account" + "Org Management" panel
+(manual create-account / find-by-email / set-claims / revoke workflow) that
+predates the POA-41 (Pagon, v5.7.0) roster-based org flow and had been dead
+in practice since. It carried the identical session-clobber bug fixed in
+POA-56 — being unused, removal was the correct fix, not a patch.
+
+### functions/index.js
+
+- **removed:** `setOrgClaims` and `getOrgByEmail` — confirmed via repo-wide
+  search unused anywhere except this panel before removing
+
+### admin/index.html
+
+- **removed:** both panel sections' HTML, their exclusive CSS
+  (`.find-row`, `.adm-divider`, `.adm-result`, `.adm-field`, `.set-label` —
+  `.adm-card`/`.adm-row` kept, still shared with the roster), and their JS
+  (`createUserWithEmailAndPassword` call and import, `getOrgByEmailFn`/
+  `setOrgClaimsFn` bindings, `currentOrg` state, `findOrg`/`renderOrgResult`/
+  `setWindow`/`revokeNow`, all associated event listeners)
+- The roster-based Activate flow (POA-56) was not touched — re-verified
+  with one real activation through the emulator after removal, confirmed
+  working exactly as before (admin session held, no console errors)
+
+### FIREBASE-AUTH-SPEC.md
+
+- Flagged the "Org Management section" as superseded as of v5.10.0
+  (POA-41) and removed as of v5.10.1 (POA-57) — kept for historical
+  reference only, rest of the doc (Auth/Gates pillars) still accurate,
+  not rewritten
+
+### shared/version.js
+
+- `SEDUH_VERSION` bumped to `5.10.1`
+
+### Self-verify (5/5 pass)
+
+Panel no longer renders in `admin/index.html` · no console errors on load
+· `setOrgClaims`/`getOrgByEmail` confirmed removed (dead code, unused
+elsewhere) · roster-based activation re-verified working post-removal via
+the emulator · no other page ever linked to this panel (it was in-page
+only, no fragment/anchor references existed) — nothing orphaned
+
+## [5.10.0] — Access-window enforcement, POA-56 activation fix, Bug A upload fix, nav · July 2026
+
+Four related pieces of work from the same continuous session following v5.9.0,
+none of them individually pushed to main before now: real start-of-access
+enforcement (the follow-up ask after v5.9.0 shipped), and two bugs found
+while verifying it against the Firebase Emulator Suite — both inside the
+org activation path, both fixed together since they share files.
+
+### Access-window enforcement (start date, not just expiry)
+
+STRATEGY.md's Super Admin Console section always said "start date + end
+date," but only end (expiry) was ever built — `shared/gates.js` had no
+concept of a start time, so access began the instant `activateOrg` was
+called, with the 48–72h Per-Event window only ever approximated by timing
+the click. No scheduled job needed: the fix mirrors the live `Date.now()`
+comparison `isExpired()` already used.
+
+- **`functions/index.js`:** `activateOrg` accepts an optional `start`
+  (Unix seconds), sets a new `subscription_start` custom claim. Omitted on
+  a fresh activation defaults to now (old behaviour preserved). Omitted on
+  an already-active org's tier update preserves the existing start rather
+  than resetting it to now — a blank field must never silently grant early
+  access to an org deliberately scheduled ahead of their event.
+- **`shared/gates.js`:** new `Gates.isNotYetStarted()`. `canAccess()`
+  returns `{ allowed: false, reason: 'not_started' }` before start time,
+  checked after the platform-switch early-return so switch-only features
+  are unaffected. `reason` was previously unread by any module, so this
+  new value costs nothing to add.
+- **`shared/auth.js`:** one-shot informational banner on sign-in if
+  `Gates.isNotYetStarted()`.
+- **`admin/index.html`:** Start field added to both the Activate and Set
+  Tier forms (defaults to now for a fresh activation); roster row shows a
+  "Starts …" indicator when an active org's start is still in the future.
+
+### POA-56 — org activation silently never worked from the browser
+
+Found while verifying the above against the emulator: `admin/index.html`
+called `createUserWithEmailAndPassword(auth, ...)` on the admin's own live
+Auth instance to provision a new org account. Firebase's client SDK always
+signs in as the newly-created user the instant that resolves — which
+silently ends the admin's super_admin session. The very next call,
+`activateOrgFn(...)`, then runs authenticated as the brand-new org instead
+of the admin, gets rejected by `requireSuperAdmin`, and nothing gets
+written. The admin UI's own auth guard, seeing a non-admin session, then
+redirects to the front door — so the failure was invisible, not an error
+message. Predates this session entirely (shipped in POA-41, v5.7.0);
+confirmed via the production Auth console that a real activation has
+never actually succeeded (only the admin account and one known test
+account exist there).
+
+**Fix — Auth user creation moved server-side, locked design decision:**
+- **`functions/index.js`:** `activateOrg` now resolves the org's Auth
+  account itself, by the `email` already stored on the `orgs` doc (never
+  a client-supplied one) — `getUserByEmail`, falling back to
+  `createUser({ email, password })` only if not found. Re-activating an
+  org, or a duplicate public-form submission for the same email, both
+  reuse the existing account instead of erroring. If anything fails after
+  a *newly created* user (claims, Firestore update, audit write), the
+  just-created Auth user is rolled back (`deleteUser`) rather than left
+  orphaned with no matching org record — verified live via a temporary
+  forced-failure test hook (added, exercised, removed before shipping;
+  never part of the shipped diff).
+- **`admin/index.html`:** `createUserWithEmailAndPassword` call removed
+  from the roster's Activate flow entirely. The UID lookup field and its
+  `getOrgByEmailFn` auto-fill (both no longer needed — the function
+  resolves the account by email server-side) are removed from the roster
+  forms only. The legacy, separate "Org Management" panel (find-by-email
+  / set-claims / revoke, unrelated to the roster, predates POA-41) is
+  untouched — out of scope per the handoff.
+- **Known follow-up, not fixed here (flagged, not touched):** the legacy
+  "Org Management" panel's own "Create Org" button (`admin/index.html`,
+  `createUserWithEmailAndPassword` call, a separate code path from the one
+  fixed above) has the exact same session-clobber bug. Explicitly out of
+  scope per this handoff's "don't refactor beyond what's needed here" —
+  flagged for a follow-up ticket, not silently fixed.
+
+### Bug A — public visitor could never actually complete a submission
+
+Found in the same verification pass: `onboard/index.html` called
+`getDownloadURL()` after uploading the payment screenshot, to get a URL to
+send to `submitOrgRequest`. `getDownloadURL()` itself requires Storage
+**read** access, which `storage.rules` correctly denies to the public
+(`org-requests/` is "no public read" by design, per the original v5.9.0
+spec) — so no real visitor could ever obtain the URL to submit. Confirmed
+as real production behaviour, not an emulator artifact.
+
+**Fix — path-based resolution instead of a client-obtained URL, rules
+untouched:**
+- **`onboard/index.html`:** no longer calls `getDownloadURL()`. Sends the
+  Storage path it already knows (`org-requests/{requestId}/payment.<ext>`)
+  to `submitOrgRequest` instead.
+- **`functions/index.js`:** `submitOrgRequest` accepts `storagePath`
+  instead of a URL. Validates the shape (`^org-requests/[^/]+/payment\.\w+$`)
+  and, via the Admin SDK (bypasses rules), confirms the object actually
+  exists before accepting the submission. Stores the **path** — field
+  renamed `paymentProofUrl` → `paymentProofPath` throughout (`createOrg`,
+  `submitOrgRequest`) since it no longer holds a URL. `storage.rules`
+  itself was not touched — "no public read" stands exactly as before.
+- **`admin/index.html`:** no payment-screenshot viewing UI exists yet
+  (never built — POA-47 didn't ask for one), so there was nothing to
+  update here; noted per the handoff's own "should need little or no
+  change" expectation.
+
+### Navigation
+
+- **`onboard/index.html`, `admin/index.html`:** both pages had no in-page
+  way back to the main site, only the browser back button. Added a
+  visible "← Back to seduhscore.com" link to each header.
+- **Deviation (logged, found in passing):** `onboard/index.html`'s "Tour"
+  link has used `class="nav-link"` since it was built in v5.9.0, but the
+  page never defined that class itself (`.nav-link` is page-local to
+  `tour/index.html` / `index.html`, not shared) — it's been rendering
+  completely unstyled since v5.9.0. Fixed alongside adding the back link,
+  since both use the same class and the page was already open for this
+  change.
+
+### shared/version.js
+
+- `SEDUH_VERSION` bumped to `5.10.0`
+
+### Smoketest — 8/8 pass, run against the real UI via the Firebase Emulator Suite
+
+1. Full real activation end-to-end (submit via the real form → activate
+   via the real button) — admin session confirmed unbroken throughout, no
+   redirect; Auth claims, Firestore doc, and audit entry all verified correct.
+2. Signed in as the newly-activated org in a separate session — confirmed
+   `Gates.canAccess()` grants exactly what their tier entitles, live, for
+   the first time this path has ever been verified end-to-end.
+3. Re-activation / duplicate-email case — reused an org whose email
+   already had an orphaned Auth account (a casualty of the pre-fix POA-56
+   bug, from earlier in this same session) — confirmed the existing
+   account was reused, not duplicated or errored.
+4. Partial-failure rollback — verified live via a temporary forced-failure
+   test hook (added, exercised confirming the newly-created Auth user was
+   deleted on failure, then fully removed before shipping).
+5. Bug A real-visitor path — fresh submission through the real form with a
+   real upload succeeded with no permission error (previously always failed).
+6. Tamper check — `status`, `tier`, `expiry`, `source`, `activatedBy`, an
+   out-of-prefix `storagePath`, and a directory-traversal `storagePath` all
+   correctly rejected/ignored.
+7. Rate limit — re-confirmed still exactly 5/hour after all changes.
+8. Navigation — both back links confirmed working, no layout regressions.
+
+## [5.9.0] — Public onboarding intake form (POA-47, codename Seria) · July 2026
+
+Public-facing half of org onboarding. Admin-side approval machinery
+(`activateOrg`, status transitions, audit trail) shipped in POA-41 (Pagon,
+v5.7.0) — this ticket adds the missing public form, upload path, and
+one-click activate wiring into that existing roster. Time-sensitive: needed
+ahead of the 30 August 2026 Throwdown so organisers can be onboarded and
+testing beforehand.
+
+### onboard/index.html (new)
+
+- **feat:** standalone public intake form — contact name/email/phone,
+  organisation/cafe name, proposed event date, tier interest (Per-Event
+  BND $18 / Annual BND $100), required payment screenshot upload, optional
+  notes. Client-side required-field + email-format validation only; no
+  client-side Firestore write — submission goes through `submitOrgRequest`
+  only. Built on `shared/theme.css` (tour/index.html-style layout register,
+  platform header/footer) — not pitch/index.html's bespoke marketing type
+  register, per handoff instruction
+- Payment screenshot uploads client-side directly to Storage
+  (`org-requests/{requestId}/payment.<ext>`, `crypto.randomUUID()` for
+  `requestId`) before the Cloud Function call, matching the existing
+  slideshow/upcoming-events upload pattern in `admin/index.html`
+- **Deviation (logged, intentional):** the page has no real payment
+  instructions to show visitors (bank/QR/e-wallet details do not exist
+  anywhere in the repo or knowledge base) — ships with clearly labelled
+  placeholder copy in the payment section; upload stays required per the
+  handoff spec. The page is not usable end-to-end by real visitors until
+  the real payment details are dropped in. Decided with Firdaus mid-session
+  rather than guessed
+
+### functions/index.js
+
+- **feat: `submitOrgRequest`** — new publicly callable, unauthenticated
+  function. Validates every field server-side (required-ness, email format,
+  string length caps, `tierInterest` enum, `paymentProofUrl` shape/host
+  check against the `org-requests/` Storage path). Explicit allowed-key
+  enumeration — no pass-through of arbitrary client payload. Hardcodes
+  `status: 'pending'` and `source: 'public_form'` server-side; client can
+  never set `status`, `tier`, `expiry`, or anything activation-related.
+  Writes the new `orgs` doc in a shape additive to `createOrg`'s (same base
+  fields — `displayName`, `email`, `status`, `tier`, `expiry`, `notes`,
+  `paymentProofUrl`, `source`, `createdAt`, `activatedAt`, `activatedBy` —
+  plus new `contactName`, `contactPhone`, `proposedEventDate`,
+  `tierInterest` fields). Reuses `writeAudit()` — writes a
+  `request_submitted` entry with `actor: 'public_form'`
+- **Deviation (logged, intentional):** handoff asked for rate-limit-or-
+  App-Check "confirm which is already available before choosing" — neither
+  is wired into this project (no `initializeAppCheck` call anywhere, no
+  rate-limit dependency in `functions/package.json`, and App Check needs a
+  console-provisioned reCAPTCHA site key this session can't create). Shipped
+  a self-contained Firestore-backed IP rate limit instead (5 requests/IP/
+  hour, `rate_limits/{ip}` collection, denied to all client access by the
+  existing catch-all rule). App Check remains a follow-up if a site key is
+  provisioned later
+
+### storage.rules
+
+- **feat:** `org-requests/{requestId}/{fileName}` — public write restricted
+  to `payment.*` filenames, image MIME types only, 5MB cap; read restricted
+  to `super_admin` (not public — "no public read" per handoff, but scoped
+  as admin-read rather than no-read-at-all so a future admin preview feature
+  isn't blocked); delete restricted to `super_admin`, mirroring the
+  `slideshow`/`upcoming_events` pattern
+
+### admin/index.html
+
+- **feat:** org roster rows now show a `source` badge (`Public form` /
+  `Manual`) next to the status badge — `renderOrgRow()` previously read
+  explicit fields only, so this required a rendering change, not just a
+  data change
+- **feat:** pending-org detail panel shows a WhatsApp deep-link button
+  (`wa.me`, built from the stored `contactPhone`, digits-only per wa.me's
+  format) when a phone number is present, for manual outreach assist
+
+### index.html
+
+- **feat:** org-login panel's "No account?" note now links to
+  `onboard/index.html`, copy adjusted from "Per-event access is arranged
+  with your organiser" to lead with the new self-serve form. One-line
+  change only, no layout restructuring, per handoff scope
+
+### tour/index.html
+
+- **feat:** bottom CTA band gets a second button, "Bring it to your event"
+  → `onboard/index.html`, alongside the existing "Open a free tool" CTA.
+  No layout restructuring, per handoff scope
+
+### shared/theme.css
+
+- **fix (source-level, same shape as v5.7.2):** added `input[type=email]`
+  and `input[type=tel]` to the shared input-styling selector group —
+  `onboard/index.html` is the first page to use either type; without this
+  they'd have rendered unstyled the same way the org roster search box did
+  before v5.7.2. Fixed at the source rule rather than patched locally
+
+### shared/version.js
+
+- `SEDUH_VERSION` bumped to `5.9.0`
+
+### Self-verify (11/11 pass)
+
+Rejects client-set `status`/`subscription_tier` (ignored — only explicit
+fields are read) · required-field validation is server-side · Storage rule
+blocks non-image uploads · Storage rule blocks public read · audit entry
+written on submission · roster shows `source` distinctly · wa.me link
+renders from `contactPhone` · both `index.html` and `tour/index.html` links
+resolve to `onboard/index.html` (verified against the live directory-index
+pattern already used by `tour/`) · `firestore.rules`' `orgs` rule untouched,
+still denies unauthenticated client writes · no console errors on load or
+on the client-validation-failure path (verified in preview; the full
+Storage-upload → Cloud-Function success path was not exercised against the
+live project to avoid writing test data into production) · CHANGELOG
+backfill (Step 0) — found already done from a prior session (the v5.8.0/
+POA-52 entry already existed in full), no action needed
+
 ## [5.8.0] — Unlisted investor/customer pitch page (POA-52) · July 2026
 
 ### pitch/index.html (new)

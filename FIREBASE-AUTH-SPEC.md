@@ -366,6 +366,13 @@ These are the only Cloud Functions in this milestone.
 
 ### Admin panel UI
 
+**Superseded as of v5.10.0 (POA-57):** the "Org Management" section and the `setOrgClaims`/
+`getOrgByEmail` Cloud Functions it describes below were removed entirely — dead code since the
+POA-41 (Pagon, v5.7.0) roster-based org flow replaced this manual find/set-claims workflow. The
+panel also carried the same client-side session-clobber bug fixed in POA-56 (`createUserWithEmailAndPassword`
+on the admin's own live Auth session); being unused, removal was the correct fix rather than a patch.
+Kept below for historical reference only — do not treat as current.
+
 Layout: single column, dark background (`--surface-deep`), max-width 600px, centred. No Seduh mark in header — internal tool only.
 
 **Org Management section:**

@@ -1,6 +1,7 @@
 // shared/gates.js — feature gate v4.8.0
 // Public API: Gates.canAccess(featureKey) — signature and return shape unchanged.
-// Gates.init(user) and Gates.isExpired() are new; called by auth.js only, never by modules.
+// Gates.init(user), Gates.isExpired(), Gates.isNotYetStarted(), and
+// Gates.getStartTime() are called by auth.js only, never by modules.
 
 const FEATURES = {
   // Module access — routing layer
@@ -35,6 +36,7 @@ const FEATURES = {
 
 let _tier     = 'community'; // 'community' | 'per_event' | 'annual'
 let _expiry   = null;        // Unix timestamp (seconds) or null
+let _start    = null;        // Unix timestamp (seconds) or null — access not valid before this
 let _switches = {};          // { featureKey: boolean }
 
 function getTier() {
@@ -64,6 +66,7 @@ const Gates = {
     if (!feature) return { allowed: false, reason: 'disabled' };
     if (!isEnabled(featureKey)) return { allowed: false, reason: 'disabled' };
     if (feature.minTier === null) return { allowed: true }; // passed isEnabled
+    if (Gates.isNotYetStarted()) return { allowed: false, reason: 'not_started' };
     const rank = tierRank(getTier());
     const required = tierRank(feature.minTier);
     if (rank < required) return { allowed: false, reason: 'tier' };
@@ -74,6 +77,7 @@ const Gates = {
     const result = await user.getIdTokenResult();
     _tier   = result.claims.subscription_tier   || 'community';
     _expiry = result.claims.subscription_expiry || null;
+    _start  = result.claims.subscription_start  || null;
 
     try {
       const { getDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
@@ -88,5 +92,13 @@ const Gates = {
 
   isExpired: function() {
     return _expiry !== null && (Date.now() / 1000) > _expiry;
+  },
+
+  isNotYetStarted: function() {
+    return _start !== null && (Date.now() / 1000) < _start;
+  },
+
+  getStartTime: function() {
+    return _start;
   }
 };

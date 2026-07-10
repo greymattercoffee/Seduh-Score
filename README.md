@@ -1,6 +1,6 @@
 # Seduh Score ☕
 
-*State: v5.8.0 — matches CHANGELOG.md as of July 2026*
+*State: v5.10.2 — matches CHANGELOG.md as of July 2026*
 
 **Coffee competition platform for organisers in Brunei and Southeast Asia.**
 

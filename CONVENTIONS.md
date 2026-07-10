@@ -1,6 +1,6 @@
 # Conventions — Seduh Score
 
-*State: v5.8.0 — matches CHANGELOG.md as of July 2026*
+*State: v5.10.2 — matches CHANGELOG.md as of July 2026*
 
 Coding patterns, architecture decisions, and development standards for the Seduh Score platform. Read this at the start of any new chat session before touching code.
 
@@ -22,6 +22,9 @@ seduh-score/
 ├── timer/index.html            ← standalone timer page
 ├── about/index.html            ← README renderer, public (v5.3.2)
 ├── coming-soon/index.html      ← teaser landing page, served at "/" via Hosting redirect (v5.3.1/5.3.3)
+├── tour/index.html             ← module tour page (POA-43, v5.6.0)
+├── pitch/index.html            ← unlisted investor/customer pitch page (POA-52, v5.8.0)
+├── onboard/index.html          ← public org onboarding intake form (POA-47, v5.9.0)
 ├── booth/                      ← mini-games: setup/, display/, guess/, grinder/ (v5.3.0-booth+).
 │                                  In repo, not yet publicly deployed — target Oct 2026 per STRATEGY.md
 └── shared/                     ← loaded by every module
@@ -348,6 +351,7 @@ const access = Gates.canAccess('feature_key');
 // returns: { allowed: true }
 // or:      { allowed: false, reason: 'tier' }
 // or:      { allowed: false, reason: 'disabled' }
+// or:      { allowed: false, reason: 'not_started' }
 ```
 
 **Module usage pattern:**
@@ -355,8 +359,9 @@ const access = Gates.canAccess('feature_key');
 ```javascript
 const access = Gates.canAccess('cup_taster_analytics');
 if (!access.allowed) {
-  // reason: 'tier'     → render upgrade prompt
-  // reason: 'disabled' → render nothing (feature not yet live)
+  // reason: 'tier'        → render upgrade prompt
+  // reason: 'disabled'    → render nothing (feature not yet live)
+  // reason: 'not_started' → org's access window hasn't begun yet (v5.10.0)
   return '';
 }
 ```
@@ -366,6 +371,9 @@ if (!access.allowed) {
 ```javascript
 Gates.getTier()              // 'community' | 'per_event' | 'annual'
 Gates.isEnabled('feature_key') // true | false — checks platform switch
+Gates.isExpired()             // true once past subscription_expiry
+Gates.isNotYetStarted()       // v5.10.0 — true before subscription_start
+Gates.getStartTime()          // v5.10.2 — raw subscription_start Unix seconds, or null
 ```
 
 **Gate pattern (B3 — updated):**
@@ -375,8 +383,22 @@ Gates.isEnabled('feature_key') // true | false — checks platform switch
 - `canAccess()` checks both axes: org tier AND platform switch. Both must pass for `allowed: true`
 - `reason: 'tier'` → org's subscription doesn't cover this feature → show upgrade prompt
 - `reason: 'disabled'` → super admin has this feature switched off platform-wide → show nothing
+- `reason: 'not_started'` → org's `subscription_start` claim is still in the future → treat like
+  not-yet-active (v5.10.0). No module currently reads `reason` to differentiate messaging — this
+  value costs nothing to add and is available if that changes
 - **Throwdown is the reference implementation** for gate touch points
 - **BTC gate is routing-layer only** — no gate touch points inside `bbtc/index.html`; access controlled by whether the org account can reach the module URL
+
+### Org access window (`subscription_start` / `subscription_expiry`) — v5.10.0
+
+Both are Auth custom claims set by `activateOrg`, in Unix seconds. `subscription_expiry` gates
+the end of access (was already live); `subscription_start` (v5.10.0) gates the beginning — an org
+is only ever treated as its real tier when `subscription_start <= now <= subscription_expiry`.
+Both checks re-evaluate `Date.now()` live on every `canAccess()`/`getTier()` call — no scheduled
+job, no deferred claim-set. Omitting `start` on a fresh activation defaults it to "now" server-side
+(immediate access, the pre-v5.10.0 default behaviour); omitting it on an already-active org's tier
+update preserves whatever start was set before, so a tier tweak can never silently reset a
+deliberately-scheduled org to "now" and grant early access.
 
 **Feature key registry (documented inside gates.js):**
 
@@ -724,8 +746,24 @@ Firebase project: `seduh-score` · console.firebase.google.com
 | Cloud Functions | ✅ Live (v4.8+) | Node 24 · us-central1 Gen 2 |
 
 ### Cloud Functions
-- `setOrgClaims` — HTTPS callable; verifies `super_admin` claim; sets `subscription_tier` + `subscription_expiry` custom claims
-- `getOrgByEmail` — HTTPS callable; verifies `super_admin` claim; returns UID + current claims
+- `createOrg` / `updateOrgNotes` / `archiveOrg` — HTTPS callable, `super_admin` only (POA-41, Pagon) — org roster lifecycle
+- **Removed v5.10.1 (POA-57):** `setOrgClaims` and `getOrgByEmail` — dead code, only ever called by
+  the legacy Org Management panel (predated Pagon), which was removed in the same pass
+- `activateOrg` — HTTPS callable, `super_admin` only (POA-41, Pagon). **v5.10.0 (POA-56):** resolves
+  the org's Firebase Auth account itself, by the `email` already on the `orgs` doc — `getUserByEmail`,
+  falling back to `createUser({ email, password })` only if not found (re-activation/duplicate-email
+  reuses the existing account rather than erroring). Rolls back (`deleteUser`) a newly-created account
+  if a later step in the same call fails, so nothing is left orphaned. The client must never call
+  `createUserWithEmailAndPassword` for org accounts — doing so on the admin's own signed-in Auth
+  instance silently ends the admin's session (see CHANGELOG v5.10.0/POA-56). Also sets
+  `subscription_start` (v5.10.0, see Gates section above) alongside `subscription_tier`/`_expiry`
+- `submitOrgRequest` — HTTPS callable, publicly callable/unauthenticated (POA-47). Explicit field
+  enumeration, hardcodes `status:'pending'`/`source:'public_form'`, Firestore-backed IP rate limit
+  (`rate_limits/{ip}`, 5/hour) in place of App Check (not provisioned in this project — no reCAPTCHA
+  site key). **v5.10.0 (Bug A):** accepts a Storage **path** (`storagePath`), not a URL — the client
+  can never obtain a `getDownloadURL()` for `org-requests/` (no public read, by design), so the
+  function validates the path shape and confirms the object exists via the Admin SDK instead. Stores
+  it as `paymentProofPath` (renamed from `paymentProofUrl`, since it's a path now, not a URL)
 
 ### Auth pattern
 Custom claims on the Firebase token: `subscription_tier` ('community' | 'per_event' | 'annual')
@@ -877,6 +915,15 @@ versus only on major/minor bumps, the exact version-stamp format every
 document must carry, and how to run `scripts/check-doc-versions.sh` for a
 mechanical first pass.
 
+**Claude Code sessions specifically:** the same procedure is packaged as an
+auto-invoked skill at `.claude/skills/kb-recon/SKILL.md`, so Code sessions
+don't require KB-PROTOCOL.md to be manually loaded — the skill fires on the
+same trigger conditions (CHANGELOG bump, POA close, business decision) on
+its own. Strategy and Design sessions still load KB-PROTOCOL.md directly, since
+neither surface supports Claude Code skills. If the audit protocol itself
+changes, update KB-PROTOCOL.md first — the skill is a summary of it, not a
+fork, and must be re-synced whenever the tier table or trigger matrix changes.
+
 Do not duplicate that logic here — if the audit protocol itself needs to
 change, update KB-PROTOCOL.md, not this section.
 
@@ -916,4 +963,11 @@ Before starting work in a new session — **all session types: Strategy, Code, D
 
 ---
 
-*Last updated: July 2026 — v5.5.2 (POA-42 Part B, shared upcoming-events module + front-page banner): new `shared/upcoming-events.js` documented (tree entry, B1 approved-files list, component API section) — sixth post-B1 shared file, superseding the ribbon-vs-carousel flag raised in the v5.5.1 pass. Prior pass — v5.5.1 (POA-42 Part A, front-page version pill fix): new `shared/version.js` documented (tree entry, B1 approved-files list, component API section). Prior pass — v5.5.0 (POA-40, Throwdown results archive / Seduh Records seed): Firestore live-stack table's rules row now lists the new `throwdown_records` collection. Prior pass — CONVENTIONS audit v5.4.0 (reconciling v5.1.2 → v5.4.0 CHANGELOG drift): directory tree updated (added `about/`, `coming-soon/`, `booth/`), `shared/sound.js` documented (tree entry + component API section), Firebase live-stack table split into six rows (Firestore rules/indexes and Storage/Storage rules now listed separately, per `firestore.indexes.json` and `storage.rules`), Hosting row notes the `/` → `/coming-soon/` redirect. BBTC's residual `.hdr-s`/`.hdr-t` inner-class rename is not tracked in this file (no POA cross-reference table exists here to correct) — it now lives under PLAN_OF_ACTION.md's POA-38, not the already-closed POA-06.*
+*Last updated: July 2026 — v5.10.2 (POA-58 banner fix): Gates internal-methods list adds
+`Gates.getStartTime()`. Prior pass — v5.10.1 (POA-57, legacy Org Management panel removal): Cloud Functions
+section drops `setOrgClaims`/`getOrgByEmail` (removed, dead code) and notes the removal. Prior pass
+— v5.10.0 (access-window enforcement + POA-56 + Bug A): Gates section
+documents the new `reason: 'not_started'` value, `Gates.isNotYetStarted()`, and a new "Org access
+window" subsection explaining `subscription_start`/`subscription_expiry`. Cloud Functions section's
+`activateOrg` and `submitOrgRequest` entries rewritten to describe the v5.10.0 server-side Auth user
+creation and path-based Storage resolution respectively. Prior pass — v5.9.0 (POA-47, codename Seria, public onboarding intake form): directory tree gets three entries this pass — `tour/`, `pitch/`, and the new `onboard/` (the first two were missing from this file entirely, backfilled alongside the new one); Cloud Functions section documents `createOrg`/`activateOrg`/`updateOrgNotes`/`archiveOrg` (previously undocumented, POA-41) and the new `submitOrgRequest`. Prior pass — v5.5.2 (POA-42 Part B, shared upcoming-events module + front-page banner): new `shared/upcoming-events.js` documented (tree entry, B1 approved-files list, component API section) — sixth post-B1 shared file, superseding the ribbon-vs-carousel flag raised in the v5.5.1 pass. Prior pass — v5.5.1 (POA-42 Part A, front-page version pill fix): new `shared/version.js` documented (tree entry, B1 approved-files list, component API section). Prior pass — v5.5.0 (POA-40, Throwdown results archive / Seduh Records seed): Firestore live-stack table's rules row now lists the new `throwdown_records` collection. Prior pass — CONVENTIONS audit v5.4.0 (reconciling v5.1.2 → v5.4.0 CHANGELOG drift): directory tree updated (added `about/`, `coming-soon/`, `booth/`), `shared/sound.js` documented (tree entry + component API section), Firebase live-stack table split into six rows (Firestore rules/indexes and Storage/Storage rules now listed separately, per `firestore.indexes.json` and `storage.rules`), Hosting row notes the `/` → `/coming-soon/` redirect. BBTC's residual `.hdr-s`/`.hdr-t` inner-class rename is not tracked in this file (no POA cross-reference table exists here to correct) — it now lives under PLAN_OF_ACTION.md's POA-38, not the already-closed POA-06.*

@@ -1,6 +1,6 @@
 # Seduh Score — Claude Code orientation
 
-*State: v5.8.0 — matches CHANGELOG.md as of July 2026*
+*State: v5.10.2 — matches CHANGELOG.md as of July 2026*
 
 Read these two files in full before touching anything:
 1. `CONVENTIONS.md` — all patterns, naming rules, architecture decisions
@@ -71,6 +71,9 @@ throwdown/index.html     ← self-contained module
 timer/index.html         ← standalone timer page
 about/index.html         ← README renderer (public)
 coming-soon/index.html   ← teaser landing page (served at "/" via Hosting redirect)
+tour/index.html          ← module tour page (POA-43, v5.6.0)
+pitch/index.html         ← unlisted investor/customer pitch page (POA-52, v5.8.0)
+onboard/index.html       ← public org onboarding intake form (POA-47, v5.9.0)
 booth/                   ← mini-games (setup, display, guess, grinder) — in repo,
                            not yet publicly deployed; target Oct 2026 per STRATEGY.md
 shared/
