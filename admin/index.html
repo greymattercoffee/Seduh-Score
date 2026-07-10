@@ -603,6 +603,12 @@
     font-family: ui-monospace, monospace;
     white-space: nowrap;
   }
+  .org-starts {
+    font-size: 10px;
+    color: var(--bl);
+    font-family: ui-monospace, monospace;
+    white-space: nowrap;
+  }
   .org-chevron { font-size: 10px; color: var(--ink4); }
   .org-row-detail { border-top: 1px solid var(--bd); background: var(--bg); }
   .org-detail-inner { padding: 16px; }
@@ -1438,6 +1444,16 @@ function waLink(phone) {
   return digits ? 'https://wa.me/' + digits : null;
 }
 
+// Local "now" formatted for a datetime-local input's value attribute —
+// used to default the Start field to immediate activation so leaving it
+// untouched preserves the pre-existing behaviour.
+function nowLocalInputValue() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
+    + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
 async function loadRoster() {
   setStatus('org-roster-status', 'Loading…', 'muted');
   document.getElementById('org-roster').innerHTML = '';
@@ -1518,6 +1534,12 @@ function renderOrgRow(o) {
   const expiryStr = o.expiry
     ? new Date(o.expiry * 1000).toLocaleDateString('en-BN', { timeZone: 'Asia/Brunei' })
     : '—';
+  // Only surface Start on the row when it's still in the future — a past/
+  // present start is just "active", not worth a permanent badge.
+  const startsFuture = o.start && (o.start * 1000) > Date.now();
+  const startStr = startsFuture
+    ? 'Starts ' + new Date(o.start * 1000).toLocaleDateString('en-BN', { timeZone: 'Asia/Brunei' })
+    : null;
   const isOpen = orgExpandedId === o.id;
   return (
     '<div class="org-row">' +
@@ -1532,6 +1554,7 @@ function renderOrgRow(o) {
           '<span class="org-badge ' + (STATUS_CLASS[o.status] || '') + '">' +
             (STATUS_LABELS[o.status] || o.status) + '</span>' +
           '<span class="org-tier">'   + escHtml(tierLabel)  + '</span>' +
+          (startStr ? '<span class="org-starts">' + escHtml(startStr) + '</span>' : '') +
           '<span class="org-expiry">' + escHtml(expiryStr)  + '</span>' +
           '<span class="org-chevron" id="chev-' + o.id + '">' + (isOpen ? '▲' : '▼') + '</span>' +
         '</div>' +
@@ -1560,8 +1583,11 @@ function renderOrgDetail(o) {
             '<option value="per_event">Per-Event</option>' +
             '<option value="annual">Annual</option>' +
           '</select></div>' +
+        '<div class="adm-row"><span class="adm-row-label">Starts</span>' +
+          '<input type="datetime-local" id="act-start-' + o.id + '" value="' + nowLocalInputValue() + '"></div>' +
         '<div class="adm-row"><span class="adm-row-label">Expiry</span>' +
           '<input type="datetime-local" id="act-expiry-' + o.id + '"></div>' +
+        '<div class="org-detail-hint">Leave Starts as-is to activate immediately, or set it ahead for a scheduled event — access unlocks on its own at that time, no follow-up needed.</div>' +
         '<div class="btn-group">' +
           '<button class="btn btn-am" id="act-btn-' + o.id + '" data-id="' + o.id + '" data-status="pending">Activate</button>' +
         '</div>' +
@@ -1577,8 +1603,11 @@ function renderOrgDetail(o) {
             '<option value="per_event"' + (o.tier === 'per_event' ? ' selected' : '') + '>Per-Event</option>' +
             '<option value="annual"'    + (o.tier === 'annual'    ? ' selected' : '') + '>Annual</option>' +
           '</select></div>' +
+        '<div class="adm-row"><span class="adm-row-label">Starts</span>' +
+          '<input type="datetime-local" id="act-start-' + o.id + '"></div>' +
         '<div class="adm-row"><span class="adm-row-label">Expiry</span>' +
           '<input type="datetime-local" id="act-expiry-' + o.id + '"></div>' +
+        '<div class="org-detail-hint">Leave Starts blank to keep the existing window unless you\'re deliberately rescheduling it.</div>' +
         '<div class="btn-group">' +
           '<button class="btn btn-am" id="act-btn-' + o.id + '" data-id="' + o.id + '" data-status="active">Update Tier</button>' +
           '<button class="btn btn-rd" id="arch-btn-' + o.id + '" data-id="' + o.id + '">Archive</button>' +
@@ -1660,6 +1689,8 @@ function attachDetailHandlers(orgId) {
     actBtn.addEventListener('click', async () => {
       const status  = actBtn.dataset.status;
       const tier    = document.getElementById('act-tier-' + orgId)?.value;
+      const startVal = document.getElementById('act-start-' + orgId)?.value;
+      const start   = startVal ? Math.floor(new Date(startVal).getTime() / 1000) : null;
       const expVal  = document.getElementById('act-expiry-' + orgId)?.value;
       const expiry  = expVal ? Math.floor(new Date(expVal).getTime() / 1000) : null;
       // Password is only meaningful — and only required — the first time an
@@ -1676,7 +1707,7 @@ function attachDetailHandlers(orgId) {
       actBtn.disabled = true;
       setStatus('act-status-' + orgId, 'Working…', 'muted');
       try {
-        await activateOrgFn({ orgId, password, tier, expiry });
+        await activateOrgFn({ orgId, password, tier, expiry, start });
         setStatus('act-status-' + orgId, 'Done.', 'success');
         await loadRoster();
       } catch (e) {

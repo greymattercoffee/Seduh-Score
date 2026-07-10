@@ -72,6 +72,13 @@ onAuthStateChanged(auth, async user => {
       await Gates.init(user);
       window.dispatchEvent(new CustomEvent('seduh:gates-ready'));
       startExpiryMonitor();
+      if (Gates.isNotYetStarted && Gates.isNotYetStarted()) {
+        const startTime = Gates.getStartTime ? Gates.getStartTime() : null;
+        const startStr = startTime
+          ? new Date(startTime * 1000).toLocaleString('en-BN', { timeZone: 'Asia/Brunei' }) + ' BNT'
+          : 'soon';
+        showBanner('not-started-banner', 'var(--bl)', `Your access window starts ${startStr} — paid features unlock automatically, no need to check back.`);
+      }
     }
   } else {
     html.setAttribute('data-auth', 'out');
