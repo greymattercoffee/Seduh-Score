@@ -80,10 +80,6 @@
     margin-bottom: 10px;
   }
 
-  /* ── Find row ── */
-  .find-row { display: flex; gap: 8px; }
-  .find-row input { flex: 1; }
-
   /* ── Inputs / Select ── */
   input[type="text"],
   input[type="email"],
@@ -129,46 +125,6 @@
     font-family: ui-monospace, monospace;
   }
 
-  /* ── Divider ── */
-  .adm-divider { height: 1px; background: var(--bd); margin: 16px 0; }
-
-  /* ── Org result fields ── */
-  .adm-result { display: none; }
-  .adm-field {
-    display: flex;
-    gap: 14px;
-    align-items: baseline;
-    padding: 7px 0;
-    border-bottom: 1px solid var(--bd);
-  }
-  .adm-field:last-child { border-bottom: none; }
-  .adm-field .k {
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--ink4);
-    font-family: ui-monospace, monospace;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    width: 52px;
-    flex-shrink: 0;
-  }
-  .adm-field .v {
-    font-size: 13px;
-    color: var(--ink);
-    font-family: ui-monospace, monospace;
-    word-break: break-all;
-  }
-
-  /* ── Set access form ── */
-  .set-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--ink4);
-    font-family: ui-monospace, monospace;
-    margin-bottom: 14px;
-  }
   .adm-row {
     display: flex;
     gap: 8px;
@@ -778,70 +734,6 @@
     <div class="adm-status" id="org-roster-status"></div>
   </div>
 
-  <!-- ══ Auth Account (legacy utility — create Firebase Auth account only) ══ -->
-  <div class="adm-section">
-    <div class="adm-section-title">Auth Account</div>
-    <div class="adm-card">
-      <div class="adm-row">
-        <span class="adm-row-label">Email</span>
-        <input id="create-email" type="email" placeholder="organiser@cafe.com" autocomplete="off">
-      </div>
-      <div class="adm-row">
-        <span class="adm-row-label">Password</span>
-        <input id="create-password" type="password" autocomplete="new-password">
-      </div>
-      <div class="btn-group">
-        <button class="btn btn-am" id="create-btn">Create Account</button>
-      </div>
-      <div class="adm-status" id="create-status"></div>
-    </div>
-  </div>
-
-  <!-- ══ Org Management (legacy — find by email, set claims) ══ -->
-  <div class="adm-section">
-    <div class="adm-section-title">Org Management</div>
-
-    <div class="adm-card">
-      <div class="find-row">
-        <input id="find-email" type="email" placeholder="organiser@cafe.com" autocomplete="off">
-        <button class="btn btn-am" id="find-btn">Find</button>
-      </div>
-      <div class="adm-status" id="find-status"></div>
-
-      <div class="adm-result" id="org-result">
-        <div class="adm-divider"></div>
-        <div class="adm-field"><span class="k">Email</span><span  class="v" id="res-email"></span></div>
-        <div class="adm-field"><span class="k">UID</span><span    class="v" id="res-uid"></span></div>
-        <div class="adm-field"><span class="k">Tier</span><span   class="v" id="res-tier"></span></div>
-        <div class="adm-field"><span class="k">Expiry</span><span class="v" id="res-expiry"></span></div>
-      </div>
-    </div>
-
-    <div class="adm-card adm-result" id="org-set">
-      <div class="set-label">Set access</div>
-      <div class="adm-row">
-        <span class="adm-row-label">Tier</span>
-        <select id="set-tier">
-          <option value="community">Community</option>
-          <option value="per_event">Per-Event</option>
-          <option value="annual">Annual</option>
-        </select>
-      </div>
-      <div class="adm-row">
-        <span class="adm-row-label">Start</span>
-        <input type="datetime-local" id="set-start">
-      </div>
-      <div class="adm-row">
-        <span class="adm-row-label">End</span>
-        <input type="datetime-local" id="set-end">
-      </div>
-      <div class="btn-group">
-        <button class="btn btn-am" id="set-btn">Set Window</button>
-        <button class="btn btn-rd" id="revoke-btn">Revoke Now</button>
-      </div>
-      <div class="adm-status" id="set-status"></div>
-    </div>
-  </div>
 
   </div>
 
@@ -991,7 +883,7 @@
 
 <script type="module">
 import { auth, db, storage } from '../shared/firebase.js';
-import { onAuthStateChanged, createUserWithEmailAndPassword }
+import { onAuthStateChanged }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFunctions, httpsCallable }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
@@ -1002,15 +894,11 @@ import { ref, uploadBytesResumable, getDownloadURL, deleteObject }
 import { getApp }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 
-const fns             = getFunctions(getApp());
-const getOrgByEmailFn = httpsCallable(fns, 'getOrgByEmail');
-const setOrgClaimsFn  = httpsCallable(fns, 'setOrgClaims');
-const createOrgFn      = httpsCallable(fns, 'createOrg');
-const activateOrgFn    = httpsCallable(fns, 'activateOrg');
-const updateOrgNotesFn = httpsCallable(fns, 'updateOrgNotes');
-const archiveOrgFn     = httpsCallable(fns, 'archiveOrg');
-
-let currentOrg = null;
+const fns               = getFunctions(getApp());
+const createOrgFn       = httpsCallable(fns, 'createOrg');
+const activateOrgFn     = httpsCallable(fns, 'activateOrg');
+const updateOrgNotesFn  = httpsCallable(fns, 'updateOrgNotes');
+const archiveOrgFn      = httpsCallable(fns, 'archiveOrg');
 
 // ── Auth gate — first thing, before any UI is shown ──
 onAuthStateChanged(auth, async user => {
@@ -1043,88 +931,6 @@ function showTab(name) {
 document.querySelectorAll('.adm-tab').forEach(btn => {
   btn.addEventListener('click', () => showTab(btn.dataset.tab));
 });
-
-// ── Create Org ──
-document.getElementById('create-btn').addEventListener('click', () => {
-  const email    = document.getElementById('create-email').value.trim();
-  const password = document.getElementById('create-password').value;
-  if (!email || !password) { setStatus('create-status', 'Email and password required.', 'error'); return; }
-  setStatus('create-status', 'Creating…', 'muted');
-  createUserWithEmailAndPassword(auth, email, password)
-    .then(cred => {
-      setStatus('create-status', 'Account created. UID: ' + cred.user.uid, 'ok');
-      document.getElementById('create-email').value    = '';
-      document.getElementById('create-password').value = '';
-      document.getElementById('find-email').value = email;
-      setTimeout(findOrg, 1000);
-    })
-    .catch(err => setStatus('create-status', err.message, 'error'));
-});
-
-// ── Org Management ──
-document.getElementById('find-btn').addEventListener('click', findOrg);
-document.getElementById('find-email').addEventListener('keydown', e => { if (e.key === 'Enter') findOrg(); });
-document.getElementById('set-btn').addEventListener('click', setWindow);
-document.getElementById('revoke-btn').addEventListener('click', revokeNow);
-
-function findOrg() {
-  const email = document.getElementById('find-email').value.trim();
-  if (!email) return;
-  setStatus('find-status', 'Looking up…', 'muted');
-  document.getElementById('org-result').style.display = 'none';
-  document.getElementById('org-set').style.display    = 'none';
-  currentOrg = null;
-
-  getOrgByEmailFn({ email })
-    .then(r => {
-      currentOrg = r.data;
-      renderOrgResult(currentOrg);
-      setStatus('find-status', '', '');
-    })
-    .catch(err => setStatus('find-status', err.message || 'Not found.', 'error'));
-}
-
-function renderOrgResult(org) {
-  document.getElementById('res-email').textContent  = org.email;
-  document.getElementById('res-uid').textContent    = org.uid;
-  document.getElementById('res-tier').textContent   = org.claims.subscription_tier   ?? 'community';
-  document.getElementById('res-expiry').textContent = org.claims.subscription_expiry
-    ? new Date(org.claims.subscription_expiry * 1000)
-        .toLocaleString('en-BN', { timeZone: 'Asia/Brunei' }) + ' BNT'
-    : '— none';
-  document.getElementById('set-tier').value = org.claims.subscription_tier ?? 'community';
-  document.getElementById('org-result').style.display = 'block';
-  document.getElementById('org-set').style.display    = 'block';
-  setStatus('set-status', '', '');
-}
-
-function setWindow() {
-  if (!currentOrg) return;
-  const tier   = document.getElementById('set-tier').value;
-  const endVal = document.getElementById('set-end').value;
-  const expiry = endVal ? Math.floor(new Date(endVal).getTime() / 1000) : null;
-  setOrgClaimsFn({ uid: currentOrg.uid, subscription_tier: tier, subscription_expiry: expiry })
-    .then(() => {
-      currentOrg.claims.subscription_tier   = tier;
-      currentOrg.claims.subscription_expiry = expiry;
-      renderOrgResult(currentOrg);
-      setStatus('set-status', 'Claims updated.', 'success');
-    })
-    .catch(err => setStatus('set-status', err.message, 'error'));
-}
-
-function revokeNow() {
-  if (!currentOrg) return;
-  const expiry = Math.floor(Date.now() / 1000) - 1;
-  const tier   = currentOrg.claims.subscription_tier ?? 'community';
-  setOrgClaimsFn({ uid: currentOrg.uid, subscription_tier: tier, subscription_expiry: expiry })
-    .then(() => {
-      currentOrg.claims.subscription_expiry = expiry;
-      renderOrgResult(currentOrg);
-      setStatus('set-status', 'Access revoked.', 'error');
-    })
-    .catch(err => setStatus('set-status', err.message, 'error'));
-}
 
 // ── Platform Switches ──
 async function loadSwitches() {
