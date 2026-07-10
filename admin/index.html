@@ -622,6 +622,19 @@
   .org-badge-pending  { color: var(--am-bd); border-color: var(--am-bd); background: rgba(224,154,54,.1); }
   .org-badge-active   { color: var(--gn);    border-color: var(--gn);    background: rgba(11,122,82,.12); }
   .org-badge-archived { color: var(--ink4);  border-color: var(--ink4);  background: transparent; }
+  .org-source {
+    padding: 2px 7px;
+    border-radius: 99px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    font-family: ui-monospace, monospace;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .org-source-public { color: var(--bl); border-color: var(--bl); background: rgba(37,99,235,.1); }
+  .org-source-manual { color: var(--ink4); border-color: var(--bd); background: transparent; }
   .org-tier {
     font-size: 11px;
     color: var(--ink3);
@@ -1612,6 +1625,13 @@ const STATUS_CLASS  = { pending: 'org-badge-pending', active: 'org-badge-active'
 
 function tierOrder(t) { return { annual: 3, per_event: 2, community: 1 }[t] ?? 0; }
 
+// wa.me deep-link for manual outreach — strips everything but digits (wa.me
+// takes a bare country-code-prefixed number, no + or separators).
+function waLink(phone) {
+  const digits = (phone || '').replace(/\D/g, '');
+  return digits ? 'https://wa.me/' + digits : null;
+}
+
 async function loadRoster() {
   setStatus('org-roster-status', 'Loading…', 'muted');
   document.getElementById('org-roster').innerHTML = '';
@@ -1701,6 +1721,8 @@ function renderOrgRow(o) {
           '<span class="org-email">' + escHtml(o.email || '') + '</span>' +
         '</div>' +
         '<div class="org-row-meta">' +
+          '<span class="org-source ' + (o.source === 'public_form' ? 'org-source-public' : 'org-source-manual') + '">' +
+            (o.source === 'public_form' ? 'Public form' : 'Manual') + '</span>' +
           '<span class="org-badge ' + (STATUS_CLASS[o.status] || '') + '">' +
             (STATUS_LABELS[o.status] || o.status) + '</span>' +
           '<span class="org-tier">'   + escHtml(tierLabel)  + '</span>' +
@@ -1718,10 +1740,12 @@ function renderOrgRow(o) {
 function renderOrgDetail(o) {
   let actionSection = '';
   if (o.status === 'pending') {
+    const wa = waLink(o.contactPhone);
     actionSection =
       '<div class="org-detail-section">' +
         '<div class="adm-section-title" style="margin-bottom:6px">Activate Org</div>' +
         '<div class="org-detail-hint">Creates a Firebase Auth account and sets the subscription tier in one step.</div>' +
+        (wa ? '<div class="btn-group" style="margin-bottom:10px"><a class="btn btn-gn" href="' + wa + '" target="_blank" rel="noreferrer">WhatsApp ' + escHtml(o.contactName || 'contact') + '</a></div>' : '') +
         '<div class="adm-row"><span class="adm-row-label">Password</span>' +
           '<input type="password" id="act-pw-' + o.id + '" autocomplete="new-password" placeholder="Login password for this org"></div>' +
         '<div class="adm-row"><span class="adm-row-label">Tier</span>' +

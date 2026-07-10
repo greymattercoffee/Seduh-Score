@@ -11,5 +11,14 @@ service firebase.storage {
       allow write: if request.auth.token.super_admin == true;
       allow delete: if request.auth.token.super_admin == true;
     }
+    // Org onboarding intake (POA-47) — public write for the payment
+    // screenshot upload, image types only, 5MB cap; no public read.
+    match /org-requests/{requestId}/{fileName} {
+      allow read: if request.auth != null && request.auth.token.super_admin == true;
+      allow write: if fileName.matches('payment[.].+')
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth.token.super_admin == true;
+    }
   }
 }

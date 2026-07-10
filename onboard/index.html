@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Get started — Seduh Score</title>
+<link rel="icon" href="../shared/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../shared/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="../shared/assets/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="../shared/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  /* ——— Nav link — same definition as tour/index.html + index.html (page-local, not shared) ——— */
+  .nav-link{font-size:13px;font-weight:700;color:var(--ink2);text-decoration:none;padding:9px 14px;border-radius:var(--rad-pill);transition:color .14s,background .14s;white-space:nowrap}
+  .nav-link:hover{color:var(--accent);background:var(--surface2)}
+
+  /* ——— Mobile header — scoped to home + tour + onboard pages, not .plat-hdr platform-wide ——— */
+  @media(max-width:520px){
+    .plat-hdr--home{gap:10px}
+    .plat-hdr--home .plat-hdr-actions{width:100%;margin-left:0;justify-content:space-between;gap:10px;padding-top:11px;border-top:1px solid var(--border2)}
+  }
+
+  .ob-hero{max-width:var(--container-narrow);margin:0 auto;padding:clamp(34px,5vw,60px) clamp(16px,4vw,40px) clamp(6px,2vw,16px)}
+  .ob-hero .eyebrow{display:inline-flex;align-items:center;gap:9px;margin-bottom:16px}
+  .ob-hero .eyebrow .line{height:2px;width:34px;background:var(--accent);border-radius:2px}
+  .ob-hero h1{font-family:var(--font-display);font-weight:800;letter-spacing:-.03em;line-height:1.05;color:var(--ink);font-size:clamp(30px,4.6vw,46px);max-width:18ch;text-wrap:balance}
+  .ob-hero p{font-size:clamp(14px,1.8vw,16px);color:var(--ink2);margin-top:14px;max-width:56ch;line-height:1.55}
+
+  .ob-pricing{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+  .ob-pchip{display:flex;flex-direction:column;gap:2px;padding:10px 16px;border:1.5px solid var(--border);border-radius:var(--rad-s);background:var(--surface)}
+  .ob-pchip b{font-size:15px;color:var(--ink)}
+  .ob-pchip span{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:700}
+
+  .ob-wrap{max-width:var(--container-narrow);margin:0 auto;padding:clamp(10px,2vw,20px) clamp(16px,4vw,40px) clamp(40px,5vw,64px)}
+  .ob-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);padding:clamp(20px,3vw,32px);box-shadow:var(--shadow-md)}
+
+  .ob-section-lbl{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin:24px 0 12px}
+  .ob-section-lbl:first-child{margin-top:0}
+
+  .ob-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .ob-row.single{grid-template-columns:1fr}
+  @media(max-width:560px){.ob-row{grid-template-columns:1fr}}
+
+  .ob-field label{font-size:12px;font-weight:700;color:var(--ink2);display:block;margin-bottom:6px}
+  .ob-field .hint{font-size:11px;color:var(--ink3);margin-top:5px;line-height:1.4}
+
+  .ob-tiers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:560px){.ob-tiers{grid-template-columns:1fr}}
+  .ob-tier{position:relative}
+  .ob-tier input{position:absolute;opacity:0;inset:0;width:100%;height:100%;cursor:pointer;margin:0}
+  .ob-tier-card{display:block;border:1.5px solid var(--border);border-radius:var(--rad-s);padding:14px 16px;transition:border-color .14s,background .14s}
+  .ob-tier-card b{display:block;font-size:14px;color:var(--ink)}
+  .ob-tier-card span{font-family:var(--font-mono);font-size:11px;color:var(--ink3);font-weight:700}
+  .ob-tier input:checked + .ob-tier-card{border-color:var(--accent-bd);background:var(--accent-bg)}
+  .ob-tier input:focus-visible + .ob-tier-card{box-shadow:0 0 0 3px var(--accent-bg)}
+
+  .ob-payment-note{border:1.5px dashed var(--am-bd);background:var(--am-bg);border-radius:var(--rad-s);padding:14px 16px;margin-bottom:16px}
+  .ob-payment-note .tag{font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--am-h);display:block;margin-bottom:6px}
+  .ob-payment-note p{font-size:13px;color:var(--ink2);line-height:1.5}
+
+  .ob-file-lbl{display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px dashed var(--border3);border-radius:var(--rad-s);padding:18px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:var(--ink2);transition:border-color .14s,background .14s}
+  .ob-file-lbl:hover{border-color:var(--accent-bd);background:var(--accent-bg)}
+  .ob-file-lbl.has-file{border-color:var(--gn-bd);background:var(--gn-bg);color:var(--gn)}
+  #ob-file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+
+  .ob-submit-row{display:flex;align-items:center;gap:14px;margin-top:24px;flex-wrap:wrap}
+  .ob-status{font-size:13px;min-height:18px}
+  .ob-status-error{color:var(--rd)}
+  .ob-status-muted{color:var(--ink3)}
+
+  .ob-success{display:none;text-align:center;padding:20px 0}
+  .ob-success .tick{width:52px;height:52px;border-radius:50%;background:var(--gn-bg);border:1.5px solid var(--gn-bd);color:var(--gn);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 14px}
+  .ob-success h3{font-family:var(--font-display);font-weight:800;font-size:20px;color:var(--ink)}
+  .ob-success p{font-size:13.5px;color:var(--ink2);margin-top:8px;max-width:44ch;margin-left:auto;margin-right:auto;line-height:1.55}
+
+  .fd-foot{max-width:var(--container);margin:0 auto;padding:clamp(26px,4vw,38px) clamp(16px,4vw,40px);display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;border-top:1px solid var(--border)}
+  .fd-credit{font-size:12px;color:var(--ink3);line-height:1.7}
+  .fd-credit a{color:var(--am);text-decoration:none;font-weight:700}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="plat-hdr plat-hdr--home">
+    <a class="plat-hdr-logo" href="../index.html">
+      <span class="plat-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh"><circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"/><path d="M26 60 a24 24 0 0 1 48 0"/><path d="M35 60 a15 15 0 0 1 30 0"/><path d="M44 60 a6 6 0 0 1 12 0"/></svg></span>
+      <span><span class="plat-hdr-name">Seduh Score</span><span class="plat-hdr-sub">Coffee competition platform</span></span>
+    </a>
+    <div class="plat-hdr-actions">
+      <a class="nav-link" href="../index.html">← Back to seduhscore.com</a>
+      <span class="plat-hdr-loc"><span class="dot"></span>Brunei Darussalam</span>
+      <a class="nav-link" href="../tour/">Tour</a>
+      <a class="btn-p" href="../index.html#org-login" style="padding:9px 18px;font-size:13px">Org login</a>
+    </div>
+  </header>
+
+  <section class="ob-hero">
+    <span class="eyebrow"><span class="line"></span>Get started</span>
+    <h1>Bring Seduh Score to your event.</h1>
+    <p>Tell us about your organisation and event, and we'll get your account set up — full brackets, leagues and sensory rounds, branded for your competition.</p>
+    <div class="ob-pricing">
+      <div class="ob-pchip"><b>BND $18</b><span>Per-Event</span></div>
+      <div class="ob-pchip"><b>BND $100</b><span>Annual</span></div>
+    </div>
+  </section>
+
+  <div class="ob-wrap">
+    <div class="ob-card">
+
+      <form id="ob-form" novalidate>
+
+        <div class="ob-section-lbl">Contact</div>
+        <div class="ob-row">
+          <div class="ob-field"><label for="ob-name">Contact name</label><input type="text" id="ob-name" required autocomplete="name"></div>
+          <div class="ob-field"><label for="ob-email">Contact email</label><input type="email" id="ob-email" required autocomplete="email"></div>
+        </div>
+        <div class="ob-row">
+          <div class="ob-field"><label for="ob-phone">Contact phone</label><input type="tel" id="ob-phone" placeholder="+673 XXX XXXX" required autocomplete="tel">
+            <div class="hint">Used for a WhatsApp follow-up about your event.</div>
+          </div>
+          <div class="ob-field"><label for="ob-org">Organisation / cafe name</label><input type="text" id="ob-org" required autocomplete="organization"></div>
+        </div>
+
+        <div class="ob-section-lbl">Event</div>
+        <div class="ob-row">
+          <div class="ob-field"><label for="ob-date">Proposed event date</label><input type="date" id="ob-date" required></div>
+          <div class="ob-field">
+            <label>Tier interest</label>
+            <div class="ob-tiers">
+              <label class="ob-tier"><input type="radio" name="ob-tier" value="per_event" required><span class="ob-tier-card"><b>Per-Event</b><span>BND $18 · one-time</span></span></label>
+              <label class="ob-tier"><input type="radio" name="ob-tier" value="annual"><span class="ob-tier-card"><b>Annual</b><span>BND $100 · per year</span></span></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="ob-section-lbl">Payment</div>
+        <div class="ob-payment-note">
+          <span class="tag">Placeholder — payment details to be confirmed</span>
+          <p>Pay the amount for your selected tier via bank transfer / QR / e-wallet (details to follow), then upload a screenshot of the payment confirmation below.</p>
+        </div>
+        <div class="ob-field">
+          <label for="ob-file">Payment screenshot</label>
+          <label class="ob-file-lbl" id="ob-file-lbl" for="ob-file">Choose an image file (JPG or PNG, under 5MB)</label>
+          <input type="file" id="ob-file" accept="image/*" required>
+        </div>
+
+        <div class="ob-section-lbl">Notes <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink4)">(optional)</span></div>
+        <div class="ob-field"><textarea id="ob-notes" rows="3" placeholder="Anything else we should know about your event"></textarea></div>
+
+        <div class="ob-submit-row">
+          <button class="btn-p" type="submit" id="ob-submit">Submit request</button>
+          <span class="ob-status" id="ob-status"></span>
+        </div>
+      </form>
+
+      <div class="ob-success" id="ob-success">
+        <div class="tick">✓</div>
+        <h3>Request received.</h3>
+        <p>We'll be in touch on WhatsApp to confirm your event and activate your account.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="fd-foot">
+    <div class="fd-credit">Built by <a href="https://instagram.com/mfosaminumkopi" target="_blank" rel="noreferrer">Firdaus Omar</a> · Grey Matter Coffee Werks, Brunei<br>Free tools save to this device.</div>
+    <span class="live-pill"><span class="dot"></span>Seduh Score · v<span id="footer-version"></span></span>
+  </footer>
+
+</div>
+
+<script src="../shared/version.js"></script>
+<script>
+  document.getElementById('footer-version').textContent = SEDUH_VERSION;
+</script>
+<script type="module">
+  import { storage } from '../shared/firebase.js';
+  import { getFunctions, httpsCallable }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
+  import { getApp }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { ref, uploadBytesResumable }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+
+  const fns               = getFunctions(getApp());
+  const submitOrgRequestFn = httpsCallable(fns, 'submitOrgRequest');
+
+  const $ = id => document.getElementById(id);
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  function setStatus(msg, kind) {
+    const el = $('ob-status');
+    el.textContent = msg;
+    el.className = 'ob-status' + (kind ? ' ob-status-' + kind : '');
+  }
+
+  function fileExt(file) {
+    const fromName = (file.name.split('.').pop() || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (fromName) return fromName;
+    const fromType = (file.type.split('/')[1] || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return fromType || 'jpg';
+  }
+
+  $('ob-file').addEventListener('change', () => {
+    const file = $('ob-file').files[0];
+    const lbl  = $('ob-file-lbl');
+    if (file) {
+      lbl.textContent = file.name;
+      lbl.classList.add('has-file');
+    } else {
+      lbl.textContent = 'Choose an image file (JPG or PNG, under 5MB)';
+      lbl.classList.remove('has-file');
+    }
+  });
+
+  $('ob-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const displayName       = $('ob-org').value.trim();
+    const contactName       = $('ob-name').value.trim();
+    const email              = $('ob-email').value.trim();
+    const contactPhone      = $('ob-phone').value.trim();
+    const proposedEventDate = $('ob-date').value;
+    const tierInterest      = document.querySelector('input[name="ob-tier"]:checked')?.value;
+    const notes              = $('ob-notes').value.trim();
+    const file                = $('ob-file').files[0];
+
+    if (!displayName || !contactName || !email || !contactPhone || !proposedEventDate || !tierInterest) {
+      setStatus('Please fill in all required fields.', 'error');
+      return;
+    }
+    if (!EMAIL_RE.test(email)) {
+      setStatus('Please enter a valid email address.', 'error');
+      return;
+    }
+    if (!file) {
+      setStatus('Please upload a payment screenshot.', 'error');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      setStatus('Payment screenshot must be an image file.', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setStatus('Payment screenshot must be under 5MB.', 'error');
+      return;
+    }
+
+    const submitBtn = $('ob-submit');
+    submitBtn.disabled = true;
+    setStatus('Uploading payment screenshot…', 'muted');
+
+    try {
+      const requestId    = crypto.randomUUID();
+      const storagePath  = 'org-requests/' + requestId + '/payment.' + fileExt(file);
+      const storageRef   = ref(storage, storagePath);
+      const uploadTask    = uploadBytesResumable(storageRef, file);
+
+      await new Promise((resolve, reject) => {
+        uploadTask.on('state_changed',
+          snapshot => {
+            const pct = Math.round(snapshot.bytesTransferred / snapshot.totalBytes * 100);
+            setStatus('Uploading payment screenshot… ' + pct + '%', 'muted');
+          },
+          reject,
+          resolve
+        );
+      });
+
+      // Bug A: no getDownloadURL() here — that requires Storage read access,
+      // which storage.rules correctly denies to the public (no public read
+      // on org-requests/). Send the path itself; submitOrgRequest resolves
+      // and verifies it server-side via the Admin SDK, which bypasses rules.
+      setStatus('Submitting…', 'muted');
+      await submitOrgRequestFn({
+        displayName, email, contactName, contactPhone,
+        proposedEventDate, tierInterest, notes, storagePath,
+      });
+
+      $('ob-form').style.display = 'none';
+      $('ob-success').style.display = 'block';
+      setStatus('', '');
+    } catch (err) {
+      setStatus(err?.message || 'Submission failed. Please try again.', 'error');
+      submitBtn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

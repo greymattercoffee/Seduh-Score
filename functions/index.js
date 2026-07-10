@@ -6,6 +6,7 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { initializeApp }      = require('firebase-admin/app');
 const { getAuth }            = require('firebase-admin/auth');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const { getStorage }         = require('firebase-admin/storage');
 
 initializeApp();
 
@@ -13,6 +14,57 @@ function requireSuperAdmin(auth) {
   if (!auth || !auth.token.super_admin) {
     throw new HttpsError('permission-denied', 'Super admin only.');
   }
+}
+
+// ── POA-47 — Public onboarding intake helpers ───────────────────────────────
+
+const MAX = { name: 200, email: 200, phone: 40, date: 100, notes: 2000, path: 1000 };
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Bug A fix: the client sends the Storage path it uploaded to, never a
+// download URL — getDownloadURL() itself requires Storage read access,
+// which storage.rules correctly denies to the public (org-requests/ is
+// "no public read" by design), so a URL-based handoff can never work here.
+// Validating the path shape (and, below, that the object actually exists)
+// stands in for what the URL's host/path check used to guard against: an
+// attacker pointing this field at something outside org-requests/.
+const PAYMENT_PATH_RE = /^org-requests\/[^/]+\/payment\.[A-Za-z0-9]+$/;
+
+function isValidPaymentProofPath(path) {
+  return typeof path === 'string' && path.length > 0 && path.length <= MAX.path
+    && PAYMENT_PATH_RE.test(path);
+}
+
+// No App Check or rate-limiting package is wired into this project yet
+// (confirmed: no initializeAppCheck call anywhere, no rate-limit dependency
+// in functions/package.json) — a self-contained Firestore-backed IP rate
+// limit is used instead so this function ships without new console-side
+// provisioning. Revisit App Check once a reCAPTCHA site key exists.
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+const RATE_LIMIT_MAX       = 5;
+
+function getClientIp(request) {
+  const req = request.rawRequest;
+  const fwd = req?.headers?.['x-forwarded-for'];
+  if (fwd) return String(fwd).split(',')[0].trim();
+  return req?.ip || 'unknown';
+}
+
+async function checkRateLimit(ip) {
+  const ref = getFirestore().collection('rate_limits').doc(ip);
+  const now = Date.now();
+  await getFirestore().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const data = snap.exists ? snap.data() : null;
+    if (!data || now - data.windowStart > RATE_LIMIT_WINDOW_MS) {
+      tx.set(ref, { windowStart: now, count: 1 });
+      return;
+    }
+    if (data.count >= RATE_LIMIT_MAX) {
+      throw new HttpsError('resource-exhausted', 'Too many submissions from this connection. Please try again later.');
+    }
+    tx.update(ref, { count: FieldValue.increment(1) });
+  });
 }
 
 async function writeAudit(orgId, action, actorUid, details) {
@@ -71,15 +123,15 @@ exports.createOrg = onCall(async (request) => {
   await ref.set({
     displayName,
     email,
-    status:          'pending',
-    tier:            null,
-    expiry:          null,
-    notes:           notes ?? '',
-    paymentProofUrl: null,
-    source:          'manual',
-    createdAt:       FieldValue.serverTimestamp(),
-    activatedAt:     null,
-    activatedBy:     null,
+    status:           'pending',
+    tier:             null,
+    expiry:           null,
+    notes:            notes ?? '',
+    paymentProofPath: null,
+    source:           'manual',
+    createdAt:        FieldValue.serverTimestamp(),
+    activatedAt:      null,
+    activatedBy:      null,
   });
   await writeAudit(ref.id, 'created', request.auth.uid, displayName);
   return { orgId: ref.id };
@@ -142,4 +194,74 @@ exports.archiveOrg = onCall(async (request) => {
   await getFirestore().collection('orgs').doc(orgId).update({ status: 'archived' });
   await writeAudit(orgId, 'archived', request.auth.uid, null);
   return { success: true };
+});
+
+// ── POA-47 — Public onboarding intake ───────────────────────────────────────
+
+// submitOrgRequest — publicly callable, unauthenticated. Writes a new orgs
+// doc at status:'pending', source:'public_form'. Every field is validated
+// and mapped explicitly — no pass-through of arbitrary client payload, and
+// the client can never set status/tier/expiry/source itself.
+exports.submitOrgRequest = onCall(async (request) => {
+  await checkRateLimit(getClientIp(request));
+
+  const d = request.data || {};
+  const displayName      = typeof d.displayName === 'string' ? d.displayName.trim() : '';
+  const email             = typeof d.email === 'string' ? d.email.trim() : '';
+  const contactName       = typeof d.contactName === 'string' ? d.contactName.trim() : '';
+  const contactPhone      = typeof d.contactPhone === 'string' ? d.contactPhone.trim() : '';
+  const proposedEventDate = typeof d.proposedEventDate === 'string' ? d.proposedEventDate.trim() : '';
+  const tierInterest      = d.tierInterest;
+  const storagePath       = d.storagePath;
+  const notes             = typeof d.notes === 'string' ? d.notes.trim() : '';
+
+  if (!displayName || displayName.length > MAX.name) {
+    throw new HttpsError('invalid-argument', 'Organisation / cafe name is required.');
+  }
+  if (!EMAIL_RE.test(email) || email.length > MAX.email) {
+    throw new HttpsError('invalid-argument', 'A valid contact email is required.');
+  }
+  if (!contactName || contactName.length > MAX.name) {
+    throw new HttpsError('invalid-argument', 'Contact name is required.');
+  }
+  if (!contactPhone || contactPhone.length > MAX.phone) {
+    throw new HttpsError('invalid-argument', 'Contact phone is required.');
+  }
+  if (!proposedEventDate || proposedEventDate.length > MAX.date) {
+    throw new HttpsError('invalid-argument', 'Proposed event date is required.');
+  }
+  if (tierInterest !== 'per_event' && tierInterest !== 'annual') {
+    throw new HttpsError('invalid-argument', 'Tier interest must be per_event or annual.');
+  }
+  if (!isValidPaymentProofPath(storagePath)) {
+    throw new HttpsError('invalid-argument', 'A valid payment screenshot upload is required.');
+  }
+  const [fileExists] = await getStorage().bucket().file(storagePath).exists();
+  if (!fileExists) {
+    throw new HttpsError('invalid-argument', 'Payment screenshot upload not found — please try again.');
+  }
+  if (notes.length > MAX.notes) {
+    throw new HttpsError('invalid-argument', 'Notes are too long.');
+  }
+
+  const ref = getFirestore().collection('orgs').doc();
+  await ref.set({
+    displayName,
+    email,
+    contactName,
+    contactPhone,
+    proposedEventDate,
+    tierInterest,
+    notes,
+    paymentProofPath: storagePath,
+    status:           'pending',
+    tier:             null,
+    expiry:           null,
+    source:           'public_form',
+    createdAt:        FieldValue.serverTimestamp(),
+    activatedAt:      null,
+    activatedBy:      null,
+  });
+  await writeAudit(ref.id, 'request_submitted', 'public_form', displayName);
+  return { orgId: ref.id, success: true };
 });
