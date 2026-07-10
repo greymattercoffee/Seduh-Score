@@ -712,11 +712,27 @@ Commit message types: `feat`, `fix`, `docs`, `refactor`
 
 ### Releasing to live
 
+**There is no auto-deploy.** This repo has no `.github/workflows/` — merging
+`dev` → `main` only updates the `main` branch on GitHub. Every service
+(Hosting, Functions, Storage, Firestore) requires its own explicit
+`firebase deploy` after merge, or the merged code silently never reaches
+production. This gap actually happened in July 2026: PR #21's onboarding
+form merged to `main` cleanly, but `onboard/index.html` wasn't reachable
+live until `firebase deploy --only hosting` was run separately and verified
+against `firebase hosting:channel:list`'s release timestamp.
+
 When a version is ready:
 1. Open a Pull Request on GitHub — `dev` → `main`
 2. Review the diff
 3. Merge
-4. Firebase Hosting picks up the new `main` automatically — live within ~60 seconds
+4. **Deploy checklist — run every item touched by the merged diff, none are automatic:**
+   - `firebase deploy --only hosting` — any change under `/`, any module `index.html`, `shared/`
+   - `firebase deploy --only functions` — any change under `functions/`
+   - `firebase deploy --only storage` — any change to `storage.rules`
+   - `firebase deploy --only firestore` — any change to `firestore.rules` or `firestore.indexes.json`
+5. Verify: `firebase hosting:channel:list` for Hosting's release timestamp; the
+   Firebase Console → Functions/Storage tabs for the other services. A merged
+   PR is not a shipped release until this step confirms it.
 
 ### Setting up the dev branch (once, on desktop)
 ```powershell
@@ -728,6 +744,50 @@ git push -u origin dev
 Remote: `https://github.com/greymattercoffee/Seduh-Score.git`  
 Live URL: `https://seduhscore.com` (Firebase Hosting — custom domain via Cloudflare)  
 Firebase project: `seduh-score` · console.firebase.google.com
+
+---
+
+## Firebase Emulator Suite (local dev) — since July 2026
+
+Reusable local-testing infrastructure, first built to verify POA-47/56/57/58
+end-to-end without touching production data. Auth, Firestore, Functions, and
+Storage emulators — configured in `firebase.json`'s `emulators` block:
+
+| Emulator | Port |
+|---|---|
+| Auth | 9099 |
+| Functions | 5001 |
+| Firestore | 8080 |
+| Storage | 9199 |
+| Emulator UI | 4000 |
+
+**Start the suite:** `firebase emulators:start` from the repo root.
+
+**Connection guard (`shared/firebase.js`):** gated on
+`location.hostname === 'localhost' || location.hostname === '127.0.0.1'` —
+the live site and every Firebase Hosting preview channel resolve to
+`seduhscore.com` or `*.web.app`/`*.firebaseapp.com`, never `localhost`, so
+this can never misfire in production. When the guard is live, all four SDK
+instances (`auth`, `db`, `storage`, `getFunctions(app)`) connect to the local
+emulators instead of the live project — no other file needs to change,
+since the Functions SDK caches one instance per `(app, region)`.
+
+**Seeding a test admin:** `scripts/emulator-seed-admin.js` creates (or
+reuses) a `super_admin` test user against the Auth emulator, for signing
+into `admin/index.html` locally. Refuses to run unless
+`FIREBASE_AUTH_EMULATOR_HOST` is set — never touches production. Run with
+the emulators already up:
+```
+FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
+GCLOUD_PROJECT=seduh-score NODE_PATH=./functions/node_modules \
+node scripts/emulator-seed-admin.js
+```
+Prints the seeded test email/password/uid to sign in with.
+
+**Reuse for future tickets:** this is standing infrastructure, not a
+one-off for POA-47/56/57/58 — any future ticket touching Auth, Firestore,
+Functions, or Storage should verify against the emulator suite before
+`firebase deploy` to production, the same pattern used for that work.
 
 ---
 
@@ -963,7 +1023,14 @@ Before starting work in a new session — **all session types: Strategy, Code, D
 
 ---
 
-*Last updated: July 2026 — v5.10.2 (POA-58 banner fix): Gates internal-methods list adds
+*Last updated: July 2026 — KB reconciliation pass (post PR #21 merge + deploy): corrected
+the "Firebase Hosting picks up main automatically" claim under "Releasing to live" — no
+`.github/workflows/` exists, every service needs its own explicit `firebase deploy`, now
+written as an explicit post-merge checklist; this gap caused a real deploy delay for the
+PR #21 onboarding form. New "Firebase Emulator Suite (local dev)" section documents the
+emulator ports, `shared/firebase.js` connection guard, and `scripts/emulator-seed-admin.js`
+as reusable infrastructure for future tickets, not a one-off for POA-47/56/57/58. Prior
+pass — v5.10.2 (POA-58 banner fix): Gates internal-methods list adds
 `Gates.getStartTime()`. Prior pass — v5.10.1 (POA-57, legacy Org Management panel removal): Cloud Functions
 section drops `setOrgClaims`/`getOrgByEmail` (removed, dead code) and notes the removal. Prior pass
 — v5.10.0 (access-window enforcement + POA-56 + Bug A): Gates section
