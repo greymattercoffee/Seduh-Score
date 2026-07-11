@@ -2,6 +2,35 @@
 
 ---
 
+## [5.10.2-booth.1] — Booth Firebase init consolidated through shared/firebase.js · July 2026
+
+Closes the debt flagged in the [5.10.2-booth] code-review pass. The four
+Firebase-using booth pages (`booth/setup`, `booth/guess`, `booth/grinder`,
+`booth/display/guess`) each duplicated a hardcoded `firebaseConfig` and
+initialized their own named `'booth'` app on SDK 11.0.1, bypassing
+`shared/firebase.js` (SDK 10.12.0) and losing its emulator-connection
+guard and IndexedDB persistence.
+
+- **refactor:** all four pages now `import { db } from shared/firebase.js`
+  and pin their Firestore function imports to the matching 10.12.0 SDK
+  (mixing instance and function SDK versions breaks at runtime — the two
+  must move together). Inline configs, `initializeApp`, and the `'booth'`
+  app name deleted; nothing referenced `getApp('booth')`, so the name was
+  purely local. `booth/display/index.html` and
+  `booth/display/grinder/index.html` are static — untouched.
+- **behavior change (intentional):** booth pages served on `localhost` now
+  connect to the Firebase Emulator Suite via the shared guard instead of
+  production. Use `firebase emulators:start` for local booth work, or
+  `?demo=1` on the guess pages (no backend needed). Live site unaffected.
+- **gained for free:** `enableIndexedDbPersistence` in production;
+  multi-tab booth setups will see non-fatal `failed-precondition` warnings
+  on all but the first tab (already handled in `shared/firebase.js`).
+- Verified: all four pages load and render via `npx serve` with the shared
+  module (emulator guard fires, no uncaught errors); display + phone demo
+  flows regression-checked end to end.
+
+---
+
 ## [5.10.2-booth] — Guess the Bean visual overhaul (display + phone form) · July 2026
 
 Full presentation-layer rewrite of the Guess the Bean booth game to pull

@@ -96,22 +96,9 @@
 <div class="booth-wrap" id="app"></div>
 
 <script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
-  import { getFirestore, doc, getDoc, onSnapshot, collection, addDoc, serverTimestamp }
-    from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
-
-  const firebaseConfig = {
-    apiKey:            "AIzaSyDwlaPgB_5g3xXDTq539JN09aWBpdHM6e4",
-    authDomain:        "seduh-score.firebaseapp.com",
-    projectId:         "seduh-score",
-    storageBucket:     "seduh-score.firebasestorage.app",
-    messagingSenderId: "298052620542",
-    appId:             "1:298052620542:web:53376c72eaf81b35a8d5af",
-    measurementId:     "G-GTFF3TYD37"
-  };
-
-  const app = initializeApp(firebaseConfig, 'booth');
-  const db  = getFirestore(app);
+  import { db } from '../../shared/firebase.js';
+  import { doc, getDoc, onSnapshot, collection, addDoc, serverTimestamp }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
   const app_el = document.getElementById('app');
   const params = new URLSearchParams(location.search);
