@@ -2,6 +2,33 @@
 
 ---
 
+## [docs] — KB recon: booth is live-but-unlisted, POA-59 in progress · July 2026
+
+Pre-POA-59 recon. Mechanical stamp check clean (all Tier A docs at
+v5.10.2). Fact and status drift found and corrected:
+
+- **Fact drift (four docs):** the KB claimed `booth/` was "not yet
+  publicly deployed." Confirmed false — `www.seduhscore.com/booth/*`
+  returns HTTP 200; `booth/` was never in `firebase.json`'s hosting
+  ignore list, so every Hosting deploy since v5.3.0 has shipped it.
+  Corrected in CLAUDE.md (directory tree), CONVENTIONS.md (directory
+  tree), PLAN_OF_ACTION.md (POA-59 premise/target), and STRATEGY.md
+  (booth architecture table — also corrected the "no sensitive data at
+  risk" rationale, invalidated when v5.4.0 added phone/instagram to
+  `booth_guess`, and the "shared modules: theme.css only" claim,
+  invalidated by [5.10.2-booth.1]). STRATEGY.md/PLAN_OF_ACTION.md edits
+  are local-only (both deliberately untracked per .gitignore).
+- **Status drift:** POA-59 flipped 🔵 Backlog → 🟠 In progress, target
+  restated from "before Oct 2026 deploy" to "immediately — exposure is
+  live"; scope-amendment note added (operator-gate decision pending,
+  original deny-delete shape superseded — it broke setup's Export/
+  Reset/End Session). NEXT UP's legacy Org Management Create-Org
+  follow-up cleared — resolved by removal (POA-57, v5.10.1, deleted the
+  whole panel). Parallel-track wording updated (booth build shipped
+  through v5.10.2-booth.2).
+
+---
+
 ## [5.10.2-booth.2] — Fix: silent failure when Firestore is unreachable (setup + guess form) · July 2026
 
 Found by smoketest of the [5.10.2-booth.1] consolidation: with the

@@ -28,7 +28,10 @@ seduh-score/
 ├── booth/                      ← mini-games: setup/, display/, guess/, grinder/ (v5.3.0-booth+).
 │                                 Guess pages support ?demo=1 — self-running fake data,
 │                                 zero Firestore traffic (v5.10.2-booth).
-│                                  In repo, not yet publicly deployed — target Oct 2026 per STRATEGY.md
+│                                 Live but unlisted — booth/ was never in the Hosting
+│                                 ignore list, so it ships with every deploy (confirmed
+│                                 reachable July 2026). First event use target Oct 2026
+│                                 per STRATEGY.md; rules hardening POA-59 in progress.
 └── shared/                     ← loaded by every module
     ├── theme.css
     ├── storage.js

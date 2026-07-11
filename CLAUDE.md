@@ -74,8 +74,10 @@ coming-soon/index.html   ← teaser landing page (served at "/" via Hosting redi
 tour/index.html          ← module tour page (POA-43, v5.6.0)
 pitch/index.html         ← unlisted investor/customer pitch page (POA-52, v5.8.0)
 onboard/index.html       ← public org onboarding intake form (POA-47, v5.9.0)
-booth/                   ← mini-games (setup, display, guess, grinder) — in repo,
-                           not yet publicly deployed; target Oct 2026 per STRATEGY.md
+booth/                   ← mini-games (setup, display, guess, grinder) — live but
+                           unlisted (ships with every Hosting deploy; confirmed
+                           reachable July 2026). First event use target Oct 2026
+                           per STRATEGY.md; rules hardening POA-59 in progress
 shared/
   theme.css             ← design system (v4.1, audited June 2026)
   storage.js            ← localStorage wrapper (Store() factory)
