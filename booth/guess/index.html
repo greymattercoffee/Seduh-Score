@@ -7,18 +7,73 @@
 <link rel="stylesheet" href="../../shared/theme.css">
 <style>
   body{background:var(--surface)}
-  .booth-wrap{max-width:400px;margin:0 auto;padding:var(--space-6) var(--space-4);text-align:center}
-  .booth-title{font-family:var(--font-display);font-weight:800;font-size:22px;margin-bottom:var(--space-2);color:var(--ink)}
-  .booth-lead{font-size:14px;color:var(--ink2);margin-bottom:var(--space-5)}
-  .booth-field{margin-bottom:var(--space-4);text-align:left}
+  .booth-wrap{max-width:420px;margin:0 auto;padding:var(--space-5) var(--space-4) var(--space-8);text-align:center}
+
+  /* ── Hero ── */
+  .booth-hero{position:relative;padding:var(--space-4) 0 var(--space-3)}
+  .booth-hero-jar{font-size:44px;line-height:1;display:inline-block;
+    animation:jar-bob 3.2s ease-in-out infinite}
+  @keyframes jar-bob{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(5deg) translateY(-3px)}}
+  .booth-hero-bean{position:absolute;font-size:15px;opacity:.5;animation:bean-float 4s ease-in-out infinite}
+  .booth-hero-bean.b1{left:22%;top:8px;animation-delay:0s}
+  .booth-hero-bean.b2{right:20%;top:20px;animation-delay:1.3s}
+  .booth-hero-bean.b3{left:32%;bottom:0;animation-delay:2.4s;font-size:12px}
+  @keyframes bean-float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-8px) rotate(25deg)}}
+
+  .booth-title{font-family:var(--font-display);font-weight:800;font-size:30px;
+    letter-spacing:-.02em;color:var(--ink);margin:var(--space-2) 0 4px}
+  .booth-title .accent{color:var(--am)}
+  .booth-lead{font-size:15px;color:var(--ink2);margin-bottom:var(--space-5)}
+
+  /* ── Card + fields ── */
+  .booth-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);
+    box-shadow:var(--shadow-md);padding:var(--space-5) var(--space-4);text-align:left}
+  .booth-field{margin-bottom:var(--space-4)}
   .booth-field label{display:block;font-family:var(--font-mono);font-size:var(--fs-label);
     letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-bottom:6px}
-  .booth-field input{font-size:16px;padding:14px 14px;min-height:48px}
-  .booth-err{color:var(--rd);font-size:12px;margin-top:4px;text-align:left}
-  .booth-confirm-check{width:56px;height:56px;border-radius:50%;background:var(--gn-bg);
-    color:var(--gn);display:flex;align-items:center;justify-content:center;font-size:28px;
-    margin:0 auto var(--space-4)}
-  .booth-guess-val{font-family:var(--font-mono);font-size:32px;font-weight:800;color:var(--am);margin:var(--space-3) 0}
+  .booth-field label .opt{color:var(--ink4);text-transform:none;letter-spacing:0}
+  .booth-field input{font-size:16px;padding:14px 14px;min-height:48px;width:100%;
+    transition:border-color .15s,box-shadow .15s}
+  .booth-field input:focus{border-color:var(--am-bd);box-shadow:0 0 0 3px var(--am-bg)}
+  .booth-err{color:var(--rd);font-size:12px;margin-top:4px}
+
+  .guess-field input{font-family:var(--font-mono);font-weight:700;font-size:30px;
+    text-align:center;letter-spacing:.04em;color:var(--am);min-height:64px}
+  .guess-field input::placeholder{color:var(--ink4);font-size:20px;letter-spacing:0;font-weight:400}
+
+  #btn-submit{width:100%;font-size:16px;min-height:52px;transition:transform .1s}
+  #btn-submit:active{transform:scale(.97)}
+  #btn-submit[disabled]{opacity:.6}
+  .booth-fineprint{font-size:11.5px;color:var(--ink4);margin-top:var(--space-3);text-align:center}
+
+  /* ── Confirmation ── */
+  .booth-confirm{position:relative;padding-top:var(--space-6)}
+  .booth-confirm-check{width:72px;height:72px;border-radius:50%;background:var(--gn-bg);
+    border:2px solid var(--gn-bd);color:var(--gn);display:flex;align-items:center;justify-content:center;
+    font-size:34px;margin:0 auto var(--space-4);animation:check-pop .55s cubic-bezier(.2,1.5,.4,1) both}
+  @keyframes check-pop{0%{transform:scale(0)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+  .booth-guess-pill{display:inline-block;font-family:var(--font-mono);font-size:36px;font-weight:800;
+    color:var(--am);background:var(--am-bg);border:1.5px solid var(--am-bd);
+    border-radius:var(--rad);padding:10px 30px;margin:var(--space-3) 0}
+
+  /* CSS confetti burst on the confirmation screen */
+  .burst{position:absolute;top:36px;left:50%;width:0;height:0;pointer-events:none}
+  .burst i{position:absolute;width:8px;height:12px;border-radius:2px;opacity:0;
+    animation:burst-fly .9s ease-out forwards}
+  @keyframes burst-fly{
+    0%{opacity:1;transform:translate(0,0) rotate(0)}
+    100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--rot))}}
+  .burst i:nth-child(3n){background:var(--am)}
+  .burst i:nth-child(3n+1){background:var(--gn)}
+  .burst i:nth-child(3n+2){background:var(--am-bd)}
+
+  /* ── Status screens (closed / errors) ── */
+  .booth-status{padding-top:var(--space-6)}
+  .booth-status-emoji{font-size:52px;margin-bottom:var(--space-3)}
+
+  .booth-spinner{width:34px;height:34px;border-radius:50%;margin:70px auto;
+    border:3px solid var(--border);border-top-color:var(--am);animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -60,10 +115,11 @@
 
   const app_el = document.getElementById('app');
   const params = new URLSearchParams(location.search);
-  const sessionId = params.get('session');
+  const DEMO = params.get('demo') === '1';
+  const sessionId = DEMO ? (params.get('session') || 'demo') : params.get('session');
 
   let state = {
-    view: 'loading', errors: {}, submittedGuess: null,
+    view: 'loading', errors: {}, submitError: '', submitting: false, submittedGuess: null,
     formValues: { name: '', guess: '', phone: '', instagram: '' }
   };
 
@@ -71,29 +127,78 @@
     return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   }
 
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c =>
+      ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
+  function heroHtml() {
+    return `
+      <div class="booth-hero">
+        <span class="booth-hero-bean b1">🫘</span>
+        <span class="booth-hero-bean b2">🫘</span>
+        <span class="booth-hero-bean b3">🫘</span>
+        <span class="booth-hero-jar">🫙</span>
+        <div class="booth-title">Guess the <span class="accent">Bean</span></div>
+      </div>
+    `;
+  }
+
+  function burstHtml() {
+    let pieces = '';
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2;
+      const d = 70 + (i % 4) * 22;
+      const dx = Math.round(Math.cos(a) * d);
+      const dy = Math.round(Math.sin(a) * d - 30);
+      const rot = Math.round((Math.random() - .5) * 540);
+      pieces += `<i style="--dx:${dx}px;--dy:${dy}px;--rot:${rot}deg;animation-delay:${i * 18}ms"></i>`;
+    }
+    return `<div class="burst">${pieces}</div>`;
+  }
+
   function render() {
     if (state.view === 'loading') {
-      app_el.innerHTML = `<div class="hint" style="padding:40px 0">Loading…</div>`;
+      app_el.innerHTML = `<div class="booth-spinner" role="status" aria-label="Loading"></div>`;
       return;
     }
     if (state.view === 'no-session') {
       app_el.innerHTML = `
-        <div class="booth-title">Missing session</div>
-        <div class="booth-lead">Scan the QR code again.</div>
+        <div class="booth-status">
+          <div class="booth-status-emoji">🤔</div>
+          <div class="booth-title">Missing session</div>
+          <div class="booth-lead">Scan the QR code on the big screen again.</div>
+        </div>
       `;
       return;
     }
     if (state.view === 'not-found') {
       app_el.innerHTML = `
-        <div class="booth-title">No active session found</div>
-        <div class="booth-lead">Ask the organiser for help.</div>
+        <div class="booth-status">
+          <div class="booth-status-emoji">☕</div>
+          <div class="booth-title">No active session found</div>
+          <div class="booth-lead">Ask the friendly humans at the booth for help.</div>
+        </div>
+      `;
+      return;
+    }
+    if (state.view === 'not-active') {
+      app_el.innerHTML = `
+        <div class="booth-status">
+          <div class="booth-status-emoji">☕</div>
+          <div class="booth-title">Guess the Bean isn't running right now</div>
+          <div class="booth-lead">Check out what else is happening at the booth!</div>
+        </div>
       `;
       return;
     }
     if (state.view === 'closed') {
       app_el.innerHTML = `
-        <div class="booth-title">Guessing is now closed</div>
-        <div class="booth-lead">Check the display screen to see who got closest!</div>
+        <div class="booth-status">
+          <div class="booth-status-emoji">🔒</div>
+          <div class="booth-title">Guessing is closed</div>
+          <div class="booth-lead">Look up! The results are being revealed on the big screen.</div>
+        </div>
       `;
       return;
     }
@@ -104,11 +209,14 @@
     }
     if (state.view === 'confirmed') {
       app_el.innerHTML = `
-        <div class="booth-confirm-check">✓</div>
-        <div class="booth-title">Guess recorded!</div>
-        <div class="hint">Your guess</div>
-        <div class="booth-guess-val">${state.submittedGuess}</div>
-        <div class="booth-lead">Watch the display screen to see how close you are when results are revealed!</div>
+        <div class="booth-confirm">
+          ${burstHtml()}
+          <div class="booth-confirm-check">✓</div>
+          <div class="booth-title">You're in, <span class="accent">${escapeHtml(state.formValues.name)}</span>!</div>
+          <div class="hint">Your guess</div>
+          <div class="booth-guess-pill">${state.submittedGuess}</div>
+          <div class="booth-lead">Eyes on the big screen — the closest guess takes the win. Good luck! 🍀</div>
+        </div>
       `;
       return;
     }
@@ -118,36 +226,49 @@
     const e = state.errors;
     const v = state.formValues;
     return `
-      <div class="booth-title">Guess the Bean</div>
-      <div class="booth-lead">How many coffee beans are in the jar?</div>
-      <div class="booth-field">
-        <label>Your name</label>
-        <input id="f-name" type="text" value="${escapeAttr(v.name)}">
-        ${e.name ? `<div class="booth-err">${e.name}</div>` : ''}
+      ${heroHtml()}
+      <div class="booth-lead">One jar. One winner. How good is your gut?</div>
+      <div class="booth-card">
+        <div class="booth-field guess-field">
+          <label for="f-guess">How many beans in the jar?</label>
+          <input id="f-guess" type="number" min="1" inputmode="numeric" placeholder="your guess" value="${escapeAttr(v.guess)}">
+          ${e.guess ? `<div class="booth-err">${e.guess}</div>` : ''}
+        </div>
+        <div class="booth-field">
+          <label for="f-name">Your name</label>
+          <input id="f-name" type="text" autocomplete="name" value="${escapeAttr(v.name)}">
+          ${e.name ? `<div class="booth-err">${e.name}</div>` : ''}
+        </div>
+        <div class="booth-field">
+          <label for="f-phone">Phone / WhatsApp <span class="opt">— so we can reach you if you win</span></label>
+          <input id="f-phone" type="text" inputmode="tel" autocomplete="tel" value="${escapeAttr(v.phone)}">
+        </div>
+        <div class="booth-field">
+          <label for="f-instagram">Instagram username</label>
+          <input id="f-instagram" type="text" placeholder="@yourhandle" autocapitalize="none" value="${escapeAttr(v.instagram)}">
+          ${e.contact ? `<div class="booth-err">${e.contact}</div>` : ''}
+        </div>
+        <button id="btn-submit" class="btn-p" ${state.submitting ? 'disabled' : ''}>
+          ${state.submitting ? 'Locking it in…' : 'Lock in my guess 🫘'}
+        </button>
+        ${state.submitError ? `<div class="booth-err" style="text-align:center;margin-top:8px">${state.submitError}</div>` : ''}
+        <div class="booth-fineprint">One of phone or Instagram is enough — we only use it to contact the winner.</div>
       </div>
-      <div class="booth-field">
-        <label>Your guess</label>
-        <input id="f-guess" type="number" min="1" value="${escapeAttr(v.guess)}">
-        ${e.guess ? `<div class="booth-err">${e.guess}</div>` : ''}
-      </div>
-      <div class="booth-field">
-        <label>Phone / WhatsApp</label>
-        <input id="f-phone" type="text" inputmode="tel" value="${escapeAttr(v.phone)}">
-      </div>
-      <div class="booth-field">
-        <label>Instagram username</label>
-        <input id="f-instagram" type="text" placeholder="@yourhandle" value="${escapeAttr(v.instagram)}">
-        ${e.contact ? `<div class="booth-err">${e.contact}</div>` : ''}
-      </div>
-      <button id="btn-submit" class="btn-p" style="width:100%">Submit my guess</button>
     `;
   }
 
   function bindForm() {
     document.getElementById('btn-submit').addEventListener('click', onSubmit);
+    for (const id of ['f-guess', 'f-name', 'f-phone', 'f-instagram']) {
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') onSubmit();
+      });
+    }
   }
 
   async function onSubmit() {
+    if (state.submitting) return;
+
     const name = document.getElementById('f-name').value.trim();
     const guessRaw = document.getElementById('f-guess').value.trim();
     const guess = parseInt(guessRaw, 10);
@@ -155,10 +276,11 @@
     const instagram = document.getElementById('f-instagram').value.trim();
 
     state.formValues = { name, guess: guessRaw, phone, instagram };
+    state.submitError = '';
 
     const errors = {};
     if (!name) errors.name = 'Name is required.';
-    if (!guessRaw || !Number.isInteger(guess) || guess <= 0) errors.guess = 'Enter a positive whole number.';
+    if (!/^\d+$/.test(guessRaw) || guess <= 0) errors.guess = 'Enter a positive whole number.';
     if (!phone && !instagram) errors.contact = 'Enter a phone/WhatsApp number or Instagram username.';
 
     if (Object.keys(errors).length) {
@@ -167,10 +289,24 @@
       return;
     }
 
-    await addDoc(collection(db, 'booth_guess'), {
-      sessionId, name, guess, phone, instagram, ts: serverTimestamp()
-    });
+    state.errors = {};
+    state.submitting = true;
+    render();
 
+    try {
+      if (!DEMO) {
+        await addDoc(collection(db, 'booth_guess'), {
+          sessionId, name, guess, phone, instagram, ts: serverTimestamp()
+        });
+      }
+    } catch (err) {
+      state.submitting = false;
+      state.submitError = 'Couldn\'t submit — check your connection and try again.';
+      render();
+      return;
+    }
+
+    state.submitting = false;
     state.submittedGuess = guess;
     state.view = 'confirmed';
     render();
@@ -179,6 +315,12 @@
   async function boot() {
     if (!sessionId) {
       state.view = 'no-session';
+      render();
+      return;
+    }
+
+    if (DEMO) {
+      state.view = 'form';
       render();
       return;
     }
@@ -199,13 +341,17 @@
     }
 
     const data = snap.data();
-    state.view = data.revealed ? 'closed' : 'form';
+    state.view = data.guessEnabled === false ? 'not-active' : (data.revealed ? 'closed' : 'form');
     render();
 
     onSnapshot(ref, s => {
       if (!s.exists()) return;
       const d = s.data();
-      if (d.revealed && state.view === 'form') {
+      if (state.view !== 'form') return;
+      if (d.guessEnabled === false) {
+        state.view = 'not-active';
+        render();
+      } else if (d.revealed) {
         state.view = 'closed';
         render();
       }

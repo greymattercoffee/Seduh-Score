@@ -2,6 +2,77 @@
 
 ---
 
+## [5.10.2-booth] — Guess the Bean visual overhaul (display + phone form) · July 2026
+
+Full presentation-layer rewrite of the Guess the Bean booth game to pull
+passers-by in, not just show a scoreboard. All Firestore plumbing
+(`booth_sessions` / `booth_guess` schema, reveal via `revealed:true`
+merge, localStorage cache fallback, hidden tap-zone + space/enter reveal
+triggers, QR target URL) is unchanged. Booth remains not publicly
+deployed; no `SEDUH_VERSION` bump.
+
+### booth/display/guess/index.html — big-screen "stage mode"
+
+- **feat:** dark stage theme via page-local `--st-*` tokens (contract
+  tokens untouched); semantic hues preserved — amber brand, green winners
+- **feat:** live bullseye is now a continuously animated radar — pulsing
+  rings, rotating sweep that brightens dots it passes, ambient drifting
+  coffee-bean particles behind the whole page
+- **feat:** guess arrivals pop in with an overshoot scale + expanding
+  ripple; participant counter bumps; boot cascade staggers existing dots
+- **feat:** reveal choreography — 3-2-1 countdown overlay → dots fly to
+  their accuracy positions (ease-in-out) → bean count counts up in the
+  centre → triple confetti burst + winner spotlight banner (name, guess,
+  delta; "dead on! 🎯" at delta 0) → final-standings list with 🏆 row
+- **feat:** attract-mode footer — pulsing white QR card ("Scan to play →"),
+  rotating hype taglines (one is live-count-aware), player counter
+  ("be the first" at 0)
+- **feat:** live feed replaces the shuffled fake proximity bands with an
+  arrival-order feed + stable per-player flavour phrases (hash-picked, no
+  implied accuracy); eyebrow reads "in order of arrival"
+- **feat:** `?demo=1` mode — self-running local demo (fake names/guesses,
+  no Firestore reads or writes, QR propagates `&demo=1`) for pitches,
+  staff training, and browser verification
+- **fix:** participant names are now HTML-escaped everywhere they render
+  (feed, standings, tooltip, winner banner) — v1 injected them raw
+- **fix:** state machine handles cold-boot into an already-revealed
+  session (lands on results instantly instead of replaying the countdown)
+  and the operator's Reset Data (`revealed` true→false now resets the
+  display to live mode, restoring QR + LIVE pill — v1 stayed stuck on
+  results)
+- **fix:** count-up has a setTimeout safety net so the bean count still
+  lands if rAF is throttled (occluded/background tab)
+
+### booth/guess/index.html — participant phone form
+
+- **feat:** playful hero (bobbing jar + floating beans), guess promoted
+  to the first field with big mono styling, focus glow on inputs,
+  press-scale submit button, spinner while loading
+- **feat:** confirmation screen — CSS confetti burst, pop-in check,
+  personalised "You're in, {name}!", amber guess pill
+- **feat:** friendlier status screens (missing session / not found /
+  closed) with emoji + clearer copy
+- **fix:** form now honors `guessEnabled:false` (new "not running" view,
+  live-watched) — v1 accepted guesses for a disabled game
+- **fix:** submit failures surface an inline error and re-enable the
+  button (v1 hung silently on a failed `addDoc`); double-submit guarded;
+  Enter submits
+- **fix:** decimal guesses rejected outright (`/^\d+$/`) instead of
+  silently truncating via `parseInt`
+- **note:** `?demo=1` shows the form flow without touching Firestore
+
+### Review notes (code-reviewer pass)
+
+- Green LIVE pill kept deliberately — theme.css defines green as
+  "Completion / winners / live"
+- Booth's standalone Firebase init (duplicated config, SDK 11.0.1,
+  bypasses `shared/firebase.js`) is pre-existing debt across all booth
+  pages — flagged for a separate session
+- Booth's playful emoji register is a deliberate deviation from the
+  "functional glyphs only" voice rule; scoped to booth mini-games
+
+---
+
 ## [5.10.2] — POA-58: not_started banner states the actual start time · July 2026
 
 Closes the one gap found in the prior verification session's item 4: the
