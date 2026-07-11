@@ -135,6 +135,7 @@
             ${e.grinderLabel ? `<div class="booth-err">${e.grinderLabel}</div>` : ''}
           </div>
           ${e.games ? `<div class="booth-err" style="margin-bottom:var(--space-3)">${e.games}</div>` : ''}
+          ${e.create ? `<div class="booth-err" style="margin-bottom:var(--space-3)">${e.create}</div>` : ''}
           <button id="btn-create" class="btn-p" style="width:100%">Create Session</button>
         </div>
       </div>
@@ -155,7 +156,24 @@
     syncFieldVisibility();
   }
 
+  // Firestore queues writes indefinitely when the backend is unreachable
+  // (e.g. localhost with the emulator suite not running) — surface that
+  // instead of hanging forever.
+  function withTimeout(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+    ]);
+  }
+
+  const UNREACHABLE_MSG = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+    ? 'Couldn\'t reach the database. On localhost, booth pages talk to the Firebase emulator — start it with "firebase emulators:start" (the Firestore emulator on port 8080 must be running).'
+    : 'Couldn\'t reach the database — check your connection and try again.';
+
+  let creating = false;
+
   async function onCreate() {
+    if (creating) return;
     const sessionId    = document.getElementById('f-sessionId').value.trim();
     const beanCountRaw = document.getElementById('f-beanCount').value.trim();
     const grinderLabel = document.getElementById('f-grinderLabel').value.trim();
@@ -189,7 +207,22 @@
       createdAt: serverTimestamp()
     };
 
-    await setDoc(doc(db, 'booth_sessions', sessionId), sessionDoc);
+    const btn = document.getElementById('btn-create');
+    creating = true;
+    btn.disabled = true;
+    btn.textContent = 'Creating…';
+
+    try {
+      await withTimeout(setDoc(doc(db, 'booth_sessions', sessionId), sessionDoc), 8000);
+    } catch (err) {
+      creating = false;
+      state.errors = { create: UNREACHABLE_MSG };
+      render();
+      return;
+    }
+
+    creating = false;
+    state.errors = {};
     localStorage.setItem(LS_KEY, sessionId);
     state.sessionId = sessionId;
     state.sessionData = sessionDoc;

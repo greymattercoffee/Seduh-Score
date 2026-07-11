@@ -282,13 +282,20 @@
 
     try {
       if (!DEMO) {
-        await addDoc(collection(db, 'booth_guess'), {
-          sessionId, name, guess, phone, instagram, ts: serverTimestamp()
-        });
+        // Firestore queues writes forever when the backend is unreachable —
+        // race a timeout so the player isn't left on "Locking it in…".
+        await Promise.race([
+          addDoc(collection(db, 'booth_guess'), {
+            sessionId, name, guess, phone, instagram, ts: serverTimestamp()
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000))
+        ]);
       }
     } catch (err) {
       state.submitting = false;
-      state.submitError = 'Couldn\'t submit — check your connection and try again.';
+      state.submitError = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+        ? 'Couldn\'t reach the database — on localhost, start the Firebase emulator suite.'
+        : 'Couldn\'t submit — check your connection and try again.';
       render();
       return;
     }

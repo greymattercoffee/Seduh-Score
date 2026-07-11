@@ -2,6 +2,28 @@
 
 ---
 
+## [5.10.2-booth.2] — Fix: silent failure when Firestore is unreachable (setup + guess form) · July 2026
+
+Found by smoketest of the [5.10.2-booth.1] consolidation: with the
+Firestore emulator not running on localhost (`firebase serve` starts
+hosting + functions only, not Firestore), `booth/setup`'s Create Session
+failed with **no feedback at all** — `await setDoc(...)` had no
+catch/timeout, so the click appeared to do nothing. Same latent hang in
+the phone form's `addDoc` (its try/catch can't catch a promise that
+never settles, e.g. offline-queued writes on flaky venue Wi-Fi).
+
+- **fix (booth/setup):** Create Session now shows a pending state
+  ("Creating…", button disabled), races the write against an 8s timeout,
+  and surfaces an actionable error — on localhost it names the emulator
+  suite and port 8080 explicitly; elsewhere it says check your connection
+- **fix (booth/guess):** guess submission races a 10s timeout so a player
+  is never stuck on "Locking it in…"; localhost-aware error message
+- Verified both paths on the hosting emulator (localhost:5000): emulator
+  up → "Session Active" with all three URLs; emulator down → clear error
+  within a second, form preserved for retry
+
+---
+
 ## [5.10.2-booth.1] — Booth Firebase init consolidated through shared/firebase.js · July 2026
 
 Closes the debt flagged in the [5.10.2-booth] code-review pass. The four
