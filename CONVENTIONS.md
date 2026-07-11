@@ -26,6 +26,8 @@ seduh-score/
 ├── pitch/index.html            ← unlisted investor/customer pitch page (POA-52, v5.8.0)
 ├── onboard/index.html          ← public org onboarding intake form (POA-47, v5.9.0)
 ├── booth/                      ← mini-games: setup/, display/, guess/, grinder/ (v5.3.0-booth+).
+│                                 Guess pages support ?demo=1 — self-running fake data,
+│                                 zero Firestore traffic (v5.10.2-booth).
 │                                  In repo, not yet publicly deployed — target Oct 2026 per STRATEGY.md
 └── shared/                     ← loaded by every module
     ├── theme.css
@@ -34,7 +36,9 @@ seduh-score/
     ├── auth.js                 ← v4.8+ Firebase auth state + Gates.init()
     ├── audience.js
     ├── eventconfig.js          ← v4.7+ organiser customisation component
-    ├── firebase.js             ← v4.8+ Firebase SDK init (app/auth/Firestore/Storage)
+    ├── firebase.js             ← v4.8+ Firebase SDK init (app/auth/Firestore/Storage).
+    │                              Consumers: admin, onboard, booth (v5.10.2-booth —
+    │                              booth previously duplicated its own init)
     ├── pdf.js                  ← v5.4+ shared PDF export module (MUA-07, BBTC pilot)
     ├── sound.js                ← synthesised timer/reveal audio cues (no audio files); used by
     │                              bbtc/index.html, liga/index.html, timer/index.html
@@ -772,6 +776,15 @@ instances (`auth`, `db`, `storage`, `getFunctions(app)`) connect to the local
 emulators instead of the live project — no other file needs to change,
 since the Functions SDK caches one instance per `(app, region)`.
 
+As of v5.10.2-booth this includes the four Firebase-using booth pages
+(`setup`, `guess`, `grinder`, `display/guess`) — they import `db` from
+`shared/firebase.js` (Firestore functions pinned to the same SDK version,
+10.12.0) instead of duplicating their own `initializeApp`. Consequence:
+booth pages served locally (e.g. `npx serve` on `localhost`) now talk to
+the **emulator**, not production — start `firebase emulators:start` when
+exercising booth flows locally, or use `?demo=1` on the guess pages, which
+needs no backend at all.
+
 **Seeding a test admin:** `scripts/emulator-seed-admin.js` creates (or
 reuses) a `super_admin` test user against the Auth emulator, for signing
 into `admin/index.html` locally. Refuses to run unless
@@ -876,6 +889,9 @@ The v4.1 design system (built in Claude Design, integrated June 2026) formalised
 - Sentence case everywhere; mono eyebrows/labels are the only UPPERCASE.
 - Second person to the organiser ("Your changes save to this device").
 - Em-dashes for rhythm. Emoji only as functional category glyphs (☕ ⚡ 🏆 ⏱ 📺), never in body copy.
+  **Scoped exception (v5.10.2-booth):** booth mini-games deliberately run a playful register —
+  emoji in body copy is allowed under `booth/` only. Never import this register into
+  organiser- or judge-facing modules.
 - Warm, plain, confident — never corporate, never hype.
 
 ### Design-session regression guard (updated)
@@ -1023,7 +1039,11 @@ Before starting work in a new session — **all session types: Strategy, Code, D
 
 ---
 
-*Last updated: July 2026 — KB reconciliation pass (post PR #21 merge + deploy): corrected
+*Last updated: July 2026 — v5.10.2-booth pass (Guess the Bean visual overhaul + booth
+Firebase consolidation): Voice section gains the scoped booth emoji exception; directory
+tree notes `?demo=1` on the guess pages and lists booth as a `firebase.js` consumer;
+Emulator section documents the localhost consequence for booth pages (they now hit the
+emulator locally, not production). Prior pass — KB reconciliation (post PR #21 merge + deploy): corrected
 the "Firebase Hosting picks up main automatically" claim under "Releasing to live" — no
 `.github/workflows/` exists, every service needs its own explicit `firebase deploy`, now
 written as an explicit post-merge checklist; this gap caused a real deploy delay for the
