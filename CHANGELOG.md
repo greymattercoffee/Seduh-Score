@@ -2,7 +2,30 @@
 
 ---
 
-## [deploy] — POA-59 booth rules + hosting released to production · July 2026
+## [5.10.2-booth.5] — Fix: reveal countdown froze on "3" (never showed 2 or 1) · July 2026
+
+Found during production checklist verification: the countdown visibly
+displayed "3" then just sat there for the full ~2.3s before the overlay
+disappeared and the dots flew — "2" and "1" never appeared.
+
+Root cause in `booth/display/guess/index.html`'s `startRevealSequence()`:
+`cdNum` was captured once with `const` before the tick loop. Each tick
+clones that node (`cloneNode()`, to restart the CSS pop animation) and
+calls `.replaceWith(fresh)` — which detaches the *original* node from
+the DOM. On the next tick, `cdNum` still pointed at that now-parentless
+node, so `cdNum.replaceWith(fresh)` silently no-op'd (per spec,
+`replaceWith()` on a node with no parent does nothing — no error). Only
+the first tick ever actually touched the visible DOM.
+
+- `booth/display/guess/index.html` — `cdNum` changed from `const` to a
+  `let` that's reassigned to the live node after each replace
+- Verified locally via a `MutationObserver` on the countdown overlay
+  across a full demo reveal: `["3", "2", "1"]`, all three now render
+
+Found via the production operator-flow checklist (POA-59) — the reveal
+sound fix, the split-batch write, and this bug were all invisible to
+the emulator/REST rule testing since they're pure client-side timing
+and DOM behavior, not permission logic.
 
 Executed the POA-59 deploy runbook. Pre-deploy purge of `booth_sessions`/
 `booth_guess`/`booth_grinder` on `seduh-score` production (all three
