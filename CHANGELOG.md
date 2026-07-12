@@ -14,11 +14,13 @@ field-write denied, guess-create-against-nonexistent-session denied);
 all three booth pages confirmed serving the new deploy on
 `www.seduhscore.com`.
 
-**Process note:** deployed directly from the `dev` branch's working
-tree rather than via the usual dev→main PR — `main` does not currently
-reflect what's live in production. Flagged in PLAN_OF_ACTION.md POA-59
-as an open item (reconcile via PR, or treat as this session's accepted
-pattern) rather than resolved silently.
+**Process note (resolved same session):** deployed directly from the
+`dev` branch's working tree rather than via the usual dev→main PR, so
+`main` briefly didn't reflect what was live. Reconciled via PR #22
+(dev → main, 10 commits, merged clean) — `git diff origin/main dev`
+on the deployed paths came back empty both before and after the merge,
+confirming `main` is byte-identical to production. See PLAN_OF_ACTION.md
+POA-59 for the full trail.
 
 Operator-flow checklist (sign-in, create, export, reset/end) still
 pending — needs a real super_admin credential; do before the first
