@@ -97,7 +97,7 @@
 
 <script type="module">
   import { db } from '../../shared/firebase.js';
-  import { doc, getDoc, onSnapshot, collection, addDoc, serverTimestamp }
+  import { doc, getDoc, onSnapshot, collection, writeBatch, serverTimestamp }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
   const app_el = document.getElementById('app');
@@ -267,8 +267,11 @@
 
     const errors = {};
     if (!name) errors.name = 'Name is required.';
+    else if (name.length > 80) errors.name = 'Name is too long (80 characters max).';
     if (!/^\d+$/.test(guessRaw) || guess <= 0) errors.guess = 'Enter a positive whole number.';
+    else if (guess > 100000000) errors.guess = 'That\'s too many beans — try something under 100 million.';
     if (!phone && !instagram) errors.contact = 'Enter a phone/WhatsApp number or Instagram username.';
+    else if (phone.length > 30 || instagram.length > 50) errors.contact = 'Contact details are too long.';
 
     if (Object.keys(errors).length) {
       state.errors = errors;
@@ -282,12 +285,18 @@
 
     try {
       if (!DEMO) {
+        // Contact info is split into booth_contact (operator-readable only,
+        // POA-59) — the public booth_guess doc never carries phone/instagram.
+        // Same doc id pairs the two; one batch so neither lands alone.
         // Firestore queues writes forever when the backend is unreachable —
         // race a timeout so the player isn't left on "Locking it in…".
+        const guessRef = doc(collection(db, 'booth_guess'));
+        const contactRef = doc(db, 'booth_contact', guessRef.id);
+        const batch = writeBatch(db);
+        batch.set(guessRef, { sessionId, name, guess, ts: serverTimestamp() });
+        batch.set(contactRef, { sessionId, name, phone, instagram, ts: serverTimestamp() });
         await Promise.race([
-          addDoc(collection(db, 'booth_guess'), {
-            sessionId, name, guess, phone, instagram, ts: serverTimestamp()
-          }),
+          batch.commit(),
           new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000))
         ]);
       }

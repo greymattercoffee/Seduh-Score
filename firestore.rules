@@ -2,6 +2,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isSuperAdmin() {
+      return request.auth != null && request.auth.token.super_admin == true;
+    }
+
     // Platform — authenticated read, super admin write only
     match /platform/switches {
       allow read: if request.auth != null;
@@ -39,15 +43,120 @@ service cloud.firestore {
                     && resource.data.isTest == true;
     }
 
-    // Booth mini-games — public read/write, sessionId-scoped by application logic
+    // ── Booth mini-games (POA-59 hardening) ─────────────────────────────
+    // Participants are unauthenticated walk-up players — their paths are
+    // auth-free but schema-locked. The operator (setup page) signs in as
+    // super_admin; sensitive operations (session create/delete, purges,
+    // contact reads) require that claim.
+    //
+    // Accepted risk (documented decision, POA-59): the two unattended-page
+    // session transitions stay open to unauthenticated clients —
+    //   · `revealed` (display screen triggers the reveal)
+    //   · `grinderActive` / `grinderName` (grinder operator page)
+    // Anyone who finds a session ID can flip these flags. They cannot touch
+    // any other session field, create or delete sessions, or read contact
+    // data. Impact is limited to disrupting a live game's presentation.
+
+    // Sessions — public read (guess/display/grinder pages boot from this).
+    // Create/delete/full-update: operator only. Unauthenticated updates may
+    // touch ONLY the unattended-page transition fields, type-checked.
     match /booth_sessions/{sessionId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create, delete: if isSuperAdmin();
+      allow update: if isSuperAdmin() || unattendedTransition();
+
+      function unattendedTransition() {
+        let changed = request.resource.data.diff(resource.data).affectedKeys();
+        return changed.hasOnly(['revealed', 'grinderActive', 'grinderName'])
+          && request.resource.data.revealed is bool
+          && request.resource.data.grinderActive is bool
+          && request.resource.data.grinderName is string
+          && request.resource.data.grinderName.size() <= 80;
+      }
     }
+
+    // Guesses — public create with locked schema; NO contact keys allowed
+    // (contact info lives in booth_contact, never here — the hasAny() denial
+    // is deliberate belt-and-braces on top of hasOnly(), so the phone/
+    // instagram leak cannot silently recur if the key list is ever widened).
+    // `ts == request.time` forces serverTimestamp() — client-supplied
+    // timestamps are rejected. Public read (display renders name/guess/ts).
+    // Update denied; delete is operator purge only.
     match /booth_guess/{docId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if validGuess();
+      allow update: if false;
+      allow delete: if isSuperAdmin();
+
+      function validGuess() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['sessionId', 'name', 'guess', 'ts'])
+          && d.keys().hasAll(['sessionId', 'name', 'guess', 'ts'])
+          && !d.keys().hasAny(['phone', 'instagram'])
+          && d.sessionId is string && d.sessionId.size() > 0 && d.sessionId.size() <= 100
+          && d.name is string && d.name.size() > 0 && d.name.size() <= 80
+          && d.guess is int && d.guess > 0 && d.guess <= 100000000
+          && d.ts == request.time
+          // Session must exist, have guessing enabled, and not be revealed —
+          // otherwise a devtools user who read beanCount post-reveal could
+          // snipe a perfect guess after the answer is public. get() on a
+          // missing session errors → deny, so this subsumes exists().
+          && get(/databases/$(database)/documents/booth_sessions/$(d.sessionId)).data.guessEnabled == true
+          && get(/databases/$(database)/documents/booth_sessions/$(d.sessionId)).data.revealed == false;
+      }
     }
+
+    // Participant contact info (split from booth_guess, POA-59) — create-only
+    // for participants (at least one non-empty of phone/instagram, both keys
+    // always present as strings); readable and deletable ONLY by the operator
+    // (export / purge). Never publicly readable, never updatable.
+    // Doc id mirrors the paired booth_guess doc id (written in one batch).
+    match /booth_contact/{docId} {
+      allow read: if isSuperAdmin();
+      allow create: if validContact();
+      allow update: if false;
+      allow delete: if isSuperAdmin();
+
+      function validContact() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['sessionId', 'name', 'phone', 'instagram', 'ts'])
+          && d.keys().hasAll(['sessionId', 'name', 'phone', 'instagram', 'ts'])
+          && d.sessionId is string && d.sessionId.size() > 0 && d.sessionId.size() <= 100
+          && d.name is string && d.name.size() <= 80
+          && d.phone is string && d.phone.size() <= 30
+          && d.instagram is string && d.instagram.size() <= 50
+          && (d.phone.size() > 0 || d.instagram.size() > 0)
+          && d.ts == request.time
+          // Same session-state gate as booth_guess — the two docs commit in
+          // one batch, but each write is evaluated independently, so the
+          // contact path must not be spammable on its own post-reveal.
+          && get(/databases/$(database)/documents/booth_sessions/$(d.sessionId)).data.guessEnabled == true
+          && get(/databases/$(database)/documents/booth_sessions/$(d.sessionId)).data.revealed == false;
+      }
+    }
+
+    // Grinder times — public create with locked schema (timeMs capped at
+    // 24h), public read (operator page renders the recent-times list).
+    // Update denied; delete is operator purge only.
     match /booth_grinder/{docId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if validGrinderEntry();
+      allow update: if false;
+      allow delete: if isSuperAdmin();
+
+      function validGrinderEntry() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['sessionId', 'name', 'timeMs', 'ts'])
+          && d.keys().hasAll(['sessionId', 'name', 'timeMs', 'ts'])
+          && d.sessionId is string && d.sessionId.size() > 0 && d.sessionId.size() <= 100
+          && d.name is string && d.name.size() > 0 && d.name.size() <= 80
+          && d.timeMs is int && d.timeMs > 0 && d.timeMs <= 86400000
+          && d.ts == request.time
+          // grinderEnabled is static session config; grinderActive is NOT
+          // checked — the operator page posts the time after flipping
+          // grinderActive back to false, so gating on it would break posts.
+          && get(/databases/$(database)/documents/booth_sessions/$(d.sessionId)).data.grinderEnabled == true;
+      }
     }
 
     // Org roster (POA-41) — super admin read/write only.

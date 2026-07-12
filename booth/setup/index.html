@@ -35,6 +35,13 @@
   .booth-toggle input:checked + .booth-toggle-slider::before{transform:translateX(18px)}
   .booth-btn-solid-rd{background:var(--rd);color:#fff;border-color:var(--rd)}
   .booth-btn-solid-rd:hover{background:var(--rd-bd);border-color:var(--rd-bd)}
+  .booth-op-bar{display:flex;align-items:center;gap:10px;margin-bottom:var(--space-4);
+    padding:8px 12px;background:var(--gn-bg);border:1px solid var(--gn-bd);
+    border-radius:var(--rad-s);font-size:12.5px;color:var(--ink2)}
+  .booth-op-bar .op-email{font-weight:700;color:var(--gn);flex:1;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
+  .booth-op-bar button{flex-shrink:0}
+  .booth-signin-note{font-size:12.5px;color:var(--ink3);margin-top:var(--space-3);line-height:1.5}
 </style>
 </head>
 <body>
@@ -58,10 +65,12 @@
 <div id="toast-slot"></div>
 
 <script type="module">
-  import { db } from '../../shared/firebase.js';
+  import { db, auth } from '../../shared/firebase.js';
   import { collection, doc, setDoc, getDoc,
            getDocs, query, where, writeBatch, serverTimestamp }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { onAuthStateChanged }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
   const LS_KEY = 'seduh_booth_session';
   const app_el = document.getElementById('app');
@@ -69,8 +78,41 @@
 
   let state = {
     view: 'loading', sessionId: null, sessionData: null, showQR: false, errors: {},
+    auth: 'pending', authEmail: '', isAdmin: false,
     formValues: { sessionId: '', beanCount: '', grinderLabel: '', grinderEnabled: true, guessEnabled: true }
   };
+
+  // Operator gate (POA-59): session create and the danger zone are
+  // super_admin-only in firestore.rules — this page-level gate is UX, not
+  // the security boundary. An /admin/ super_admin session carries over
+  // automatically (Firebase Auth persists per origin); sign-in here is the
+  // fallback, handled by shared/auth.js via the [data-act] convention.
+  onAuthStateChanged(auth, async user => {
+    if (!user) {
+      state.auth = 'out';
+      state.authEmail = '';
+      state.isAdmin = false;
+      render();
+      return;
+    }
+    let token;
+    try {
+      token = await user.getIdTokenResult();
+    } catch (e) {
+      // Transient token-fetch failure (venue wifi) — fall back to the
+      // sign-in view with a retryable message instead of stranding
+      // the operator on "Loading…".
+      state.auth = 'out';
+      render();
+      const errEl = document.getElementById('login-error');
+      if (errEl) errEl.textContent = 'Couldn\'t verify operator access — check your connection and try again.';
+      return;
+    }
+    state.auth = 'in';
+    state.authEmail = user.email || '';
+    state.isAdmin = token.claims.super_admin === true;
+    render();
+  });
 
   function toast(msg) {
     toastSlot.innerHTML = `<div class="booth-toast">${msg}</div>`;
@@ -81,21 +123,85 @@
     return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   }
 
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c =>
+      ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  }
+
   function render() {
-    if (state.view === 'loading') {
+    // Auth gate first — the whole page is operator-only.
+    if (state.auth === 'pending' || (state.auth === 'in' && state.view === 'loading')) {
       app_el.innerHTML = `<div class="hint" style="text-align:center;padding:40px 0">Loading…</div>`;
       return;
     }
+    if (state.auth === 'out') {
+      app_el.innerHTML = renderSignIn();
+      const pass = document.getElementById('org-pass');
+      if (pass) pass.addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.querySelector('[data-act="signin"]')?.click();
+      });
+      return;
+    }
+    if (!state.isAdmin) {
+      app_el.innerHTML = `
+        <div class="card">
+          <div class="card-hdr">Operator access required</div>
+          <div style="padding:var(--space-4)">
+            <p style="font-size:14px;color:var(--ink2);margin-bottom:var(--space-3)">
+              Signed in as <strong>${escapeHtml(state.authEmail)}</strong>, but this account
+              doesn't have booth operator (super admin) access.
+            </p>
+            <button class="btn-o" data-act="signout" style="width:100%">Sign out</button>
+          </div>
+        </div>
+      `;
+      return;
+    }
     if (state.view === 'form') {
-      app_el.innerHTML = renderForm();
+      app_el.innerHTML = opBar() + renderForm();
       bindForm();
       return;
     }
     if (state.view === 'success') {
-      app_el.innerHTML = renderSuccess();
+      app_el.innerHTML = opBar() + renderSuccess();
       bindSuccess();
       return;
     }
+  }
+
+  function opBar() {
+    return `
+      <div class="booth-op-bar">
+        <span>Operator:</span>
+        <span class="op-email">${escapeHtml(state.authEmail)}</span>
+        <button class="btn-o btn-sm" data-act="signout">Sign out</button>
+      </div>
+    `;
+  }
+
+  function renderSignIn() {
+    return `
+      <div class="card">
+        <div class="card-hdr">Operator sign-in</div>
+        <div style="padding:var(--space-4)">
+          <div class="booth-field">
+            <label for="org-email">Email</label>
+            <input id="org-email" type="email" autocomplete="username">
+          </div>
+          <div class="booth-field">
+            <label for="org-pass">Password</label>
+            <input id="org-pass" type="password" autocomplete="current-password">
+          </div>
+          <div id="login-error" class="booth-err" style="margin-bottom:var(--space-3)"></div>
+          <button class="btn-p" data-act="signin" style="width:100%">Sign in</button>
+          <div class="booth-signin-note">
+            Booth setup is operator-only. If you're already signed in to the
+            admin panel in this browser, this page picks that session up
+            automatically — no need to sign in again.
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   function renderForm() {
@@ -185,6 +291,7 @@
 
     const errors = {};
     if (!sessionId) errors.sessionId = 'Session ID is required.';
+    else if (!/^[A-Za-z0-9_-]{1,64}$/.test(sessionId)) errors.sessionId = 'Letters, numbers, dashes and underscores only (max 64).';
     if (guessEnabled && (!beanCountRaw || !Number.isInteger(beanCount) || beanCount <= 0)) errors.beanCount = 'Enter a bean count greater than 0.';
     if (grinderEnabled && !grinderLabel) errors.grinderLabel = 'Grinder label is required.';
     if (!grinderEnabled && !guessEnabled) errors.games = 'At least one game must be enabled.';
@@ -216,7 +323,7 @@
       await withTimeout(setDoc(doc(db, 'booth_sessions', sessionId), sessionDoc), 8000);
     } catch (err) {
       creating = false;
-      state.errors = { create: UNREACHABLE_MSG };
+      state.errors = { create: opErrorMsg(err) };
       render();
       return;
     }
@@ -248,7 +355,7 @@
       <div class="card">
         <div class="card-hdr">Session Active</div>
         <div style="padding:var(--space-4)">
-          <div class="section-title" style="margin-bottom:var(--space-2)">${sid}</div>
+          <div class="section-title" style="margin-bottom:var(--space-2)">${escapeHtml(sid)}</div>
           <div class="hint" style="margin-bottom:var(--space-4)">Active games: ${activeGamesText}</div>
 
           <label style="display:block;font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:700;margin-bottom:6px">Display URL</label>
@@ -314,7 +421,8 @@
   async function fetchSessionSubmissions(sid) {
     const guessQ = query(collection(db, 'booth_guess'), where('sessionId', '==', sid));
     const grinderQ = query(collection(db, 'booth_grinder'), where('sessionId', '==', sid));
-    return Promise.all([getDocs(guessQ), getDocs(grinderQ)]);
+    const contactQ = query(collection(db, 'booth_contact'), where('sessionId', '==', sid));
+    return Promise.all([getDocs(guessQ), getDocs(grinderQ), getDocs(contactQ)]);
   }
 
   function tsToIso(ts) {
@@ -323,7 +431,18 @@
 
   async function onExportData() {
     const sid = state.sessionId;
-    const [guessSnap, grinderSnap] = await fetchSessionSubmissions(sid);
+    let guessSnap, grinderSnap, contactSnap;
+    try {
+      [guessSnap, grinderSnap, contactSnap] = await fetchSessionSubmissions(sid);
+    } catch (err) {
+      toast(opErrorMsg(err));
+      return;
+    }
+
+    // Contact docs share their paired guess doc's id (POA-59 split) —
+    // rejoin here; legacy pre-split guesses fall back to embedded fields.
+    const contacts = {};
+    contactSnap.forEach(d => { contacts[d.id] = d.data(); });
 
     const exportObj = {
       exportedAt: new Date().toISOString(),
@@ -336,7 +455,13 @@
       },
       guesses: guessSnap.docs.map(d => {
         const g = d.data();
-        return { name: g.name, guess: g.guess, phone: g.phone || '', instagram: g.instagram || '', ts: tsToIso(g.ts) };
+        const c = contacts[d.id] || {};
+        return {
+          name: g.name, guess: g.guess,
+          phone: c.phone || g.phone || '',
+          instagram: c.instagram || g.instagram || '',
+          ts: tsToIso(g.ts)
+        };
       }),
       grinderEntries: grinderSnap.docs.map(d => {
         const g = d.data();
@@ -358,21 +483,43 @@
     toast('Data exported.');
   }
 
+  function opErrorMsg(err) {
+    if (err && err.code === 'permission-denied') {
+      return 'Permission denied — this account doesn\'t have booth operator access.';
+    }
+    return UNREACHABLE_MSG;
+  }
+
+  async function purgeSubmissions(sid) {
+    const [guessSnap, grinderSnap, contactSnap] = await fetchSessionSubmissions(sid);
+    const refs = [
+      ...guessSnap.docs.map(d => d.ref),
+      ...grinderSnap.docs.map(d => d.ref),
+      ...contactSnap.docs.map(d => d.ref)
+    ];
+    // Firestore batches cap at 500 ops — a busy session (guess + contact =
+    // 2 docs per player) clears that at ~250 players, so chunk the deletes.
+    for (let i = 0; i < refs.length; i += 450) {
+      const batch = writeBatch(db);
+      refs.slice(i, i + 450).forEach(ref => batch.delete(ref));
+      await batch.commit();
+    }
+  }
+
   async function onResetData() {
     const sid = state.sessionId;
     const ok = confirm(`This will permanently delete all submissions for session ${sid}. Session config and settings are preserved. Are you sure?`);
     if (!ok) return;
 
-    const [guessSnap, grinderSnap] = await fetchSessionSubmissions(sid);
-
-    const batch = writeBatch(db);
-    guessSnap.forEach(d => batch.delete(d.ref));
-    grinderSnap.forEach(d => batch.delete(d.ref));
-    await batch.commit();
-
-    await setDoc(doc(db, 'booth_sessions', sid), {
-      revealed: false, grinderActive: false, grinderName: ''
-    }, { merge: true });
+    try {
+      await purgeSubmissions(sid);
+      await setDoc(doc(db, 'booth_sessions', sid), {
+        revealed: false, grinderActive: false, grinderName: ''
+      }, { merge: true });
+    } catch (err) {
+      toast(opErrorMsg(err));
+      return;
+    }
 
     toast('Session data cleared. Ready for next run.');
   }
@@ -382,12 +529,17 @@
     const ok = confirm(`This will delete all submissions and end the current session. You will need to create a new session to continue. Are you sure?`);
     if (!ok) return;
 
-    const [guessSnap, grinderSnap] = await fetchSessionSubmissions(sid);
-
-    const batch = writeBatch(db);
-    guessSnap.forEach(d => batch.delete(d.ref));
-    grinderSnap.forEach(d => batch.delete(d.ref));
-    await batch.commit();
+    try {
+      await purgeSubmissions(sid);
+      // Actually end it: delete the session doc so bookmarked guess/display/
+      // grinder URLs go dead and the rules' session-state gates deny writes.
+      const endBatch = writeBatch(db);
+      endBatch.delete(doc(db, 'booth_sessions', sid));
+      await endBatch.commit();
+    } catch (err) {
+      toast(opErrorMsg(err));
+      return;
+    }
 
     localStorage.removeItem(LS_KEY);
     location.reload();
@@ -413,5 +565,6 @@
 
   boot();
 </script>
+<script type="module" src="../../shared/auth.js"></script>
 </body>
 </html>

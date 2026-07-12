@@ -931,6 +931,10 @@
       cacheBanner.classList.remove('on');
       guesses = snap.docs.map(d => ({ id: d.id, ...d.data(), ts: d.data().ts ? d.data().ts.toMillis() : 0 }));
       trackArrivals();
+      if (phase === 'done') {           // guesses may arrive after a cold boot into revealed state
+        winnerId = computeWinner();
+        showWinnerBanner();
+      }
       renderAll();
       persistCache();
     }, onListenError));

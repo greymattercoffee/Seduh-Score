@@ -2,6 +2,99 @@
 
 ---
 
+## [5.10.2-booth.3] — POA-59: booth_* Firestore rules hardened, operator auth on setup · July 2026
+
+Implements the locked POA-59 scope (Strategy-reviewed): participants
+stay unauthenticated with schema-locked writes; the operator is the
+authenticated party. Rules built and verified against the emulator
+suite; **not yet deployed to production** — see the deploy runbook in
+PLAN_OF_ACTION.md POA-59.
+
+### firestore.rules
+
+- **booth_guess** — create: exact-key schema (`sessionId`/`name`/`guess`/
+  `ts` via `hasOnly`+`hasAll`), type checks, length caps (name ≤80,
+  sessionId ≤100), guess int 1–100,000,000, `ts == request.time`
+  (forces `serverTimestamp()`), explicit `!hasAny(['phone','instagram'])`
+  belt-and-braces, and **session-state gates** — the referenced
+  `booth_sessions` doc must exist with `guessEnabled == true` and
+  `revealed == false` (closes the review-found snipe: beanCount is
+  readable in the public session doc, so post-reveal submissions had to
+  be rules-impossible, not just UI-hidden). Read open (display), update
+  denied, delete super_admin only
+- **booth_contact (new collection)** — participant contact info split out
+  of `booth_guess`; create-only for participants (at least one non-empty
+  of phone ≤30 / instagram ≤50, same session-state gates as booth_guess),
+  read/delete super_admin only, never publicly readable
+- **booth_sessions** — read open; create/delete/full-update super_admin;
+  unauthenticated updates restricted to the two unattended-page
+  transitions (`revealed`; `grinderActive`/`grinderName` ≤80), type-
+  checked via `diff().affectedKeys().hasOnly()` — documented accepted risk
+- **booth_grinder** — create-only with schema (timeMs int ≤24h,
+  `ts == request.time`, session must exist with `grinderEnabled == true`;
+  deliberately NOT gated on `grinderActive` — the operator page posts the
+  time after flipping it back false), read open, delete super_admin only
+
+### booth/guess/index.html
+
+- guess submission now writes two docs in one `writeBatch`: the public
+  `booth_guess` doc (no contact keys) and a paired `booth_contact` doc
+  sharing the same id; client-side caps mirror the rules
+
+### booth/setup/index.html
+
+- loads `shared/auth.js`; whole page is operator-gated (UX only — the
+  rules are the security boundary): sign-in view when signed out
+  (an /admin/ super_admin session carries over per-origin automatically),
+  "operator access required" view for non-admin accounts, operator bar
+  with sign-out when in; token-fetch failure falls back to sign-in with
+  a retry message instead of stranding on "Loading…" (review finding)
+- Export Data joins `booth_contact` back by doc id (legacy embedded
+  fields still fall back); Reset Data / End Session purge contact docs
+  alongside guesses and grinder entries; permission-denied errors get
+  their own message
+- **fix (review finding, stored XSS):** session ID is now HTML-escaped in
+  the success view (it was interpolated raw — an operator-typed payload
+  would persist in Firestore and re-execute in any later super_admin
+  session that opened setup); session IDs additionally restricted to
+  `[A-Za-z0-9_-]{1,64}` at creation; operator email escaping switched to
+  a proper HTML-content escaper
+- **fix (review finding):** purge deletes are chunked at 450 ops —
+  a single `writeBatch` caps at 500, which a busy session (2 docs per
+  player) clears at ~250 players
+- **fix (review finding):** End Session now actually ends the session —
+  the `booth_sessions` doc is deleted, so bookmarked participant URLs go
+  dead and the rules' session-state gates deny any further writes
+  (previously the doc lived on and accepted new submissions forever)
+
+### booth/display/guess/index.html
+
+- **fix:** winner banner now populates on cold-boot into an
+  already-revealed session (guesses snapshot can arrive after the
+  session snapshot; banner was skipped)
+
+### Verification (Firestore + Auth emulators, seeded super_admin)
+
+Operator flow: sign-in → create session → export (contact join) →
+reset (all three collections purged, flags reset) — all pass.
+Participant flow: guess submit lands a clean `booth_guess` +
+paired `booth_contact`. 8-case REST denial matrix passed: contact
+read unauth ✗, guess create with phone key ✗, guess update ✗, guess
+delete ✗, session create ✗, session update non-transition field ✗,
+grinder create with client timestamp ✗, session update revealed-only ✓.
+Session-state gates isolated via commit-endpoint transform tests:
+bogus session ✗, post-reveal create ✗, guessEnabled:false create ✗,
+pre-reveal create ✓, grinder create with grinderEnabled ✓.
+Security-rules audit (4/5) plus a code-review pass; all review
+findings fixed in this entry. Residual flagged decision in POA-59:
+`beanCount` remains readable pre-reveal in the public session doc —
+with post-reveal submissions now rules-impossible, the remaining
+impact is a devtools user guessing dead-on *before* the reveal
+(suspicious but not provably cheating; accepted-risk vs reveal-time
+publication still an open product call).
+
+---
+
 ## [docs] — KB recon: booth is live-but-unlisted, POA-59 in progress · July 2026
 
 Pre-POA-59 recon. Mechanical stamp check clean (all Tier A docs at
