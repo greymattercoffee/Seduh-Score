@@ -2,6 +2,25 @@
 
 ---
 
+## [5.10.2-booth.4] — Fix: reveal fanfare never played (autoplay policy) · July 2026
+
+The real `booth/assets/reveal.mp3` (replacing the placeholder) stayed
+silent at reveal. Root cause: the display created the `Audio` element
+and called `.play()` ~4s after the trigger keypress (post countdown +
+dot flight) with the rejection swallowed by an empty `.catch()` —
+browsers can refuse un-gestured playback at that point, silently.
+
+- `booth/display/guess/index.html` — fanfare element is now preloaded at
+  boot and **primed on the first user gesture** (muted play/pause during
+  a real keypress/tap whitelists the element, matching `shared/sound.js`'s
+  unlock-on-gesture convention), then replayed un-muted at reveal;
+  `?v=2` on the URL busts any cached placeholder; failures now log a
+  console warning with the unlock instruction instead of vanishing
+- Verified: instrumented `HTMLMediaElement.play` in the browser — muted
+  prime resolves on the trusted gesture, un-muted reveal play resolves
+
+---
+
 ## [5.10.2-booth.3] — POA-59: booth_* Firestore rules hardened, operator auth on setup · July 2026
 
 Implements the locked POA-59 scope (Strategy-reviewed): participants

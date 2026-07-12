@@ -642,6 +642,33 @@
     winnerBanner.classList.add('on');
   }
 
+  // Reveal fanfare — preloaded at boot (not fetched at the moment of glory)
+  // and "primed" on the first user gesture: browsers refuse un-gestured
+  // play(), and the reveal fires ~4s after the trigger keypress, past some
+  // browsers' activation window. A muted play/pause during a real gesture
+  // whitelists the element for the later un-muted play. ?v=2 busts any
+  // cached copy of the old placeholder file.
+  const revealAudio = new Audio('../../assets/reveal.mp3?v=2');
+  revealAudio.preload = 'auto';
+  let audioPrimed = false;
+
+  function primeAudio() {
+    if (audioPrimed) return;
+    audioPrimed = true;
+    revealAudio.muted = true;
+    revealAudio.play().then(() => {
+      revealAudio.pause();
+      revealAudio.currentTime = 0;
+      revealAudio.muted = false;
+    }).catch(() => {
+      revealAudio.muted = false;
+      audioPrimed = false;              // gesture didn't take — retry on the next one
+    });
+  }
+
+  document.addEventListener('keydown', primeAudio);
+  document.addEventListener('pointerdown', primeAudio);
+
   function fireConfettiAndSound() {
     if (typeof confetti === 'function') {
       const colors = ['#f5a623', '#ffb84d', '#3ddc97', '#ffffff', '#d97706'];
@@ -649,9 +676,11 @@
       setTimeout(() => confetti({ particleCount: 70, angle: 60,  spread: 60, origin: { x: 0, y: .7 }, colors }), 350);
       setTimeout(() => confetti({ particleCount: 70, angle: 120, spread: 60, origin: { x: 1, y: .7 }, colors }), 550);
     }
-    // TODO: replace booth/assets/reveal.mp3 with real fanfare before deployment
-    const audio = new Audio('../../assets/reveal.mp3');
-    audio.play().catch(() => {});
+    revealAudio.currentTime = 0;
+    revealAudio.play().catch(err => {
+      console.warn('[booth] reveal sound blocked:', err && err.name,
+        '— tap or click the display once before revealing to unlock audio');
+    });
   }
 
   /* ── Side panel ── */
