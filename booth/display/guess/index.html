@@ -562,7 +562,7 @@
   function startRevealSequence() {
     phase = 'countdown';
     countdownEl.classList.add('on');
-    const cdNum = document.getElementById('cd-num');
+    let cdNum = document.getElementById('cd-num');
     let n = 3;
     const tick = () => {
       if (n === 0) {
@@ -575,7 +575,9 @@
       const fresh = cdNum.cloneNode();               // restart the pop animation
       fresh.textContent = String(n);
       cdNum.replaceWith(fresh);
-      fresh.id = 'cd-num';
+      cdNum = fresh;                                  // track the live node —
+      // replaceWith() on a detached (already-replaced) node silently no-ops,
+      // which is why "3" used to freeze on screen through "2" and "1"
       n--;
       setTimeout(tick, 780);
     };
