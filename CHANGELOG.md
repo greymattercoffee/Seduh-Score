@@ -2,6 +2,36 @@
 
 ---
 
+## [docs] — KB recon: POA-59 deploy status propagated to all six referencing docs · July 2026
+
+Mechanical stamp check clean (v5.10.2 anchor). Read-through found the
+same status drift repeated six times: POA-59's ticket detail was
+updated correctly each time it progressed (built → deployed →
+checklist run), but six other references to it never got the
+follow-through edit, so they still described an in-progress/pending
+state that was no longer true.
+
+- **PLAN_OF_ACTION.md** — NEXT UP and PARALLEL/NON-BLOCKING blocks
+  still listed POA-59 as in-progress with exposure live; POA-59's own
+  operator-flow checklist itemized against what was actually run live
+  this session (`Live_Test01`) vs what's still open (Export Data never
+  triggered; post-reveal write-denial and the dead-URL landing screen
+  got superseded by a reset→recreate sequence before they could be
+  captured)
+- **ROADMAP.md** — Booth Games row still warned rules were "currently
+  fully open... must be hardened"
+- **STRATEGY.md** — Firestore security row said "Built &
+  emulator-verified," no mention of the actual production deploy
+- **CLAUDE.md**, **CONVENTIONS.md** (×2) — "rules hardening POA-59 in
+  progress" / "pending production deploy" in the directory tree and
+  Firebase live-stack table
+
+Also fixed: an earlier edit had silently dropped the `## [deploy]`
+header from this file, merging two distinct entries into one
+mislabeled block — restored (commit `f187aa0`, this recon).
+
+---
+
 ## [5.10.2-booth.5] — Fix: reveal countdown froze on "3" (never showed 2 or 1) · July 2026
 
 Found during production checklist verification: the countdown visibly
@@ -26,6 +56,10 @@ Found via the production operator-flow checklist (POA-59) — the reveal
 sound fix, the split-batch write, and this bug were all invisible to
 the emulator/REST rule testing since they're pure client-side timing
 and DOM behavior, not permission logic.
+
+---
+
+## [deploy] — POA-59 booth rules + hosting released to production · July 2026
 
 Executed the POA-59 deploy runbook. Pre-deploy purge of `booth_sessions`/
 `booth_guess`/`booth_grinder` on `seduh-score` production (all three
