@@ -26,7 +26,12 @@ seduh-score/
 ├── pitch/index.html            ← unlisted investor/customer pitch page (POA-52, v5.8.0)
 ├── onboard/index.html          ← public org onboarding intake form (POA-47, v5.9.0)
 ├── booth/                      ← mini-games: setup/, display/, guess/, grinder/ (v5.3.0-booth+).
-│                                  In repo, not yet publicly deployed — target Oct 2026 per STRATEGY.md
+│                                 Guess pages support ?demo=1 — self-running fake data,
+│                                 zero Firestore traffic (v5.10.2-booth).
+│                                 Live but unlisted — booth/ was never in the Hosting
+│                                 ignore list, so it ships with every deploy (confirmed
+│                                 reachable July 2026). First event use target Oct 2026
+│                                 per STRATEGY.md; rules hardening POA-59 in progress.
 └── shared/                     ← loaded by every module
     ├── theme.css
     ├── storage.js
@@ -34,7 +39,9 @@ seduh-score/
     ├── auth.js                 ← v4.8+ Firebase auth state + Gates.init()
     ├── audience.js
     ├── eventconfig.js          ← v4.7+ organiser customisation component
-    ├── firebase.js             ← v4.8+ Firebase SDK init (app/auth/Firestore/Storage)
+    ├── firebase.js             ← v4.8+ Firebase SDK init (app/auth/Firestore/Storage).
+    │                              Consumers: admin, onboard, booth (v5.10.2-booth —
+    │                              booth previously duplicated its own init)
     ├── pdf.js                  ← v5.4+ shared PDF export module (MUA-07, BBTC pilot)
     ├── sound.js                ← synthesised timer/reveal audio cues (no audio files); used by
     │                              bbtc/index.html, liga/index.html, timer/index.html
@@ -712,11 +719,27 @@ Commit message types: `feat`, `fix`, `docs`, `refactor`
 
 ### Releasing to live
 
+**There is no auto-deploy.** This repo has no `.github/workflows/` — merging
+`dev` → `main` only updates the `main` branch on GitHub. Every service
+(Hosting, Functions, Storage, Firestore) requires its own explicit
+`firebase deploy` after merge, or the merged code silently never reaches
+production. This gap actually happened in July 2026: PR #21's onboarding
+form merged to `main` cleanly, but `onboard/index.html` wasn't reachable
+live until `firebase deploy --only hosting` was run separately and verified
+against `firebase hosting:channel:list`'s release timestamp.
+
 When a version is ready:
 1. Open a Pull Request on GitHub — `dev` → `main`
 2. Review the diff
 3. Merge
-4. Firebase Hosting picks up the new `main` automatically — live within ~60 seconds
+4. **Deploy checklist — run every item touched by the merged diff, none are automatic:**
+   - `firebase deploy --only hosting` — any change under `/`, any module `index.html`, `shared/`
+   - `firebase deploy --only functions` — any change under `functions/`
+   - `firebase deploy --only storage` — any change to `storage.rules`
+   - `firebase deploy --only firestore` — any change to `firestore.rules` or `firestore.indexes.json`
+5. Verify: `firebase hosting:channel:list` for Hosting's release timestamp; the
+   Firebase Console → Functions/Storage tabs for the other services. A merged
+   PR is not a shipped release until this step confirms it.
 
 ### Setting up the dev branch (once, on desktop)
 ```powershell
@@ -731,6 +754,59 @@ Firebase project: `seduh-score` · console.firebase.google.com
 
 ---
 
+## Firebase Emulator Suite (local dev) — since July 2026
+
+Reusable local-testing infrastructure, first built to verify POA-47/56/57/58
+end-to-end without touching production data. Auth, Firestore, Functions, and
+Storage emulators — configured in `firebase.json`'s `emulators` block:
+
+| Emulator | Port |
+|---|---|
+| Auth | 9099 |
+| Functions | 5001 |
+| Firestore | 8080 |
+| Storage | 9199 |
+| Emulator UI | 4000 |
+
+**Start the suite:** `firebase emulators:start` from the repo root.
+
+**Connection guard (`shared/firebase.js`):** gated on
+`location.hostname === 'localhost' || location.hostname === '127.0.0.1'` —
+the live site and every Firebase Hosting preview channel resolve to
+`seduhscore.com` or `*.web.app`/`*.firebaseapp.com`, never `localhost`, so
+this can never misfire in production. When the guard is live, all four SDK
+instances (`auth`, `db`, `storage`, `getFunctions(app)`) connect to the local
+emulators instead of the live project — no other file needs to change,
+since the Functions SDK caches one instance per `(app, region)`.
+
+As of v5.10.2-booth this includes the four Firebase-using booth pages
+(`setup`, `guess`, `grinder`, `display/guess`) — they import `db` from
+`shared/firebase.js` (Firestore functions pinned to the same SDK version,
+10.12.0) instead of duplicating their own `initializeApp`. Consequence:
+booth pages served locally (e.g. `npx serve` on `localhost`) now talk to
+the **emulator**, not production — start `firebase emulators:start` when
+exercising booth flows locally, or use `?demo=1` on the guess pages, which
+needs no backend at all.
+
+**Seeding a test admin:** `scripts/emulator-seed-admin.js` creates (or
+reuses) a `super_admin` test user against the Auth emulator, for signing
+into `admin/index.html` locally. Refuses to run unless
+`FIREBASE_AUTH_EMULATOR_HOST` is set — never touches production. Run with
+the emulators already up:
+```
+FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
+GCLOUD_PROJECT=seduh-score NODE_PATH=./functions/node_modules \
+node scripts/emulator-seed-admin.js
+```
+Prints the seeded test email/password/uid to sign in with.
+
+**Reuse for future tickets:** this is standing infrastructure, not a
+one-off for POA-47/56/57/58 — any future ticket touching Auth, Firestore,
+Functions, or Storage should verify against the emulator suite before
+`firebase deploy` to production, the same pattern used for that work.
+
+---
+
 ## Firebase — live stack (v4.8.0+)
 
 Firebase project: `seduh-score` · console.firebase.google.com
@@ -739,7 +815,7 @@ Firebase project: `seduh-score` · console.firebase.google.com
 |---|---|---|
 | Hosting | ✅ Live (v4.3+) | Custom domain seduhscore.com via Cloudflare. `firebase.json` also wires `redirects` (`/` → `/coming-soon/`, v5.3.3) |
 | Auth — Email/Password | ✅ Live (v4.8+) | `shared/firebase.js` + `shared/auth.js` |
-| Firestore rules | ✅ Live (v4.8+) | `firestore.rules`; `platform/switches` doc, `slideshow`, `upcoming_events`, `booth_sessions`/`booth_guess`/`booth_grinder`, `throwdown_records` (v5.5.0, POA-40) collections |
+| Firestore rules | ✅ Live (v4.8+) | `firestore.rules`; `platform/switches` doc, `slideshow`, `upcoming_events`, `booth_sessions`/`booth_guess`/`booth_grinder`, `throwdown_records` (v5.5.0, POA-40) collections. Booth hardening + new `booth_contact` collection (v5.10.2-booth.3, POA-59) built & emulator-verified — **pending production deploy**, runbook in PLAN_OF_ACTION.md POA-59 |
 | Firestore indexes | ✅ Live (v5.3.1-booth+) | `firestore.indexes.json` — composite indexes for `booth_guess` (sessionId+ts) and `booth_grinder` (sessionId+timeMs); wired into `firebase.json`'s `"firestore"` block alongside rules |
 | Storage | ✅ Live (v4.8.1+) | Slideshow images; org logos (future) |
 | Storage rules | ✅ Live (v5.3.1-rules+) | `storage.rules` (repo file, not console-only) — mirrors Firestore's `super_admin`-write pattern; covers `slideshow/` and `upcoming_events/`; wired into `firebase.json`'s `"storage"` block |
@@ -816,6 +892,9 @@ The v4.1 design system (built in Claude Design, integrated June 2026) formalised
 - Sentence case everywhere; mono eyebrows/labels are the only UPPERCASE.
 - Second person to the organiser ("Your changes save to this device").
 - Em-dashes for rhythm. Emoji only as functional category glyphs (☕ ⚡ 🏆 ⏱ 📺), never in body copy.
+  **Scoped exception (v5.10.2-booth):** booth mini-games deliberately run a playful register —
+  emoji in body copy is allowed under `booth/` only. Never import this register into
+  organiser- or judge-facing modules.
 - Warm, plain, confident — never corporate, never hype.
 
 ### Design-session regression guard (updated)
@@ -963,7 +1042,18 @@ Before starting work in a new session — **all session types: Strategy, Code, D
 
 ---
 
-*Last updated: July 2026 — v5.10.2 (POA-58 banner fix): Gates internal-methods list adds
+*Last updated: July 2026 — v5.10.2-booth pass (Guess the Bean visual overhaul + booth
+Firebase consolidation): Voice section gains the scoped booth emoji exception; directory
+tree notes `?demo=1` on the guess pages and lists booth as a `firebase.js` consumer;
+Emulator section documents the localhost consequence for booth pages (they now hit the
+emulator locally, not production). Prior pass — KB reconciliation (post PR #21 merge + deploy): corrected
+the "Firebase Hosting picks up main automatically" claim under "Releasing to live" — no
+`.github/workflows/` exists, every service needs its own explicit `firebase deploy`, now
+written as an explicit post-merge checklist; this gap caused a real deploy delay for the
+PR #21 onboarding form. New "Firebase Emulator Suite (local dev)" section documents the
+emulator ports, `shared/firebase.js` connection guard, and `scripts/emulator-seed-admin.js`
+as reusable infrastructure for future tickets, not a one-off for POA-47/56/57/58. Prior
+pass — v5.10.2 (POA-58 banner fix): Gates internal-methods list adds
 `Gates.getStartTime()`. Prior pass — v5.10.1 (POA-57, legacy Org Management panel removal): Cloud Functions
 section drops `setOrgClaims`/`getOrgByEmail` (removed, dead code) and notes the removal. Prior pass
 — v5.10.0 (access-window enforcement + POA-56 + Bug A): Gates section

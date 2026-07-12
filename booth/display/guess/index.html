@@ -8,49 +8,180 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
+  /* Booth stage palette — page-local tokens for the dark display screen.
+     Semantic hues follow the platform contract: amber = brand, green = winners. */
+  :root{
+    --st-bg0:#1a1108; --st-bg1:#231506;
+    --st-ink:#f7efe3; --st-ink2:#cdb99b; --st-ink3:#93805f;
+    --st-am:#ffb84d; --st-am-deep:#f5a623;
+    --st-am-glow:rgba(245,166,35,.45);
+    --st-gn:#3ddc97; --st-gn-glow:rgba(61,220,151,.45);
+    --st-line:rgba(240,170,80,.14);
+    --st-panel:rgba(255,255,255,.03);
+  }
+
   html, body{height:100%;overflow:hidden}
-  #booth-main{display:flex;flex-direction:column;height:100vh}
+  body{
+    background:radial-gradient(120% 90% at 50% 0%, var(--st-bg1) 0%, var(--st-bg0) 62%, #120b04 100%);
+    color:var(--st-ink);
+  }
+
+  #ambient{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+  #booth-main{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh}
+
+  /* ── Header ── */
+  #stage-hdr{flex:0 0 auto;display:flex;align-items:center;gap:16px;
+    padding:14px 26px;border-bottom:1px solid var(--st-line)}
+  .st-mark{width:34px;height:34px;color:var(--st-am);flex:0 0 auto}
+  .st-brand{font-family:var(--font-mono);font-size:11px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--st-ink3);font-weight:700}
+  .gt-title{flex:1;text-align:center;font-family:var(--font-display);font-weight:800;
+    font-size:clamp(22px,3vw,38px);letter-spacing:-.02em;text-transform:uppercase;
+    background:linear-gradient(100deg,var(--st-am) 20%,#fff3dc 40%,var(--st-am) 60%);
+    background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:gt-shimmer 6s linear infinite}
+  @keyframes gt-shimmer{to{background-position:-200% 0}}
+  #live-pill{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);
+    font-size:12px;font-weight:700;letter-spacing:.14em;padding:6px 14px;
+    border-radius:var(--rad-pill);border:1px solid var(--st-gn);color:var(--st-gn)}
+  #live-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--st-gn);
+    animation:live-blink 1.6s ease-in-out infinite}
+  @keyframes live-blink{0%,100%{opacity:1;box-shadow:0 0 8px var(--st-gn-glow)}50%{opacity:.35}}
+  #live-pill.results{border-color:var(--st-am);color:var(--st-am)}
+  #live-pill.results .dot{background:var(--st-am);animation:none}
+
+  /* ── Content ── */
   #content-area{flex:1 1 auto;display:flex;flex-direction:row;min-height:0}
-  #bullseye-section{flex:3 1 0;display:flex;align-items:center;justify-content:center;min-height:0;position:relative;padding:var(--space-4)}
-  #bullseye{max-width:100%;max-height:100%}
-  #bullseye-center-val{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-    font-family:var(--font-mono);font-weight:800;font-size:36px;color:var(--ink);pointer-events:none}
-  #prox-section{flex:2 1 0;overflow-y:auto;padding:var(--space-4) var(--space-5);min-height:0;
-    border-left:1px solid var(--border);display:flex;flex-direction:column}
-  .booth-prox-eyebrow{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.1em;
-    text-transform:uppercase;color:var(--ink3);font-weight:700;margin-bottom:var(--space-3);flex-shrink:0}
-  .booth-prox-row{display:flex;align-items:center;gap:12px;padding:6px 0;font-size:15px}
-  .booth-prox-row.winner{color:var(--gn);background:var(--gn-bg);border-radius:var(--rad-s);padding:6px 10px}
-  .booth-prox-bar{font-family:var(--font-mono);letter-spacing:1px;color:var(--am)}
-  .booth-prox-name{flex:1;font-weight:600}
+  #stage-sec{flex:3 1 0;display:flex;align-items:center;justify-content:center;
+    min-height:0;min-width:0;position:relative;padding:var(--space-4)}
+  #stage-wrap{position:relative}
+  #bullseye{display:block;width:100%;height:100%}
 
-  #booth-footer{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
-    border-top:1px solid var(--border);padding:var(--space-3) var(--space-5)}
-  #qr-footer{display:flex;align-items:center;gap:10px;transition:opacity .4s}
+  #stage-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    text-align:center;pointer-events:none}
+  #center-q{font-family:var(--font-display);font-weight:800;color:var(--st-am);
+    font-size:clamp(64px,11vh,130px);line-height:1;
+    text-shadow:0 0 34px var(--st-am-glow);animation:q-pulse 2.6s ease-in-out infinite}
+  @keyframes q-pulse{0%,100%{opacity:.85;transform:scale(1)}50%{opacity:.45;transform:scale(.92)}}
+  #center-num{display:none;font-family:var(--font-mono);font-weight:800;color:var(--st-ink);
+    font-size:clamp(48px,9vh,104px);line-height:1;text-shadow:0 0 30px var(--st-am-glow)}
+  #center-label{display:none;font-family:var(--font-mono);font-size:12px;font-weight:700;
+    letter-spacing:.24em;text-transform:uppercase;color:var(--st-am);margin-top:6px}
+
+  /* Winner spotlight */
+  #winner-banner{position:absolute;left:50%;bottom:3%;transform:translateX(-50%) translateY(36px);
+    opacity:0;transition:opacity .6s ease,transform .6s cubic-bezier(.2,1.4,.4,1);
+    text-align:center;padding:16px 34px;border-radius:var(--rad);
+    background:rgba(16,42,30,.88);border:1.5px solid var(--st-gn);
+    box-shadow:0 0 48px var(--st-gn-glow);pointer-events:none}
+  #winner-banner.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .wb-label{font-family:var(--font-mono);font-size:11px;font-weight:700;
+    letter-spacing:.24em;text-transform:uppercase;color:var(--st-gn)}
+  .wb-name{font-family:var(--font-display);font-weight:800;font-size:clamp(26px,4.5vh,46px);
+    color:#fff;line-height:1.15;margin:2px 0}
+  .wb-detail{font-family:var(--font-mono);font-size:clamp(12px,1.8vh,15px);color:var(--st-ink2)}
+
+  /* ── Side panel ── */
+  #prox-section{flex:2 1 0;min-height:0;min-width:0;display:flex;flex-direction:column;
+    border-left:1px solid var(--st-line);padding:var(--space-4) var(--space-5)}
+  .booth-prox-eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--st-ink3);font-weight:700;
+    margin-bottom:var(--space-3);flex-shrink:0;display:flex;align-items:center;gap:10px}
+  .booth-prox-eyebrow::after{content:'';flex:1;height:1px;background:var(--st-line)}
+  #prox-list{flex:1;overflow-y:auto;min-height:0}
+
+  .feed-row{display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:8px;
+    border-radius:var(--rad-s);background:var(--st-panel);
+    border:1px solid rgba(240,170,80,.08);font-size:clamp(14px,1.9vh,18px)}
+  .feed-row.in{animation:row-in .55s cubic-bezier(.2,1.2,.4,1) both}
+  @keyframes row-in{from{opacity:0;transform:translateX(28px) scale(.96)}}
+  .feed-bean{flex:0 0 auto;filter:drop-shadow(0 0 6px var(--st-am-glow))}
+  .feed-name{font-weight:700;color:var(--st-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .feed-phrase{color:var(--st-ink3);font-size:.82em;margin-left:auto;white-space:nowrap}
+  .feed-empty{color:var(--st-ink3);font-size:15px;padding:18px 4px;line-height:1.6}
+
+  .res-row{display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:8px;
+    border-radius:var(--rad-s);background:var(--st-panel);
+    border:1px solid rgba(240,170,80,.08);font-size:clamp(14px,1.9vh,18px);
+    animation:row-in .55s cubic-bezier(.2,1.2,.4,1) both}
+  .res-row.winner{background:rgba(61,220,151,.1);border-color:var(--st-gn);
+    box-shadow:0 0 22px rgba(61,220,151,.16)}
+  .res-rank{flex:0 0 30px;height:30px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;font-family:var(--font-mono);font-weight:700;font-size:13px;
+    background:rgba(255,255,255,.06);color:var(--st-ink2)}
+  .res-row.winner .res-rank{background:var(--st-gn);color:#0c2318}
+  .res-name{flex:1;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .res-delta{font-family:var(--font-mono);font-weight:700;color:var(--st-am)}
+  .res-row.winner .res-delta{color:var(--st-gn)}
+
+  /* ── Footer ── */
+  #booth-footer{flex:0 0 auto;display:flex;align-items:center;gap:26px;
+    border-top:1px solid var(--st-line);padding:14px 26px}
+  #qr-footer{display:flex;align-items:center;gap:16px;transition:opacity .4s}
   #qr-footer.hidden{opacity:0;pointer-events:none}
-  #qr-container{width:96px;height:96px}
-  .booth-qr-label{font-family:var(--font-mono);font-size:var(--fs-label);letter-spacing:.08em;
-    text-transform:uppercase;color:var(--ink3);font-weight:700}
-  #participant-count{font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--ink2)}
+  #qr-card{background:#fff;padding:9px;border-radius:12px;line-height:0;
+    animation:qr-pulse 2.4s ease-in-out infinite}
+  @keyframes qr-pulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(245,166,35,0),0 0 22px rgba(245,166,35,.22)}
+    50%{box-shadow:0 0 0 6px rgba(245,166,35,.14),0 0 44px rgba(245,166,35,.5)}}
+  #qr-container{width:112px;height:112px}
+  .qr-cta{display:flex;flex-direction:column;gap:4px}
+  .qr-cta-main{font-family:var(--font-display);font-weight:800;font-size:clamp(17px,2.4vh,24px);
+    text-transform:uppercase;letter-spacing:.02em;color:var(--st-am);display:flex;align-items:center;gap:8px}
+  .qr-cta-main .arr{display:inline-block;animation:arr-bounce 1.2s ease-in-out infinite}
+  @keyframes arr-bounce{0%,100%{transform:translateX(0)}50%{transform:translateX(6px)}}
+  .qr-cta-sub{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--st-ink3);font-weight:700}
 
+  #tagline{flex:1;text-align:center;font-family:var(--font-display);font-weight:600;
+    font-size:clamp(15px,2.4vh,22px);color:var(--st-ink2);
+    opacity:1;transition:opacity .5s ease}
+  #tagline.fading{opacity:0}
+
+  #participant-count{text-align:right}
+  #count-num{display:block;font-family:var(--font-mono);font-weight:800;
+    font-size:clamp(26px,4.6vh,44px);line-height:1;color:var(--st-am)}
+  #count-num.bump{animation:count-bump .55s ease-out}
+  @keyframes count-bump{30%{transform:scale(1.3);color:#fff;text-shadow:0 0 24px var(--st-am-glow)}}
+  #count-label{font-family:var(--font-mono);font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--st-ink3);font-weight:700}
+
+  /* ── Countdown overlay ── */
+  #countdown{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    background:rgba(14,9,3,.78);z-index:200}
+  #countdown.on{display:flex}
+  #cd-num{font-family:var(--font-display);font-weight:800;color:var(--st-am);
+    font-size:clamp(140px,36vh,340px);line-height:1;text-shadow:0 0 60px var(--st-am-glow);
+    animation:cd-pop .72s cubic-bezier(.2,1.2,.4,1) both}
+  @keyframes cd-pop{0%{transform:scale(2.4);opacity:0}30%{opacity:1}100%{transform:scale(.92);opacity:.95}}
+
+  /* ── Utility overlays ── */
   #reveal-tap{position:fixed;bottom:0;right:0;width:40%;height:40%;opacity:0;cursor:default;z-index:100}
 
-  #cache-banner{display:none;position:fixed;top:60px;left:50%;transform:translateX(-50%);
-    background:var(--am-bg);color:var(--am);border:1px solid var(--am-bd);padding:6px 16px;
-    border-radius:var(--rad-pill);font-size:12px;font-weight:600;z-index:150}
+  #cache-banner{display:none;position:fixed;top:66px;left:50%;transform:translateX(-50%);
+    background:rgba(245,166,35,.12);color:var(--st-am);border:1px solid var(--st-am-deep);
+    padding:6px 16px;border-radius:var(--rad-pill);font-size:12px;font-weight:600;z-index:150}
   #cache-banner.on{display:block}
 
-  .booth-tooltip{position:fixed;background:var(--ink);color:#fff;padding:4px 10px;border-radius:var(--rad-s);
-    font-size:12px;pointer-events:none;z-index:120;display:none;white-space:nowrap}
+  .booth-tooltip{position:fixed;background:var(--st-ink);color:var(--st-bg0);padding:4px 10px;
+    border-radius:var(--rad-s);font-size:12px;font-weight:700;pointer-events:none;z-index:120;
+    display:none;white-space:nowrap}
 
-  #not-active-notice{display:none;text-align:center;padding:80px 20px;font-size:18px;color:var(--ink2)}
+  .booth-notice{display:none;position:relative;z-index:1;text-align:center;
+    padding:110px 20px;color:var(--st-ink2)}
+  .booth-notice .n-emoji{font-size:52px;margin-bottom:14px}
+  .booth-notice .n-title{font-family:var(--font-display);font-weight:800;font-size:26px;
+    color:var(--st-ink);margin-bottom:8px}
+  .booth-notice .n-sub{font-size:16px;color:var(--st-ink3)}
 </style>
 </head>
 <body>
 
+<canvas id="ambient"></canvas>
+
 <div id="booth-main">
-  <header class="plat-hdr">
-    <span class="plat-mark">
+  <header id="stage-hdr">
+    <span class="st-mark">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh">
         <circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"></circle>
         <path d="M26 60 a24 24 0 0 1 48 0"></path>
@@ -58,68 +189,123 @@
         <path d="M44 60 a6 6 0 0 1 12 0"></path>
       </svg>
     </span>
-    <div>
-      <div class="plat-hdr-sub" style="font-size:10px;color:var(--am);font-weight:700;letter-spacing:.15em;text-transform:uppercase">Seduh Score</div>
-      <div class="plat-hdr-name">Guess the Bean</div>
-    </div>
+    <span class="st-brand">Seduh Score · Booth</span>
+    <div class="gt-title">Guess the Bean</div>
+    <div id="live-pill"><span class="dot"></span><span id="live-pill-txt">LIVE</span></div>
   </header>
 
   <div id="content-area">
-    <div id="bullseye-section">
-      <canvas id="bullseye" width="700" height="700"></canvas>
-      <div id="bullseye-center-val"></div>
+    <div id="stage-sec">
+      <div id="stage-wrap">
+        <canvas id="bullseye"></canvas>
+        <div id="stage-center">
+          <div id="center-q">?</div>
+          <div id="center-num"></div>
+          <div id="center-label">beans in the jar</div>
+        </div>
+      </div>
+      <div id="winner-banner">
+        <div class="wb-label">🏆 Closest Guess</div>
+        <div class="wb-name" id="wb-name"></div>
+        <div class="wb-detail" id="wb-detail"></div>
+      </div>
     </div>
 
     <div id="prox-section">
-      <div class="booth-prox-eyebrow" id="prox-eyebrow">Live guesses · not ranked by accuracy</div>
+      <div class="booth-prox-eyebrow" id="prox-eyebrow">Live feed · in order of arrival</div>
       <div id="prox-list"></div>
     </div>
   </div>
 
   <div id="booth-footer">
     <div id="qr-footer">
-      <div id="qr-container"></div>
-      <div class="booth-qr-label">Scan to play</div>
+      <div id="qr-card"><div id="qr-container"></div></div>
+      <div class="qr-cta">
+        <div class="qr-cta-main">Scan to play <span class="arr">→</span></div>
+        <div class="qr-cta-sub">Closest guess wins</div>
+      </div>
     </div>
-    <div id="participant-count">0 guesses</div>
+    <div id="tagline"></div>
+    <div id="participant-count">
+      <span id="count-num">0</span>
+      <span id="count-label">players in</span>
+    </div>
   </div>
 </div>
 
+<div id="countdown"><div id="cd-num">3</div></div>
 <div id="reveal-tap"></div>
 <div id="cache-banner">Showing cached data · reconnecting…</div>
 <div class="booth-tooltip" id="booth-tooltip"></div>
-<div id="not-active-notice">Guess the Bean is not active for this session.</div>
-<div id="no-session-notice" style="display:none;text-align:center;padding:80px 20px;font-size:18px;color:var(--ink2)">
-  No session specified. Add ?session=YOUR_SESSION_ID to the URL.
+
+<div class="booth-notice" id="not-active-notice">
+  <div class="n-emoji">☕</div>
+  <div class="n-title">Guess the Bean is taking a break</div>
+  <div class="n-sub">This game is not active for the current session.</div>
+</div>
+<div class="booth-notice" id="no-session-notice">
+  <div class="n-emoji">🫘</div>
+  <div class="n-title">No session specified</div>
+  <div class="n-sub">Add ?session=YOUR_SESSION_ID to the URL.</div>
 </div>
 
 <script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js';
-  import { getFirestore, doc, setDoc, onSnapshot, collection, query, where, orderBy }
-    from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
-
-  const firebaseConfig = {
-    apiKey:            "AIzaSyDwlaPgB_5g3xXDTq539JN09aWBpdHM6e4",
-    authDomain:        "seduh-score.firebaseapp.com",
-    projectId:         "seduh-score",
-    storageBucket:     "seduh-score.firebasestorage.app",
-    messagingSenderId: "298052620542",
-    appId:             "1:298052620542:web:53376c72eaf81b35a8d5af",
-    measurementId:     "G-GTFF3TYD37"
-  };
-
-  const app = initializeApp(firebaseConfig, 'booth');
-  const db  = getFirestore(app);
+  import { db } from '../../../shared/firebase.js';
+  import { doc, setDoc, onSnapshot, collection, query, where, orderBy }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
   const CACHE_KEY = 'seduh_booth_guess_display_cache';
   const params = new URLSearchParams(location.search);
-  const sessionId = params.get('session');
+  const DEMO = params.get('demo') === '1';
+  const sessionId = DEMO ? (params.get('session') || 'demo') : params.get('session');
 
   if (!sessionId) {
     document.getElementById('booth-main').style.display = 'none';
     document.getElementById('no-session-notice').style.display = 'block';
     throw new Error('No session specified');
   }
+
+  /* ── State ── */
+  let session = { beanCount: 0, revealed: false, guessEnabled: true };
+  let guesses = [];
+  let revealed = false;
+  let qrRendered = false;
+  let phase = 'live';            // live | countdown | flying | done
+  let flyStart = 0;
+  let countUpStart = 0;
+  let countUpDone = false;
+  let winnerId = null;
+
+  const dotEntry = {};           // id → performance.now() when first seen (pop-in)
+  let ripples = [];              // { x, y, start }
+  let bootStagger = 0;
+
+  let currentDotPositions = {};
+  let currentDotMeta = {};
+
+  /* ── DOM refs ── */
+  const stageSec  = document.getElementById('stage-sec');
+  const stageWrap = document.getElementById('stage-wrap');
+  const canvas    = document.getElementById('bullseye');
+  const ctx       = canvas.getContext('2d');
+  const ambient   = document.getElementById('ambient');
+  const actx      = ambient.getContext('2d');
+  const centerQ   = document.getElementById('center-q');
+  const centerNum = document.getElementById('center-num');
+  const centerLabel = document.getElementById('center-label');
+  const tooltip   = document.getElementById('booth-tooltip');
+  const cacheBanner = document.getElementById('cache-banner');
+  const qrFooter  = document.getElementById('qr-footer');
+  const countNumEl = document.getElementById('count-num');
+  const countLabelEl = document.getElementById('count-label');
+  const taglineEl = document.getElementById('tagline');
+  const livePill  = document.getElementById('live-pill');
+  const livePillTxt = document.getElementById('live-pill-txt');
+  const countdownEl = document.getElementById('countdown');
+  const winnerBanner = document.getElementById('winner-banner');
+
+  const esc = s => String(s).replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 
   function hashToUnit(str) {
     let h1 = 0, h2 = 0;
@@ -131,242 +317,519 @@
     return [ (h1 % 10000) / 10000, (h2 % 10000) / 10000 ];
   }
 
-  const BAND_LABELS = [
-    { label: 'Very close',   bar: '████' },
-    { label: 'Close',        bar: '███░' },
-    { label: 'Getting there',bar: '██░░' },
-    { label: 'Warm',         bar: '█░░░' },
-    { label: 'Cold',         bar: '░░░░' },
-  ];
+  /* ── Sizing ── */
+  let W = 700;   // stage square size in CSS px
+  const DPR = () => window.devicePixelRatio || 1;
 
-  let session = { beanCount: 0, revealed: false, guessEnabled: true };
-  let guesses = [];
-  let revealed = false;
-  let qrRendered = false;
+  function sizeStage() {
+    const s = Math.max(240, Math.min(stageSec.clientWidth, stageSec.clientHeight) - 28);
+    W = s;
+    stageWrap.style.width = s + 'px';
+    stageWrap.style.height = s + 'px';
+    canvas.width = s * DPR();
+    canvas.height = s * DPR();
+    ctx.setTransform(DPR(), 0, 0, DPR(), 0, 0);
+  }
 
-  const canvas = document.getElementById('bullseye');
-  const ctx = canvas.getContext('2d');
-  const centerVal = document.getElementById('bullseye-center-val');
-  const tooltip = document.getElementById('booth-tooltip');
-  const cacheBanner = document.getElementById('cache-banner');
-  const qrFooter = document.getElementById('qr-footer');
-  const participantCountEl = document.getElementById('participant-count');
+  function sizeAmbient() {
+    ambient.width = window.innerWidth * DPR();
+    ambient.height = window.innerHeight * DPR();
+    actx.setTransform(DPR(), 0, 0, DPR(), 0, 0);
+  }
 
+  window.addEventListener('resize', () => { sizeStage(); sizeAmbient(); });
+
+  /* ── Ambient drifting beans ── */
+  const beans = [];
+  function initBeans() {
+    const n = 22;
+    for (let i = 0; i < n; i++) {
+      beans.push({
+        x: Math.random(), y: Math.random(),
+        size: 9 + Math.random() * 16,
+        rot: Math.random() * Math.PI * 2,
+        rotV: (Math.random() - .5) * .004,
+        vy: .06 + Math.random() * .18,          // px per frame-ish, upward
+        sway: Math.random() * Math.PI * 2,
+        alpha: .04 + Math.random() * .07
+      });
+    }
+  }
+
+  function drawBean(c, x, y, size, rot, alpha) {
+    c.save();
+    c.translate(x, y);
+    c.rotate(rot);
+    c.globalAlpha = alpha;
+    c.fillStyle = '#f5a623';
+    c.beginPath();
+    c.ellipse(0, 0, size * .62, size, 0, 0, Math.PI * 2);
+    c.fill();
+    c.globalAlpha = alpha * 1.6;
+    c.strokeStyle = '#1a1108';
+    c.lineWidth = Math.max(1.5, size * .16);
+    c.beginPath();
+    c.moveTo(0, -size * .78);
+    c.bezierCurveTo(size * .38, -size * .28, -size * .38, size * .28, 0, size * .78);
+    c.stroke();
+    c.restore();
+  }
+
+  function drawAmbient(t) {
+    const w = window.innerWidth, h = window.innerHeight;
+    actx.clearRect(0, 0, w, h);
+    for (const b of beans) {
+      b.y -= b.vy / h;
+      b.rot += b.rotV;
+      if (b.y < -0.06) { b.y = 1.06; b.x = Math.random(); }
+      const x = b.x * w + Math.sin(t * .6 + b.sway) * 18;
+      drawBean(actx, x, b.y * h, b.size, b.rot, b.alpha);
+    }
+  }
+
+  /* ── Bullseye geometry (same maths as v1 so layouts stay stable) ── */
   function dotPreRevealPos(id) {
     const [ux, uy] = hashToUnit(id);
-    const angle = ux * Math.PI * 2;
-    const radiusFrac = 0.15 + uy * 0.8;
-    return { angle, radiusFrac };
+    return { angle: ux * Math.PI * 2, radiusFrac: 0.15 + uy * 0.8 };
   }
 
   function dotPostRevealPos(delta) {
-    const capped = Math.min(delta, 100);
-    return capped / 100;
+    return Math.min(delta, 100) / 100;
   }
 
-  function drawRings() {
-    const w = canvas.width, h = canvas.height;
-    const cx = w / 2, cy = h / 2;
-    const maxR = Math.min(w, h) / 2 - 10;
-    ctx.clearRect(0, 0, w, h);
+  function polarToXY(angle, radiusFrac) {
+    const cx = W / 2, cy = W / 2;
+    const maxR = W / 2 - 10;
+    return { x: cx + Math.cos(angle) * radiusFrac * maxR, y: cy + Math.sin(angle) * radiusFrac * maxR };
+  }
 
-    const styles = getComputedStyle(document.documentElement);
-    const surface = styles.getPropertyValue('--surface').trim() || '#fff';
-    const txt3 = styles.getPropertyValue('--ink3').trim() || '#888';
+  const easeInOutCubic = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const easeOutCubic   = t => 1 - Math.pow(1 - t, 3);
+  const easeOutBack    = t => 1 + 2.70158 * Math.pow(t - 1, 3) + 1.70158 * Math.pow(t - 1, 2);
+
+  /* ── Stage drawing ── */
+  function drawRings(t) {
+    const cx = W / 2, cy = W / 2, maxR = W / 2 - 10;
+
+    const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
+    glow.addColorStop(0, 'rgba(245,166,35,.10)');
+    glow.addColorStop(.55, 'rgba(245,166,35,.03)');
+    glow.addColorStop(1, 'rgba(245,166,35,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, maxR, 0, Math.PI * 2);
+    ctx.fill();
 
     for (let ring = 5; ring >= 1; ring--) {
+      const pulse = .10 + .05 * Math.sin(t * 1.2 + ring * .9);
       ctx.beginPath();
-      ctx.arc(cx, cy, maxR * (ring / 5), 0, Math.PI * 2);
-      ctx.fillStyle = surface;
-      ctx.fill();
-      ctx.strokeStyle = txt3;
-      ctx.globalAlpha = 0.35;
-      ctx.lineWidth = 1.5;
+      ctx.arc(cx, cy, maxR * ring / 5, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(245,166,35,1)';
+      ctx.globalAlpha = pulse + (ring === 1 ? .12 : 0);
+      ctx.lineWidth = ring === 1 ? 2 : 1.4;
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
   }
 
-  function polarToXY(angle, radiusFrac) {
-    const w = canvas.width, h = canvas.height;
-    const cx = w / 2, cy = h / 2;
-    const maxR = Math.min(w, h) / 2 - 10;
-    const r = maxR * radiusFrac;
-    return { x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r };
-  }
-
-  let currentDotPositions = {};
-  let currentDotMeta = {};
-
-  function drawDots(positions) {
-    const styles = getComputedStyle(document.documentElement);
-    const am = styles.getPropertyValue('--am').trim() || '#f59e0b';
-    const gn = styles.getPropertyValue('--gn').trim() || '#10b981';
-
-    for (const id in positions) {
-      const { x, y } = positions[id];
-      const meta = currentDotMeta[id] || {};
+  let sweepAngle = 0;
+  function drawSweep(t) {
+    const cx = W / 2, cy = W / 2, maxR = W / 2 - 10;
+    sweepAngle = (t * .7) % (Math.PI * 2);
+    for (let i = 0; i < 26; i++) {
+      const a = sweepAngle - i * .022;
       ctx.beginPath();
-      ctx.arc(x, y, 8, 0, Math.PI * 2);
-      ctx.fillStyle = (revealed && meta.isWinner) ? gn : am;
-      ctx.fill();
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 1.5;
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a) * maxR, cy + Math.sin(a) * maxR);
+      ctx.strokeStyle = 'rgba(245,166,35,1)';
+      ctx.globalAlpha = .12 * (1 - i / 26);
+      ctx.lineWidth = i === 0 ? 2 : 3;
       ctx.stroke();
     }
+    ctx.globalAlpha = 1;
   }
 
-  function renderBullseye() {
-    drawRings();
+  function angDist(a, b) {
+    let d = Math.abs(a - b) % (Math.PI * 2);
+    return d > Math.PI ? Math.PI * 2 - d : d;
+  }
+
+  function drawRipples(now) {
+    ripples = ripples.filter(r => now - r.start < 800);
+    for (const r of ripples) {
+      const k = (now - r.start) / 800;
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, 10 + k * 38, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(245,166,35,1)';
+      ctx.globalAlpha = .5 * (1 - k);
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function computeWinner() {
+    if (!guesses.length) return null;
+    const sorted = [...guesses].sort((a, b) =>
+      Math.abs(a.guess - session.beanCount) - Math.abs(b.guess - session.beanCount));
+    return sorted[0].id;
+  }
+
+  function drawStage(now) {
+    const t = now / 1000;
+    ctx.clearRect(0, 0, W, W);
+    drawRings(t);
+    if (phase === 'live' || phase === 'countdown') drawSweep(t);
+    drawRipples(now);
+
+    const flying = phase === 'flying';
+    const k = flying ? easeInOutCubic(Math.min(1, (now - flyStart) / 1600)) : 0;
 
     const positions = {};
-    guesses.forEach(g => {
+    for (const g of guesses) {
       const { angle, radiusFrac } = dotPreRevealPos(g.id);
-      if (revealed) {
+      const pre = polarToXY(angle, radiusFrac);
+      let p = pre;
+      if (phase === 'done' || flying) {
         const delta = Math.abs(g.guess - session.beanCount);
-        positions[g.id] = polarToXY(angle, dotPostRevealPos(delta));
-      } else {
-        positions[g.id] = polarToXY(angle, radiusFrac);
+        const post = polarToXY(angle, dotPostRevealPos(delta));
+        p = flying
+          ? { x: pre.x + (post.x - pre.x) * k, y: pre.y + (post.y - pre.y) * k }
+          : post;
       }
-      currentDotMeta[g.id] = { name: g.name, delta: revealed ? Math.abs(g.guess - session.beanCount) : null };
-    });
+      positions[g.id] = p;
 
-    if (revealed && guesses.length) {
-      const sorted = [...guesses].sort((a, b) => Math.abs(a.guess - session.beanCount) - Math.abs(b.guess - session.beanCount));
-      const winnerId = sorted[0].id;
-      for (const id in currentDotMeta) currentDotMeta[id].isWinner = (id === winnerId);
+      // entry pop-in
+      let scale = 1;
+      const entry = dotEntry[g.id];
+      if (entry !== undefined) {
+        const ek = Math.min(1, (now - entry) / 500);
+        if (ek < 0) continue;                       // staggered boot entry not due yet
+        scale = easeOutBack(ek);
+      }
+
+      const isWinner = phase === 'done' && g.id === winnerId;
+      const pulse = 1.6 * Math.sin(t * 2.2 + angle);
+      let r = (8 + pulse) * Math.max(0, scale);
+
+      // radar sweep brush-past brightening
+      let boost = 0;
+      if (phase === 'live' || phase === 'countdown') {
+        boost = Math.max(0, 1 - angDist(angle, sweepAngle) / .45);
+      }
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, Math.max(0.5, r + boost * 2), 0, Math.PI * 2);
+      ctx.shadowColor = isWinner ? 'rgba(61,220,151,.9)' : 'rgba(245,166,35,.8)';
+      ctx.shadowBlur = 12 + boost * 14 + (isWinner ? 10 : 0);
+      ctx.fillStyle = isWinner ? '#3ddc97' : '#f5a623';
+      ctx.globalAlpha = .82 + .18 * boost;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(255,248,235,.85)';
+      ctx.lineWidth = 1.5;
+      ctx.globalAlpha = 1;
+      ctx.stroke();
+      ctx.restore();
+
+      if (isWinner) {                                // pulsing halo on the winner
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 16 + 4 * Math.sin(t * 3), 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(61,220,151,.6)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
     }
-
     currentDotPositions = positions;
-    drawDots(positions);
-    centerVal.textContent = revealed ? String(session.beanCount) : '';
-  }
 
-  function animateReveal() {
-    const fromPositions = {};
-    guesses.forEach(g => {
-      const { angle, radiusFrac } = dotPreRevealPos(g.id);
-      fromPositions[g.id] = polarToXY(angle, radiusFrac);
-    });
-    const toPositions = {};
-    guesses.forEach(g => {
-      const delta = Math.abs(g.guess - session.beanCount);
-      const { angle } = dotPreRevealPos(g.id);
-      toPositions[g.id] = polarToXY(angle, dotPostRevealPos(delta));
-    });
-
-    const sorted = [...guesses].sort((a, b) => Math.abs(a.guess - session.beanCount) - Math.abs(b.guess - session.beanCount));
-    const winnerId = sorted.length ? sorted[0].id : null;
-    guesses.forEach(g => {
-      currentDotMeta[g.id] = { name: g.name, delta: Math.abs(g.guess - session.beanCount), isWinner: g.id === winnerId };
-    });
-
-    const duration = 1200;
-    const startTs = performance.now();
-
-    function frame(now) {
-      const t = Math.min(1, (now - startTs) / duration);
-      const positions = {};
-      for (const id in fromPositions) {
-        const f = fromPositions[id], to = toPositions[id];
-        positions[id] = { x: f.x + (to.x - f.x) * t, y: f.y + (to.y - f.y) * t };
-      }
-      drawRings();
-      drawDots(positions);
-      currentDotPositions = positions;
-
-      if (t < 1) {
-        requestAnimationFrame(frame);
-      } else {
-        centerVal.textContent = String(session.beanCount);
-        fireConfettiAndSound();
-      }
+    // count-up of the revealed bean count
+    if (phase === 'done' && countUpStart && !countUpDone) {
+      const ck = Math.min(1, (now - countUpStart) / 1000);
+      centerNum.textContent = String(Math.round(easeOutCubic(ck) * session.beanCount));
+      if (ck >= 1) countUpDone = true;
     }
-    requestAnimationFrame(frame);
   }
+
+  /* ── Master animation loop ── */
+  function loop(now) {
+    drawAmbient(now / 1000);
+    drawStage(now);
+    requestAnimationFrame(loop);
+  }
+
+  /* ── Reveal choreography ── */
+  function startRevealSequence() {
+    phase = 'countdown';
+    countdownEl.classList.add('on');
+    const cdNum = document.getElementById('cd-num');
+    let n = 3;
+    const tick = () => {
+      if (n === 0) {
+        countdownEl.classList.remove('on');
+        phase = 'flying';
+        flyStart = performance.now();
+        setTimeout(finishReveal, 1650);
+        return;
+      }
+      const fresh = cdNum.cloneNode();               // restart the pop animation
+      fresh.textContent = String(n);
+      cdNum.replaceWith(fresh);
+      fresh.id = 'cd-num';
+      n--;
+      setTimeout(tick, 780);
+    };
+    tick();
+  }
+
+  function finishReveal() {
+    phase = 'done';
+    winnerId = computeWinner();
+    countUpStart = performance.now();
+    countUpDone = false;
+    // Safety net: if rAF is throttled (occluded/background tab), still land the number.
+    setTimeout(() => {
+      if (!countUpDone) {
+        centerNum.textContent = String(session.beanCount);
+        countUpDone = true;
+      }
+    }, 1400);
+    showRevealedCenter();
+    showWinnerBanner();
+    fireConfettiAndSound();
+    renderPanel();
+    renderQR();
+    renderParticipantCount();
+    renderLivePill();
+  }
+
+  function enterRevealedInstant() {                  // page loaded with results already out
+    phase = 'done';
+    winnerId = computeWinner();
+    countUpDone = true;
+    centerNum.textContent = String(session.beanCount);
+    showRevealedCenter();
+    showWinnerBanner();
+  }
+
+  function showRevealedCenter() {
+    centerQ.style.display = 'none';
+    centerNum.style.display = 'block';
+    centerLabel.style.display = 'block';
+  }
+
+  function resetToLive() {                           // operator "Reset Data" → next run
+    phase = 'live';
+    winnerId = null;
+    countUpStart = 0;
+    countUpDone = false;
+    centerQ.style.display = '';
+    centerNum.style.display = 'none';
+    centerLabel.style.display = 'none';
+    centerNum.textContent = '';
+    winnerBanner.classList.remove('on');
+  }
+
+  function showWinnerBanner() {
+    if (winnerId === null) return;
+    const w = guesses.find(g => g.id === winnerId);
+    if (!w) return;
+    const delta = Math.abs(w.guess - session.beanCount);
+    document.getElementById('wb-name').textContent = w.name;
+    document.getElementById('wb-detail').textContent = delta === 0
+      ? `guessed ${w.guess} — dead on! 🎯`
+      : `guessed ${w.guess} · off by ${delta}`;
+    winnerBanner.classList.add('on');
+  }
+
+  // Reveal fanfare — preloaded at boot (not fetched at the moment of glory)
+  // and "primed" on the first user gesture: browsers refuse un-gestured
+  // play(), and the reveal fires ~4s after the trigger keypress, past some
+  // browsers' activation window. A muted play/pause during a real gesture
+  // whitelists the element for the later un-muted play. ?v=2 busts any
+  // cached copy of the old placeholder file.
+  const revealAudio = new Audio('../../assets/reveal.mp3?v=2');
+  revealAudio.preload = 'auto';
+  let audioPrimed = false;
+
+  function primeAudio() {
+    if (audioPrimed) return;
+    audioPrimed = true;
+    revealAudio.muted = true;
+    revealAudio.play().then(() => {
+      revealAudio.pause();
+      revealAudio.currentTime = 0;
+      revealAudio.muted = false;
+    }).catch(() => {
+      revealAudio.muted = false;
+      audioPrimed = false;              // gesture didn't take — retry on the next one
+    });
+  }
+
+  document.addEventListener('keydown', primeAudio);
+  document.addEventListener('pointerdown', primeAudio);
 
   function fireConfettiAndSound() {
     if (typeof confetti === 'function') {
-      confetti({
-        particleCount: 180,
-        spread: 80,
-        origin: { y: 0.55 },
-        colors: ['#f59e0b', '#10b981', '#ffffff', '#d97706']
-      });
+      const colors = ['#f5a623', '#ffb84d', '#3ddc97', '#ffffff', '#d97706'];
+      confetti({ particleCount: 160, spread: 85, origin: { y: .55 }, colors });
+      setTimeout(() => confetti({ particleCount: 70, angle: 60,  spread: 60, origin: { x: 0, y: .7 }, colors }), 350);
+      setTimeout(() => confetti({ particleCount: 70, angle: 120, spread: 60, origin: { x: 1, y: .7 }, colors }), 550);
     }
-    // TODO: replace booth/assets/reveal.mp3 with real fanfare before deployment
-    const audio = new Audio('../../assets/reveal.mp3');
-    audio.play().catch(() => {});
+    revealAudio.currentTime = 0;
+    revealAudio.play().catch(err => {
+      console.warn('[booth] reveal sound blocked:', err && err.name,
+        '— tap or click the display once before revealing to unlock audio');
+    });
   }
 
-  function renderProxList() {
+  /* ── Side panel ── */
+  const FEED_PHRASES = ['locked it in', 'went with the gut', 'counted twice 👀', 'is feeling lucky',
+    'went bold', 'did the math', 'no hesitation', 'says trust me', 'has a system', 'eyeballed it'];
+  let renderedFeedIds = new Set();
+
+  function renderPanel() {
     const el = document.getElementById('prox-list');
-    document.getElementById('prox-eyebrow').textContent = revealed ? 'Results' : 'Live guesses · not ranked by accuracy';
+    document.getElementById('prox-eyebrow').textContent =
+      phase === 'done' ? 'Final standings' : 'Live feed · in order of arrival';
 
     if (!guesses.length) {
-      el.innerHTML = `<div class="hint">No guesses yet.</div>`;
+      el.innerHTML = `<div class="feed-empty">No guesses yet.<br>Scan the code below and be the first on the board! 🫘</div>`;
+      renderedFeedIds = new Set();
       return;
     }
 
-    if (revealed) {
+    if (phase === 'done') {
       const sorted = [...guesses]
         .map(g => ({ ...g, delta: g.guess - session.beanCount }))
         .sort((a, b) => Math.abs(a.delta) - Math.abs(b.delta))
         .slice(0, 8);
       el.innerHTML = sorted.map((g, i) => `
-        <div class="booth-prox-row ${i === 0 ? 'winner' : ''}">
-          <span style="width:20px">${i+1}.</span>
-          <span class="booth-prox-name">${g.name}</span>
-          <span class="mono">${g.delta > 0 ? '+' : ''}${g.delta}</span>
+        <div class="res-row ${i === 0 ? 'winner' : ''}" style="animation-delay:${i * 90}ms">
+          <span class="res-rank">${i === 0 ? '🏆' : i + 1}</span>
+          <span class="res-name">${esc(g.name)}</span>
+          <span class="res-delta">${g.delta > 0 ? '+' : ''}${g.delta}</span>
         </div>
       `).join('');
     } else {
-      const sorted = [...guesses].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 8);
-      const shuffledBands = [...BAND_LABELS].sort(() => Math.random() - 0.5);
-      el.innerHTML = sorted.map((g, i) => {
-        const band = shuffledBands[i % shuffledBands.length];
+      const sorted = [...guesses].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 9);
+      el.innerHTML = sorted.map(g => {
+        const phrase = FEED_PHRASES[Math.floor(hashToUnit(g.id + (g.name || ''))[0] * FEED_PHRASES.length)];
+        const isNew = !renderedFeedIds.has(g.id);
         return `
-          <div class="booth-prox-row">
-            <span style="width:20px">${i+1}.</span>
-            <span class="booth-prox-name">${g.name}</span>
-            <span class="booth-prox-bar">${band.bar} ${band.label}</span>
+          <div class="feed-row ${isNew ? 'in' : ''}">
+            <span class="feed-bean">🫘</span>
+            <span class="feed-name">${esc(g.name)}</span>
+            <span class="feed-phrase">${phrase}</span>
           </div>
         `;
       }).join('');
+      renderedFeedIds = new Set(sorted.map(g => g.id));
     }
   }
 
+  let lastCount = 0;
   function renderParticipantCount() {
     const n = guesses.length;
-    participantCountEl.textContent = `${n} ${n === 1 ? 'guess' : 'guesses'}`;
+    countNumEl.textContent = String(n);
+    countLabelEl.textContent = phase === 'done'
+      ? (n === 1 ? 'player played' : 'players played')
+      : (n === 0 ? 'be the first' : (n === 1 ? 'player in' : 'players in'));
+    if (n > lastCount) {
+      countNumEl.classList.remove('bump');
+      void countNumEl.offsetWidth;                   // restart animation
+      countNumEl.classList.add('bump');
+    }
+    lastCount = n;
   }
 
   function renderQR() {
-    if (revealed) {
+    if (phase === 'done' || revealed) {
       qrFooter.classList.add('hidden');
       return;
     }
     qrFooter.classList.remove('hidden');
     if (!qrRendered) {
-      const guessUrl = `${location.origin}/booth/guess/?session=${encodeURIComponent(sessionId)}`;
+      const guessUrl = `${location.origin}/booth/guess/?session=${encodeURIComponent(sessionId)}${DEMO ? '&demo=1' : ''}`;
       new QRCode(document.getElementById('qr-container'), {
-        text: guessUrl, width: 96, height: 96,
-        colorDark: '#1a1a1a', colorLight: '#ffffff'
+        text: guessUrl, width: 112, height: 112,
+        colorDark: '#1a1108', colorLight: '#ffffff'
       });
       qrRendered = true;
     }
   }
 
-  function renderAll() {
-    renderBullseye();
-    renderProxList();
-    renderParticipantCount();
-    renderQR();
+  function renderLivePill() {
+    if (phase === 'done' || revealed) {
+      livePill.classList.add('results');
+      livePillTxt.textContent = 'RESULTS';
+    } else {
+      livePill.classList.remove('results');
+      livePillTxt.textContent = 'LIVE';
+    }
   }
 
+  /* ── Tagline rotator ── */
+  const TAGLINES = [
+    () => 'How many coffee beans are in the jar?',
+    () => 'Closest guess wins. No counting allowed… we\'re watching 👀',
+    () => 'Trust your gut — it\'s better at math than you think',
+    () => 'One jar. One winner. Zero skill required.',
+    () => guesses.length >= 3 ? `${guesses.length} players in — think you can beat them all?` : 'Free to play — takes 20 seconds',
+  ];
+  let taglineIdx = 0;
+
+  function rotateTagline() {
+    if (phase === 'done' || revealed) {
+      taglineEl.textContent = 'Thanks for playing · seduhscore.com';
+      return;
+    }
+    taglineEl.classList.add('fading');
+    setTimeout(() => {
+      taglineIdx = (taglineIdx + 1) % TAGLINES.length;
+      taglineEl.textContent = TAGLINES[taglineIdx]();
+      taglineEl.classList.remove('fading');
+    }, 500);
+  }
+  taglineEl.textContent = TAGLINES[0]();
+  setInterval(rotateTagline, 4500);
+
+  function renderAll() {
+    renderPanel();
+    renderParticipantCount();
+    renderQR();
+    renderLivePill();
+  }
+
+  /* ── Guess arrival tracking (pop-ins + ripples) ── */
+  let seededInitial = false;
+  function trackArrivals() {
+    const now = performance.now();
+    for (const g of guesses) {
+      if (dotEntry[g.id] !== undefined) continue;
+      if (!seededInitial) {
+        dotEntry[g.id] = now + bootStagger;          // cascade on first load
+        bootStagger += 90;
+      } else {
+        dotEntry[g.id] = now;
+        if (phase === 'live') {
+          const { angle, radiusFrac } = dotPreRevealPos(g.id);
+          const p = polarToXY(angle, radiusFrac);
+          ripples.push({ x: p.x, y: p.y, start: now });
+        }
+      }
+    }
+    seededInitial = true;
+  }
+
+  /* ── Reveal triggers (space / enter / hidden tap zone) ── */
   async function triggerReveal() {
     if (revealed) return;
     revealed = true;
+    if (DEMO) {
+      applySession({ ...session, revealed: true });
+      return;
+    }
     await setDoc(doc(db, 'booth_sessions', sessionId), { revealed: true }, { merge: true });
   }
 
@@ -375,6 +838,7 @@
   });
   document.getElementById('reveal-tap').addEventListener('click', triggerReveal);
 
+  /* ── Tooltip ── */
   function findDotAt(x, y) {
     for (const id in currentDotPositions) {
       const p = currentDotPositions[id];
@@ -386,18 +850,15 @@
 
   function canvasCoords(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
-    return {
-      x: (clientX - rect.left) * (canvas.width / rect.width),
-      y: (clientY - rect.top) * (canvas.height / rect.height)
-    };
+    return { x: clientX - rect.left, y: clientY - rect.top };
   }
 
   function showTooltip(clientX, clientY, id) {
-    const meta = currentDotMeta[id];
-    if (!meta) { tooltip.style.display = 'none'; return; }
-    tooltip.textContent = revealed && meta.delta !== null && meta.delta !== undefined
-      ? `${meta.name} — ${meta.delta > 0 ? '+' : ''}${meta.delta}`
-      : meta.name;
+    const g = guesses.find(x => x.id === id);
+    if (!g) { tooltip.style.display = 'none'; return; }
+    tooltip.textContent = (phase === 'done')
+      ? `${g.name} — ${g.guess - session.beanCount > 0 ? '+' : ''}${g.guess - session.beanCount}`
+      : g.name;
     tooltip.style.left = (clientX + 12) + 'px';
     tooltip.style.top = (clientY + 12) + 'px';
     tooltip.style.display = 'block';
@@ -418,6 +879,7 @@
     else tooltip.style.display = 'none';
   });
 
+  /* ── Cache ── */
   function persistCache() {
     localStorage.setItem(CACHE_KEY, JSON.stringify({ guesses, session, cachedAt: Date.now() }));
   }
@@ -430,12 +892,15 @@
       guesses = parsed.guesses || [];
       session = { ...session, ...(parsed.session || {}) };
       revealed = !!session.revealed;
+      if (revealed) enterRevealedInstant();
+      trackArrivals();
       return true;
     } catch (e) {
       return false;
     }
   }
 
+  /* ── Session / data plumbing ── */
   let firstSnapshotArrived = false;
   const unsubscribers = [];
 
@@ -452,31 +917,41 @@
     document.getElementById('not-active-notice').style.display = 'block';
   }
 
+  let hasBooted = false;                             // first session snapshot seen?
+
+  function applySession(data) {
+    session = data;
+
+    if (session.guessEnabled === false) {
+      showNotActive();
+      return;
+    }
+
+    const nowRevealed = !!session.revealed;
+    revealed = nowRevealed;
+
+    if (nowRevealed) {
+      if (!hasBooted) {
+        enterRevealedInstant();                      // opened after the reveal — no replay
+        renderAll();
+      } else if (phase === 'live') {
+        startRevealSequence();                       // live transition — full choreography
+      }
+    } else {
+      if (phase !== 'live') resetToLive();
+      renderAll();
+    }
+    hasBooted = true;
+    if (!DEMO) persistCache();
+  }
+
   function subscribe() {
     const sessRef = doc(db, 'booth_sessions', sessionId);
     unsubscribers.push(onSnapshot(sessRef, snap => {
       if (!snap.exists()) return;
       firstSnapshotArrived = true;
       cacheBanner.classList.remove('on');
-      session = snap.data();
-
-      if (session.guessEnabled === false) {
-        showNotActive();
-        return;
-      }
-
-      const nowRevealed = !!session.revealed;
-      const justRevealed = nowRevealed && !revealed;
-      revealed = nowRevealed;
-      if (justRevealed) {
-        animateReveal();
-        renderProxList();
-        renderQR();
-        renderParticipantCount();
-      } else {
-        renderAll();
-      }
-      persistCache();
+      applySession(snap.data());
     }, onListenError));
 
     const guessQ = query(collection(db, 'booth_guess'), where('sessionId', '==', sessionId), orderBy('ts', 'asc'));
@@ -484,9 +959,38 @@
       firstSnapshotArrived = true;
       cacheBanner.classList.remove('on');
       guesses = snap.docs.map(d => ({ id: d.id, ...d.data(), ts: d.data().ts ? d.data().ts.toMillis() : 0 }));
+      trackArrivals();
+      if (phase === 'done') {           // guesses may arrive after a cold boot into revealed state
+        winnerId = computeWinner();
+        showWinnerBanner();
+      }
       renderAll();
       persistCache();
     }, onListenError));
+  }
+
+  /* ── Demo mode (?demo=1) — self-running preview, no Firestore reads/writes ── */
+  function runDemo() {
+    firstSnapshotArrived = true;
+    hasBooted = true;                                // demo starts "live" — reveal gets the full choreography
+    session = { beanCount: 428, revealed: false, guessEnabled: true };
+    const names = ['Aiman', 'Sarah', 'Ken', 'Mei Lin', 'Farid', 'Josh', 'Nadia', 'Amirah',
+                   'Dylan', 'Putri', 'Hana', 'Zack', 'Ivy', 'Omar'];
+    let i = 0;
+    const addOne = () => {
+      if (i >= names.length || revealed) return;
+      guesses.push({
+        id: 'demo-' + i,
+        name: names[i],
+        guess: Math.max(1, Math.round(428 + (Math.random() - .5) * 260)),
+        ts: Date.now()
+      });
+      i++;
+      trackArrivals();
+      renderAll();
+      setTimeout(addOne, i < 5 ? 500 : 2800);
+    };
+    addOne();
   }
 
   window.addEventListener('beforeunload', () => {
@@ -494,15 +998,24 @@
   });
 
   function boot() {
-    subscribe();
-    setTimeout(() => {
-      if (!firstSnapshotArrived) {
-        if (loadFromCache()) {
-          cacheBanner.classList.add('on');
-          renderAll();
+    sizeStage();
+    sizeAmbient();
+    initBeans();
+    requestAnimationFrame(loop);
+
+    if (DEMO) {
+      runDemo();
+    } else {
+      subscribe();
+      setTimeout(() => {
+        if (!firstSnapshotArrived) {
+          if (loadFromCache()) {
+            cacheBanner.classList.add('on');
+            renderAll();
+          }
         }
-      }
-    }, 4000);
+      }, 4000);
+    }
     renderAll();
   }
 

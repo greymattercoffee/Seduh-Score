@@ -2,6 +2,291 @@
 
 ---
 
+## [deploy] — POA-59 booth rules + hosting released to production · July 2026
+
+Executed the POA-59 deploy runbook. Pre-deploy purge of `booth_sessions`/
+`booth_guess`/`booth_grinder` on `seduh-score` production (all three
+already empty — booth has never run a real event). Deployed
+`firestore.rules` + Hosting together via
+`firebase deploy --only firestore:rules,hosting --project seduh-score`.
+Post-deploy live REST verification passed (contact read denied, session
+field-write denied, guess-create-against-nonexistent-session denied);
+all three booth pages confirmed serving the new deploy on
+`www.seduhscore.com`.
+
+**Process note:** deployed directly from the `dev` branch's working
+tree rather than via the usual dev→main PR — `main` does not currently
+reflect what's live in production. Flagged in PLAN_OF_ACTION.md POA-59
+as an open item (reconcile via PR, or treat as this session's accepted
+pattern) rather than resolved silently.
+
+Operator-flow checklist (sign-in, create, export, reset/end) still
+pending — needs a real super_admin credential; do before the first
+live event, tracked in PLAN_OF_ACTION.md POA-59.
+
+---
+
+## [5.10.2-booth.4] — Fix: reveal fanfare never played (autoplay policy) · July 2026
+
+The real `booth/assets/reveal.mp3` (replacing the placeholder) stayed
+silent at reveal. Root cause: the display created the `Audio` element
+and called `.play()` ~4s after the trigger keypress (post countdown +
+dot flight) with the rejection swallowed by an empty `.catch()` —
+browsers can refuse un-gestured playback at that point, silently.
+
+- `booth/display/guess/index.html` — fanfare element is now preloaded at
+  boot and **primed on the first user gesture** (muted play/pause during
+  a real keypress/tap whitelists the element, matching `shared/sound.js`'s
+  unlock-on-gesture convention), then replayed un-muted at reveal;
+  `?v=2` on the URL busts any cached placeholder; failures now log a
+  console warning with the unlock instruction instead of vanishing
+- Verified: instrumented `HTMLMediaElement.play` in the browser — muted
+  prime resolves on the trusted gesture, un-muted reveal play resolves
+
+---
+
+## [5.10.2-booth.3] — POA-59: booth_* Firestore rules hardened, operator auth on setup · July 2026
+
+Implements the locked POA-59 scope (Strategy-reviewed): participants
+stay unauthenticated with schema-locked writes; the operator is the
+authenticated party. Rules built and verified against the emulator
+suite; **not yet deployed to production** — see the deploy runbook in
+PLAN_OF_ACTION.md POA-59.
+
+### firestore.rules
+
+- **booth_guess** — create: exact-key schema (`sessionId`/`name`/`guess`/
+  `ts` via `hasOnly`+`hasAll`), type checks, length caps (name ≤80,
+  sessionId ≤100), guess int 1–100,000,000, `ts == request.time`
+  (forces `serverTimestamp()`), explicit `!hasAny(['phone','instagram'])`
+  belt-and-braces, and **session-state gates** — the referenced
+  `booth_sessions` doc must exist with `guessEnabled == true` and
+  `revealed == false` (closes the review-found snipe: beanCount is
+  readable in the public session doc, so post-reveal submissions had to
+  be rules-impossible, not just UI-hidden). Read open (display), update
+  denied, delete super_admin only
+- **booth_contact (new collection)** — participant contact info split out
+  of `booth_guess`; create-only for participants (at least one non-empty
+  of phone ≤30 / instagram ≤50, same session-state gates as booth_guess),
+  read/delete super_admin only, never publicly readable
+- **booth_sessions** — read open; create/delete/full-update super_admin;
+  unauthenticated updates restricted to the two unattended-page
+  transitions (`revealed`; `grinderActive`/`grinderName` ≤80), type-
+  checked via `diff().affectedKeys().hasOnly()` — documented accepted risk
+- **booth_grinder** — create-only with schema (timeMs int ≤24h,
+  `ts == request.time`, session must exist with `grinderEnabled == true`;
+  deliberately NOT gated on `grinderActive` — the operator page posts the
+  time after flipping it back false), read open, delete super_admin only
+
+### booth/guess/index.html
+
+- guess submission now writes two docs in one `writeBatch`: the public
+  `booth_guess` doc (no contact keys) and a paired `booth_contact` doc
+  sharing the same id; client-side caps mirror the rules
+
+### booth/setup/index.html
+
+- loads `shared/auth.js`; whole page is operator-gated (UX only — the
+  rules are the security boundary): sign-in view when signed out
+  (an /admin/ super_admin session carries over per-origin automatically),
+  "operator access required" view for non-admin accounts, operator bar
+  with sign-out when in; token-fetch failure falls back to sign-in with
+  a retry message instead of stranding on "Loading…" (review finding)
+- Export Data joins `booth_contact` back by doc id (legacy embedded
+  fields still fall back); Reset Data / End Session purge contact docs
+  alongside guesses and grinder entries; permission-denied errors get
+  their own message
+- **fix (review finding, stored XSS):** session ID is now HTML-escaped in
+  the success view (it was interpolated raw — an operator-typed payload
+  would persist in Firestore and re-execute in any later super_admin
+  session that opened setup); session IDs additionally restricted to
+  `[A-Za-z0-9_-]{1,64}` at creation; operator email escaping switched to
+  a proper HTML-content escaper
+- **fix (review finding):** purge deletes are chunked at 450 ops —
+  a single `writeBatch` caps at 500, which a busy session (2 docs per
+  player) clears at ~250 players
+- **fix (review finding):** End Session now actually ends the session —
+  the `booth_sessions` doc is deleted, so bookmarked participant URLs go
+  dead and the rules' session-state gates deny any further writes
+  (previously the doc lived on and accepted new submissions forever)
+
+### booth/display/guess/index.html
+
+- **fix:** winner banner now populates on cold-boot into an
+  already-revealed session (guesses snapshot can arrive after the
+  session snapshot; banner was skipped)
+
+### Verification (Firestore + Auth emulators, seeded super_admin)
+
+Operator flow: sign-in → create session → export (contact join) →
+reset (all three collections purged, flags reset) — all pass.
+Participant flow: guess submit lands a clean `booth_guess` +
+paired `booth_contact`. 8-case REST denial matrix passed: contact
+read unauth ✗, guess create with phone key ✗, guess update ✗, guess
+delete ✗, session create ✗, session update non-transition field ✗,
+grinder create with client timestamp ✗, session update revealed-only ✓.
+Session-state gates isolated via commit-endpoint transform tests:
+bogus session ✗, post-reveal create ✗, guessEnabled:false create ✗,
+pre-reveal create ✓, grinder create with grinderEnabled ✓.
+Security-rules audit (4/5) plus a code-review pass; all review
+findings fixed in this entry. Residual flagged decision in POA-59:
+`beanCount` remains readable pre-reveal in the public session doc —
+with post-reveal submissions now rules-impossible, the remaining
+impact is a devtools user guessing dead-on *before* the reveal
+(suspicious but not provably cheating; accepted-risk vs reveal-time
+publication still an open product call).
+
+---
+
+## [docs] — KB recon: booth is live-but-unlisted, POA-59 in progress · July 2026
+
+Pre-POA-59 recon. Mechanical stamp check clean (all Tier A docs at
+v5.10.2). Fact and status drift found and corrected:
+
+- **Fact drift (four docs):** the KB claimed `booth/` was "not yet
+  publicly deployed." Confirmed false — `www.seduhscore.com/booth/*`
+  returns HTTP 200; `booth/` was never in `firebase.json`'s hosting
+  ignore list, so every Hosting deploy since v5.3.0 has shipped it.
+  Corrected in CLAUDE.md (directory tree), CONVENTIONS.md (directory
+  tree), PLAN_OF_ACTION.md (POA-59 premise/target), and STRATEGY.md
+  (booth architecture table — also corrected the "no sensitive data at
+  risk" rationale, invalidated when v5.4.0 added phone/instagram to
+  `booth_guess`, and the "shared modules: theme.css only" claim,
+  invalidated by [5.10.2-booth.1]). STRATEGY.md/PLAN_OF_ACTION.md edits
+  are local-only (both deliberately untracked per .gitignore).
+- **Status drift:** POA-59 flipped 🔵 Backlog → 🟠 In progress, target
+  restated from "before Oct 2026 deploy" to "immediately — exposure is
+  live"; scope-amendment note added (operator-gate decision pending,
+  original deny-delete shape superseded — it broke setup's Export/
+  Reset/End Session). NEXT UP's legacy Org Management Create-Org
+  follow-up cleared — resolved by removal (POA-57, v5.10.1, deleted the
+  whole panel). Parallel-track wording updated (booth build shipped
+  through v5.10.2-booth.2).
+
+---
+
+## [5.10.2-booth.2] — Fix: silent failure when Firestore is unreachable (setup + guess form) · July 2026
+
+Found by smoketest of the [5.10.2-booth.1] consolidation: with the
+Firestore emulator not running on localhost (`firebase serve` starts
+hosting + functions only, not Firestore), `booth/setup`'s Create Session
+failed with **no feedback at all** — `await setDoc(...)` had no
+catch/timeout, so the click appeared to do nothing. Same latent hang in
+the phone form's `addDoc` (its try/catch can't catch a promise that
+never settles, e.g. offline-queued writes on flaky venue Wi-Fi).
+
+- **fix (booth/setup):** Create Session now shows a pending state
+  ("Creating…", button disabled), races the write against an 8s timeout,
+  and surfaces an actionable error — on localhost it names the emulator
+  suite and port 8080 explicitly; elsewhere it says check your connection
+- **fix (booth/guess):** guess submission races a 10s timeout so a player
+  is never stuck on "Locking it in…"; localhost-aware error message
+- Verified both paths on the hosting emulator (localhost:5000): emulator
+  up → "Session Active" with all three URLs; emulator down → clear error
+  within a second, form preserved for retry
+
+---
+
+## [5.10.2-booth.1] — Booth Firebase init consolidated through shared/firebase.js · July 2026
+
+Closes the debt flagged in the [5.10.2-booth] code-review pass. The four
+Firebase-using booth pages (`booth/setup`, `booth/guess`, `booth/grinder`,
+`booth/display/guess`) each duplicated a hardcoded `firebaseConfig` and
+initialized their own named `'booth'` app on SDK 11.0.1, bypassing
+`shared/firebase.js` (SDK 10.12.0) and losing its emulator-connection
+guard and IndexedDB persistence.
+
+- **refactor:** all four pages now `import { db } from shared/firebase.js`
+  and pin their Firestore function imports to the matching 10.12.0 SDK
+  (mixing instance and function SDK versions breaks at runtime — the two
+  must move together). Inline configs, `initializeApp`, and the `'booth'`
+  app name deleted; nothing referenced `getApp('booth')`, so the name was
+  purely local. `booth/display/index.html` and
+  `booth/display/grinder/index.html` are static — untouched.
+- **behavior change (intentional):** booth pages served on `localhost` now
+  connect to the Firebase Emulator Suite via the shared guard instead of
+  production. Use `firebase emulators:start` for local booth work, or
+  `?demo=1` on the guess pages (no backend needed). Live site unaffected.
+- **gained for free:** `enableIndexedDbPersistence` in production;
+  multi-tab booth setups will see non-fatal `failed-precondition` warnings
+  on all but the first tab (already handled in `shared/firebase.js`).
+- Verified: all four pages load and render via `npx serve` with the shared
+  module (emulator guard fires, no uncaught errors); display + phone demo
+  flows regression-checked end to end.
+
+---
+
+## [5.10.2-booth] — Guess the Bean visual overhaul (display + phone form) · July 2026
+
+Full presentation-layer rewrite of the Guess the Bean booth game to pull
+passers-by in, not just show a scoreboard. All Firestore plumbing
+(`booth_sessions` / `booth_guess` schema, reveal via `revealed:true`
+merge, localStorage cache fallback, hidden tap-zone + space/enter reveal
+triggers, QR target URL) is unchanged. Booth remains not publicly
+deployed; no `SEDUH_VERSION` bump.
+
+### booth/display/guess/index.html — big-screen "stage mode"
+
+- **feat:** dark stage theme via page-local `--st-*` tokens (contract
+  tokens untouched); semantic hues preserved — amber brand, green winners
+- **feat:** live bullseye is now a continuously animated radar — pulsing
+  rings, rotating sweep that brightens dots it passes, ambient drifting
+  coffee-bean particles behind the whole page
+- **feat:** guess arrivals pop in with an overshoot scale + expanding
+  ripple; participant counter bumps; boot cascade staggers existing dots
+- **feat:** reveal choreography — 3-2-1 countdown overlay → dots fly to
+  their accuracy positions (ease-in-out) → bean count counts up in the
+  centre → triple confetti burst + winner spotlight banner (name, guess,
+  delta; "dead on! 🎯" at delta 0) → final-standings list with 🏆 row
+- **feat:** attract-mode footer — pulsing white QR card ("Scan to play →"),
+  rotating hype taglines (one is live-count-aware), player counter
+  ("be the first" at 0)
+- **feat:** live feed replaces the shuffled fake proximity bands with an
+  arrival-order feed + stable per-player flavour phrases (hash-picked, no
+  implied accuracy); eyebrow reads "in order of arrival"
+- **feat:** `?demo=1` mode — self-running local demo (fake names/guesses,
+  no Firestore reads or writes, QR propagates `&demo=1`) for pitches,
+  staff training, and browser verification
+- **fix:** participant names are now HTML-escaped everywhere they render
+  (feed, standings, tooltip, winner banner) — v1 injected them raw
+- **fix:** state machine handles cold-boot into an already-revealed
+  session (lands on results instantly instead of replaying the countdown)
+  and the operator's Reset Data (`revealed` true→false now resets the
+  display to live mode, restoring QR + LIVE pill — v1 stayed stuck on
+  results)
+- **fix:** count-up has a setTimeout safety net so the bean count still
+  lands if rAF is throttled (occluded/background tab)
+
+### booth/guess/index.html — participant phone form
+
+- **feat:** playful hero (bobbing jar + floating beans), guess promoted
+  to the first field with big mono styling, focus glow on inputs,
+  press-scale submit button, spinner while loading
+- **feat:** confirmation screen — CSS confetti burst, pop-in check,
+  personalised "You're in, {name}!", amber guess pill
+- **feat:** friendlier status screens (missing session / not found /
+  closed) with emoji + clearer copy
+- **fix:** form now honors `guessEnabled:false` (new "not running" view,
+  live-watched) — v1 accepted guesses for a disabled game
+- **fix:** submit failures surface an inline error and re-enable the
+  button (v1 hung silently on a failed `addDoc`); double-submit guarded;
+  Enter submits
+- **fix:** decimal guesses rejected outright (`/^\d+$/`) instead of
+  silently truncating via `parseInt`
+- **note:** `?demo=1` shows the form flow without touching Firestore
+
+### Review notes (code-reviewer pass)
+
+- Green LIVE pill kept deliberately — theme.css defines green as
+  "Completion / winners / live"
+- Booth's standalone Firebase init (duplicated config, SDK 11.0.1,
+  bypasses `shared/firebase.js`) is pre-existing debt across all booth
+  pages — flagged for a separate session
+- Booth's playful emoji register is a deliberate deviation from the
+  "functional glyphs only" voice rule; scoped to booth mini-games
+
+---
+
 ## [5.10.2] — POA-58: not_started banner states the actual start time · July 2026
 
 Closes the one gap found in the prior verification session's item 4: the
