@@ -27,6 +27,10 @@ sound fix, the split-batch write, and this bug were all invisible to
 the emulator/REST rule testing since they're pure client-side timing
 and DOM behavior, not permission logic.
 
+---
+
+## [deploy] — POA-59 booth rules + hosting released to production · July 2026
+
 Executed the POA-59 deploy runbook. Pre-deploy purge of `booth_sessions`/
 `booth_guess`/`booth_grinder` on `seduh-score` production (all three
 already empty — booth has never run a real event). Deployed
