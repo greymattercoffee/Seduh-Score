@@ -8,6 +8,20 @@ Read these two files in full before touching anything:
 
 ---
 
+## Delegation Strategy
+
+
+Pure exploration/research (no edits): delegate to Explore, don't grep in the main thread.
+After writing or modifying code in any module: use code-reviewer.
+After implementing or changing scoring, bracket, or ranking logic: use scoring-logic-auditor — non-negotiable for anything touching redistribution math.
+Before finalizing a new module's architecture (e.g. Cup Taster): use module-pattern-checker.
+After UI/UX changes to timekeeper, score entry, or judge-facing screens: use ui-accessibility-reviewer.
+After finishing a module or spec, or periodically: use kb-sync to catch drift the KB recon skill hasn't picked up yet.
+For multi-module or multi-file refactors: spawn parallel general-purpose subagents per module, then synthesize in the main thread.
+When drafting or revising a module spec: use the `spec-writer` skill.
+
+---
+
 ## Non-negotiables
 
 ### CSS contract — never violate
@@ -77,7 +91,8 @@ onboard/index.html       ← public org onboarding intake form (POA-47, v5.9.0)
 booth/                   ← mini-games (setup, display, guess, grinder) — live but
                            unlisted (ships with every Hosting deploy; confirmed
                            reachable July 2026). First event use target Oct 2026
-                           per STRATEGY.md; rules hardening POA-59 in progress
+                           per STRATEGY.md; rules hardened & deployed (POA-59,
+                           v5.10.2-booth.3, July 2026)
 shared/
   theme.css             ← design system (v4.1, audited June 2026)
   storage.js            ← localStorage wrapper (Store() factory)

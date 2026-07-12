@@ -31,7 +31,8 @@ seduh-score/
 │                                 Live but unlisted — booth/ was never in the Hosting
 │                                 ignore list, so it ships with every deploy (confirmed
 │                                 reachable July 2026). First event use target Oct 2026
-│                                 per STRATEGY.md; rules hardening POA-59 in progress.
+│                                 per STRATEGY.md; rules hardened & deployed (POA-59,
+│                                 v5.10.2-booth.3, July 2026).
 └── shared/                     ← loaded by every module
     ├── theme.css
     ├── storage.js
@@ -815,7 +816,7 @@ Firebase project: `seduh-score` · console.firebase.google.com
 |---|---|---|
 | Hosting | ✅ Live (v4.3+) | Custom domain seduhscore.com via Cloudflare. `firebase.json` also wires `redirects` (`/` → `/coming-soon/`, v5.3.3) |
 | Auth — Email/Password | ✅ Live (v4.8+) | `shared/firebase.js` + `shared/auth.js` |
-| Firestore rules | ✅ Live (v4.8+) | `firestore.rules`; `platform/switches` doc, `slideshow`, `upcoming_events`, `booth_sessions`/`booth_guess`/`booth_grinder`, `throwdown_records` (v5.5.0, POA-40) collections. Booth hardening + new `booth_contact` collection (v5.10.2-booth.3, POA-59) built & emulator-verified — **pending production deploy**, runbook in PLAN_OF_ACTION.md POA-59 |
+| Firestore rules | ✅ Live (v4.8+) | `firestore.rules`; `platform/switches` doc, `slideshow`, `upcoming_events`, `booth_sessions`/`booth_guess`/`booth_grinder`, `throwdown_records` (v5.5.0, POA-40) collections. Booth hardening + new `booth_contact` collection (v5.10.2-booth.3, POA-59) **deployed to production** July 2026 — verified via live REST checks + the operator-flow checklist, see PLAN_OF_ACTION.md POA-59 |
 | Firestore indexes | ✅ Live (v5.3.1-booth+) | `firestore.indexes.json` — composite indexes for `booth_guess` (sessionId+ts) and `booth_grinder` (sessionId+timeMs); wired into `firebase.json`'s `"firestore"` block alongside rules |
 | Storage | ✅ Live (v4.8.1+) | Slideshow images; org logos (future) |
 | Storage rules | ✅ Live (v5.3.1-rules+) | `storage.rules` (repo file, not console-only) — mirrors Firestore's `super_admin`-write pattern; covers `slideshow/` and `upcoming_events/`; wired into `firebase.json`'s `"storage"` block |
