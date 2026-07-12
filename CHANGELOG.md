@@ -2,6 +2,30 @@
 
 ---
 
+## [deploy] — POA-59 booth rules + hosting released to production · July 2026
+
+Executed the POA-59 deploy runbook. Pre-deploy purge of `booth_sessions`/
+`booth_guess`/`booth_grinder` on `seduh-score` production (all three
+already empty — booth has never run a real event). Deployed
+`firestore.rules` + Hosting together via
+`firebase deploy --only firestore:rules,hosting --project seduh-score`.
+Post-deploy live REST verification passed (contact read denied, session
+field-write denied, guess-create-against-nonexistent-session denied);
+all three booth pages confirmed serving the new deploy on
+`www.seduhscore.com`.
+
+**Process note:** deployed directly from the `dev` branch's working
+tree rather than via the usual dev→main PR — `main` does not currently
+reflect what's live in production. Flagged in PLAN_OF_ACTION.md POA-59
+as an open item (reconcile via PR, or treat as this session's accepted
+pattern) rather than resolved silently.
+
+Operator-flow checklist (sign-in, create, export, reset/end) still
+pending — needs a real super_admin credential; do before the first
+live event, tracked in PLAN_OF_ACTION.md POA-59.
+
+---
+
 ## [5.10.2-booth.4] — Fix: reveal fanfare never played (autoplay policy) · July 2026
 
 The real `booth/assets/reveal.mp3` (replacing the placeholder) stayed
