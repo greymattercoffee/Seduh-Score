@@ -1,6 +1,6 @@
 # Conventions — Seduh Score
 
-*State: v5.10.2 — matches CHANGELOG.md as of July 2026*
+*State: v5.10.3 — matches CHANGELOG.md as of July 2026*
 
 Coding patterns, architecture decisions, and development standards for the Seduh Score platform. Read this at the start of any new chat session before touching code.
 
@@ -23,7 +23,13 @@ seduh-score/
 ├── about/index.html            ← README renderer, public (v5.3.2)
 ├── coming-soon/index.html      ← teaser landing page, served at "/" via Hosting redirect (v5.3.1/5.3.3)
 ├── tour/index.html             ← module tour page (POA-43, v5.6.0)
-├── pitch/index.html            ← unlisted investor/customer pitch page (POA-52, v5.8.0)
+├── pitch/index.html            ← unlisted "The Platform" pitch page (POA-52, v5.8.0;
+│                                 restructured POA-60, v5.10.3 — problem-first,
+│                                 pricing + governance sections, no version/spiral
+│                                 lore — moved to bts/)
+├── bts/index.html               ← unlisted "Behind the Seduh" build-story page
+│                                 (POA-60, v5.10.3) — codename spiral (7 shipped
+│                                 cycles), per-cycle timeline, founder bio
 ├── onboard/index.html          ← public org onboarding intake form (POA-47, v5.9.0)
 ├── booth/                      ← mini-games: setup/, display/, guess/, grinder/ (v5.3.0-booth+).
 │                                 Guess pages support ?demo=1 — self-running fake data,
@@ -1043,7 +1049,10 @@ Before starting work in a new session — **all session types: Strategy, Code, D
 
 ---
 
-*Last updated: July 2026 — v5.10.2-booth pass (Guess the Bean visual overhaul + booth
+*Last updated: July 2026 — v5.10.3 pass (POA-60, pitch page restructure): directory tree entry
+for `pitch/index.html` updated to reflect the "The Platform" reframe (problem-first, pricing +
+governance sections, version timeline/spiral moved out) and a new `bts/index.html` entry added
+for the "Behind the Seduh" build-story page it moved into. Prior pass — v5.10.2-booth pass (Guess the Bean visual overhaul + booth
 Firebase consolidation): Voice section gains the scoped booth emoji exception; directory
 tree notes `?demo=1` on the guess pages and lists booth as a `firebase.js` consumer;
 Emulator section documents the localhost consequence for booth pages (they now hit the
