@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Behind the Seduh — Seduh Score</title>
+<link rel="icon" href="../shared/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../shared/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="../shared/assets/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="apple-touch-icon" href="../shared/assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gloock&family=Sora:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --roast:#241a12;--roast-2:#2c2018;--surface:#372a20;--line:#4c3928;--line-soft:#3a2b1f;
+  --crema:#f7edd9;--crema-dim:#ecdfc7;--extraction:#eaa54d;--extraction-hot:#f8c87a;--copper:#d07d41;
+  --steam:#a9b1c2;--steam-bright:#c9d2e4;--muted:#c6b193;--faint:#9a7d60;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--roast);color:var(--crema);font-family:'Sora',sans-serif;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;position:relative;
+  background:
+    radial-gradient(1000px 600px at 22% -6%,rgba(234,165,77,.10),transparent 58%),
+    radial-gradient(900px 700px at 92% 30%,rgba(201,210,228,.05),transparent 55%),
+    var(--roast);
+}
+::selection{background:var(--extraction);color:var(--roast);}
+a{color:var(--extraction);text-decoration:none;}
+a:hover{color:var(--extraction-hot);}
+.wrap{max-width:960px;margin:0 auto;padding:0 24px;}
+
+.rv{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1);}
+.rv.in{opacity:1;transform:translateY(0);}
+.rv-d1{transition-delay:.1s;}.rv-d2{transition-delay:.22s;}.rv-d3{transition-delay:.34s;}
+
+/* topbar */
+.topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 24px;background:rgba(36,26,18,.72);backdrop-filter:blur(12px);border-bottom:1px solid var(--line-soft);}
+.lockup{display:flex;align-items:center;gap:11px;min-width:0;}
+.lockup .mark{width:26px;height:26px;color:var(--extraction);flex:none;}
+.lockup .mark svg{width:100%;height:100%;display:block;}
+.lockup .name{font-family:'Gloock',serif;font-size:18px;color:var(--crema);line-height:1;white-space:nowrap;}
+.lockup .kicker{font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);margin-top:3px;white-space:nowrap;}
+.back-link{font-family:'Space Mono',monospace;font-size:11.5px;letter-spacing:.06em;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:8px 15px;transition:border-color .3s,color .3s;white-space:nowrap;flex:none;}
+.back-link .short-label{display:none;}
+@media(max-width:480px){
+  .topbar{padding:12px 16px;gap:8px;}
+  .lockup{gap:8px;}
+  .lockup .mark{width:22px;height:22px;}
+  .lockup .name{font-size:15px;}
+  .lockup .kicker{display:none;}
+  .back-link{padding:7px 11px;font-size:10.5px;}
+  .back-link .full-label{display:none;}
+  .back-link .short-label{display:inline;}
+}
+.back-link:hover{border-color:var(--copper);color:var(--extraction-hot);}
+
+/* steam */
+.steam-field{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0;}
+.steam-p{position:absolute;bottom:-14px;width:3px;height:3px;border-radius:50%;background:rgba(247,237,217,.32);animation:rise linear infinite;}
+@keyframes rise{0%{transform:translateY(0) translateX(0);opacity:0;}12%{opacity:.8;}100%{transform:translateY(-108vh) translateX(var(--drift,22px));opacity:0;}}
+
+/* hero */
+.hero{position:relative;overflow:hidden;padding:96px 0 78px;}
+.hero-inner{position:relative;z-index:2;}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--steam-bright);margin-bottom:26px;}
+.eyebrow::before{content:'';width:34px;height:1px;background:var(--steam-bright);}
+h1{font-family:'Gloock',serif;font-weight:400;font-size:clamp(38px,6.6vw,74px);line-height:1.03;letter-spacing:-.015em;color:var(--crema);margin-bottom:26px;text-wrap:balance;}
+h1 .accent{color:var(--extraction);font-style:italic;}
+.lede{font-size:clamp(15px,2vw,18.5px);font-weight:300;color:var(--muted);line-height:1.72;max-width:60ch;}
+.lede b{color:var(--crema);font-weight:500;}
+.lede + .lede{margin-top:18px;}
+
+/* section shell */
+section.band{padding:96px 0;position:relative;}
+.sec-eyebrow{font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--extraction);margin-bottom:14px;}
+h2{font-family:'Gloock',serif;font-weight:400;font-size:clamp(28px,4.2vw,46px);line-height:1.08;letter-spacing:-.01em;color:var(--crema);margin-bottom:16px;text-wrap:balance;}
+.sec-sub{color:var(--muted);font-weight:300;font-size:15.5px;line-height:1.66;max-width:60ch;}
+
+/* spiral */
+.spiral-sec{background:radial-gradient(ellipse 760px 500px at 50% 40%,rgba(234,165,77,.07),transparent 62%);}
+.spiral-layout{display:grid;grid-template-columns:1.12fr .88fr;gap:52px;align-items:center;margin-top:46px;}
+.spiral-stage{position:relative;}
+.spiral-key .sk-title{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--steam-bright);margin-bottom:20px;}
+.spiral-key ul{list-style:none;display:flex;flex-direction:column;gap:16px;margin-bottom:24px;}
+.spiral-key li{display:flex;gap:13px;align-items:flex-start;font-size:14px;line-height:1.55;color:var(--muted);font-weight:300;}
+.spiral-key li b{color:var(--crema);font-weight:600;}
+.spiral-key li .cool{color:var(--steam-bright);}
+.sk-dot{width:13px;height:13px;border-radius:50%;flex:none;margin-top:4px;}
+.sk-dot.start{background:var(--copper);}
+.sk-dot.now{background:var(--extraction);box-shadow:0 0 12px rgba(234,165,77,.7);}
+.sk-dot.next{background:transparent;border:1.5px dashed var(--faint);}
+.sk-dir{font-size:13px;color:var(--faint);line-height:1.62;font-weight:300;padding-top:22px;border-top:1px solid var(--line-soft);}
+.sk-nums{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:22px;font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.06em;color:var(--faint);text-transform:uppercase;align-items:baseline;}
+.sk-nums span{display:inline-flex;align-items:baseline;gap:7px;}
+.sk-nums b{font-family:'Gloock',serif;font-size:20px;color:var(--extraction-hot);letter-spacing:0;}
+@media(max-width:780px){.spiral-layout{grid-template-columns:1fr;gap:34px;}}
+svg#spiral{width:100%;height:auto;display:block;}
+#spiral .orbit-path{fill:none;stroke:var(--line);stroke-width:1.4;stroke-dasharray:2600;stroke-dashoffset:2600;transition:stroke-dashoffset 2.8s cubic-bezier(.4,0,.2,1);}
+.spiral-stage.in #spiral .orbit-path{stroke-dashoffset:0;}
+#spiral .tail-path{fill:none;stroke:var(--faint);stroke-width:1.2;stroke-dasharray:4 5;opacity:0;transition:opacity .8s 1.8s;}
+.spiral-stage.in #spiral .tail-path{opacity:.5;}
+#spiral .node-dot{fill:var(--copper);opacity:0;transition:opacity .5s,fill .5s;}
+.spiral-stage.in #spiral .node-dot{opacity:.95;}
+#spiral text{font-family:'Space Mono',monospace;}
+#spiral .name-lbl{font-size:12.5px;font-weight:700;fill:var(--crema);opacity:0;transition:opacity .6s;}
+#spiral .ver-lbl{font-size:9px;fill:var(--muted);opacity:0;transition:opacity .6s;}
+.spiral-stage.in #spiral .name-lbl,.spiral-stage.in #spiral .ver-lbl{opacity:1;}
+#spiral .seria-glow{animation:seriaPulse 2.8s ease-in-out infinite;}
+@keyframes seriaPulse{0%,100%{opacity:.9;}50%{opacity:.32;}}
+
+/* cycle timeline (reuses pour/extraction motion) */
+.cycles{background:linear-gradient(180deg,var(--roast-2),var(--roast));border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);}
+.pour{position:relative;margin-top:56px;padding-left:0;}
+.pour-track{position:absolute;left:19px;top:8px;bottom:8px;width:2px;background:var(--line);}
+.pour-fill{position:absolute;left:0;top:0;width:100%;height:0%;background:linear-gradient(var(--extraction-hot),var(--extraction));box-shadow:0 0 12px rgba(234,165,77,.55);transition:height .1s linear;}
+.pour-drop{position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);width:8px;height:8px;border-radius:50%;background:var(--extraction-hot);box-shadow:0 0 14px rgba(248,200,122,.9);}
+.cyc{position:relative;padding:0 0 46px 62px;opacity:.4;transition:opacity .55s;}
+.cyc:last-child{padding-bottom:6px;}
+.cyc.lit{opacity:1;}
+.cyc-node{position:absolute;left:12px;top:4px;width:16px;height:16px;border-radius:50%;background:var(--roast);border:2px solid var(--faint);transition:border-color .5s,background .5s,box-shadow .5s;z-index:2;}
+.cyc.lit .cyc-node{border-color:var(--extraction-hot);background:var(--extraction);box-shadow:0 0 16px rgba(234,165,77,.6);}
+.cyc.current .cyc-node{border-color:var(--extraction-hot);}
+.cyc-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px;}
+.cyc-name{font-family:'Gloock',serif;font-size:clamp(22px,3vw,30px);color:var(--crema);line-height:1;}
+.cyc-ver{font-family:'Space Mono',monospace;font-size:12px;color:var(--extraction);letter-spacing:.06em;}
+.cyc-place{font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);}
+.cyc-now{font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--roast);background:var(--extraction-hot);border-radius:999px;padding:3px 10px;font-weight:700;}
+.cyc-line{display:flex;gap:10px;font-size:14px;line-height:1.6;font-weight:300;max-width:62ch;margin-top:8px;}
+.cyc-line .k{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--copper);flex:none;width:64px;padding-top:3px;}
+.cyc-line.shipped .v{color:var(--crema-dim);}
+.cyc-line.felt .k{color:var(--steam-bright);}
+.cyc-line.felt .v{color:var(--muted);font-style:italic;}
+
+/* founder */
+.founder{position:relative;}
+.founder-card{margin-top:36px;display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:36px 38px;}
+.founder-badge{width:96px;height:96px;border-radius:18px;overflow:hidden;background:rgba(234,165,77,.14);border:1px solid rgba(234,165,77,.34);flex:none;}
+.founder-badge img{width:100%;height:100%;object-fit:cover;object-position:50% 22%;display:block;}
+@media(max-width:560px){.founder-badge{width:76px;height:76px;}}
+.founder-card .role{font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--extraction);margin-bottom:12px;}
+.founder-card .bio{font-size:16px;color:var(--crema-dim);line-height:1.78;font-weight:300;max-width:62ch;}
+.founder-card .bio b{color:var(--crema);font-weight:600;}
+@media(max-width:560px){.founder-card{grid-template-columns:1fr;}}
+
+/* closer */
+.closer{text-align:center;padding:110px 0 100px;background:linear-gradient(180deg,var(--roast),#170f09);}
+.closer h2{max-width:22ch;margin:0 auto 22px;}
+.btn{display:inline-flex;align-items:center;gap:10px;font-family:'Space Mono',monospace;font-size:12.5px;letter-spacing:.06em;padding:14px 28px;border-radius:999px;font-weight:700;background:var(--extraction);color:var(--roast);transition:transform .3s,background .3s;}
+.btn:hover{background:var(--extraction-hot);color:var(--roast);transform:translateY(-2px);}
+footer{text-align:center;padding:34px 24px 46px;font-family:'Space Mono',monospace;font-size:11px;color:var(--faint);border-top:1px solid var(--line);letter-spacing:.05em;line-height:2;}
+footer b{color:var(--muted);}
+footer a{color:var(--faint);}
+footer a:hover{color:var(--extraction);}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none !important;transition-duration:.01ms !important;}
+  .rv{opacity:1;transform:none;}
+  .pour-fill{height:100% !important;}
+  .cyc{opacity:1;}
+  .cyc .cyc-node{border-color:var(--extraction-hot);background:var(--extraction);}
+  #spiral .orbit-path{stroke-dashoffset:0;}
+  #spiral .node-dot,#spiral .name-lbl,#spiral .ver-lbl,#spiral .tail-path{opacity:1;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="lockup">
+    <span class="mark"><svg viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"></circle><path d="M26 60 a24 24 0 0 1 48 0"></path><path d="M35 60 a15 15 0 0 1 30 0"></path><path d="M44 60 a6 6 0 0 1 12 0"></path></svg></span>
+    <div><div class="name">Seduh Score</div><div class="kicker">BTS · Behind the Seduh</div></div>
+  </div>
+  <a class="back-link" href="../pitch/"><span class="full-label">← The Platform</span><span class="short-label">← Platform</span></a>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="steam-field" id="steamField"></div>
+  <div class="wrap hero-inner">
+    <div class="eyebrow rv">Behind the Seduh</div>
+    <h1 class="rv rv-d1">The long way round,<br>told <span class="accent">one place at a time.</span></h1>
+    <p class="lede rv rv-d2">This is the part for the nerds and the romantics. Not the pitch — the pour. <b>Seduh Score is what happens when a guy who makes coffee for a living starts vibe-coding a regional coffee competition platform</b> — one evening, one cycle, one Brunei place at a time.</p>
+    <p class="lede rv rv-d3">Every development cycle takes the name of a place, spiralling outward from the capital's core toward the frontier — the same direction the thing keeps growing. Here's how far the pour has reached, and what each cycle actually cost to make.</p>
+  </div>
+</section>
+
+<!-- THE SPIRAL -->
+<section class="band spiral-sec">
+  <div class="wrap">
+    <div class="sec-eyebrow rv">How we name the journey</div>
+    <h2 class="rv rv-d1">The spiral</h2>
+    <p class="sec-sub rv rv-d2">Seven cycles shipped, from the urban core out to the oil town. Each one a place, each one a version, each one a season of evenings.</p>
+    <div class="spiral-layout">
+      <div class="spiral-stage" id="spiralStage">
+        <svg id="spiral" viewBox="105 100 450 400" aria-label="Codename spiral: seven shipped cycles from Kiulap to Seria, spiralling outward"></svg>
+      </div>
+      <div class="spiral-key rv rv-d1">
+        <div class="sk-title">Reading the map</div>
+        <ul>
+          <li><span class="sk-dot start"></span><span><b>Kiulap · v1.0</b> — the urban core, where the very first bracket ran.</span></li>
+          <li><span class="sk-dot now"></span><span><b>Seria · v5.x</b> — the current cycle, out at the oil town on the coast.</span></li>
+          <li><span class="sk-dot next"></span><span>The next cycle — <span class="cool">named when we get there.</span> The rest of the map stays folded.</span></li>
+        </ul>
+        <div class="sk-dir">Capital core → frontier — the spiral grows the same direction the platform does.</div>
+        <div class="sk-nums">
+          <span><b>7</b> cycles</span>
+          <span><b id="v-now">v—</b> now</span>
+          <span><b>4</b> formats</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PER-CYCLE TIMELINE -->
+<section class="band cycles">
+  <div class="wrap">
+    <div class="sec-eyebrow rv">The pour, cycle by cycle</div>
+    <h2 class="rv rv-d1">What shipped — and what it felt like.</h2>
+    <p class="sec-sub rv rv-d2">Scroll — the extraction line fills as each cycle landed. One line for the machine, one line for the maker.</p>
+
+    <div class="pour" id="cyclePour">
+      <div class="pour-track"><div class="pour-fill" id="cyclePourFill"><div class="pour-drop"></div></div></div>
+
+      <div class="cyc" data-cyc>
+        <div class="cyc-node"></div>
+        <div class="cyc-head"><span class="cyc-name">Kiulap</span><span class="cyc-ver">v1.0</span><span class="cyc-place">BSB urban core</span></div>
+        <div class="cyc-line shipped"><span class="k">Shipped</span><span class="v">The first Throwdown bracket — two baristas, a majority vote, a winner. One format, no account, no server.</span></div>
+        <div class="cyc-line felt"><span class="k">Felt like</span><span class="v">proving to yourself that the receipt-and-group-chat chaos could actually become a thing you press buttons on.</span></div>
+      </div>
+
+      <div class="cyc" data-cyc>
+        <div class="cyc-node"></div>
+        <div class="cyc-head"><span class="cyc-name">Gadong</span><span class="cyc-ver">v2.0</span><span class="cyc-place">BSB commercial centre</span></div>
+        <div class="cyc-line shipped"><span class="k">Shipped</span><span class="v">Team scoring arrived — the ASEAN BTC format, tokens handed out cup by cup, three judges per match.</span></div>
+        <div class="cyc-line felt"><span class="k">Felt like</span><span class="v">realising one format was never going to be enough — and neither was one long weekend.</span></div>
+      </div>
+
+      <div class="cyc" data-cyc>
+        <div class="cyc-node"></div>
+        <div class="cyc-head"><span class="cyc-name">Kiarong</span><span class="cyc-ver">v3.0</span><span class="cyc-place">Mosque roundabout neighbourhood</span></div>
+        <div class="cyc-line shipped"><span class="k">Shipped</span><span class="v">Liga Seduh — a league, not a knockout. No-repeat schedule generator, live standings, a judged final.</span></div>
+        <div class="cyc-line felt"><span class="k">Felt like</span><span class="v">the platform starting to have opinions of its own about how a competition should run.</span></div>
+      </div>
+
+      <div class="cyc" data-cyc>
+        <div class="cyc-node"></div>
+        <div class="cyc-head"><span class="cyc-name">Menglait</span><span class="cyc-ver">v3.6</span><span class="cyc-place">Shophouses, residential belt</span></div>
+        <div class="cyc-line shipped"><span class="k">Shipped</span><span class="v">Girls Got Drip Vol. 0 — the first real event stress test. One Android tablet, one projector, a real crowd.</span></div>
+        <div class="cyc-line felt"><span class="k">Felt like</span><span class="v">the first time the thing you built alone in the evenings had to survive contact with a real crowd.</span></div>
+      </div>
+
+      <div class="cyc" data-cyc>
+        <div class="cyc-node"></div>
+        <div class="cyc-head"><span class="cyc-name">Berakas</span><span class="cyc-ver">v4.x</span><span class="cyc-place">Airport, outer BSB</span></div>
+        <div class="cyc-line shipped"><span class="k">Shipped</span><span class="v">The front door — seduhscore.com, an organiser zone, Firebase auth, and Cup Taster as the fourth format.</span></div>
+        <div class="cyc-line felt"><span class="k">Felt like</span><span class="v">quietly turning a personal tool into something a stranger could actually sign into.</span></div>
+      </div>
+
+      <div class="cyc" data-cyc>
+        <div class="cyc-node"></div>
+        <div class="cyc-head"><span class="cyc-name">Jerudong</span><span class="cyc-ver">v4.5</span><span class="cyc-place">Coastal, upscale</span></div>
+        <div class="cyc-line shipped"><span class="k">Shipped</span><span class="v">Mobile chrome rebuilt end to end; organiser branding threaded through headers, audience views and PDF reports.</span></div>
+        <div class="cyc-line felt"><span class="k">Felt like</span><span class="v">sanding every rough edge you'd been apologising for — screen by screen, on a phone at 1am.</span></div>
+      </div>
+
+      <div class="cyc current" data-cyc>
+        <div class="cyc-node"></div>
+        <div class="cyc-head"><span class="cyc-name">Seria</span><span class="cyc-ver">v5.x</span><span class="cyc-place">Oil town</span><span class="cyc-now">Current cycle</span></div>
+        <div class="cyc-line shipped"><span class="k">Shipped</span><span class="v">The records archive seed and org lifecycle — the point where a champion's result stops being disposable.</span></div>
+        <div class="cyc-line felt"><span class="k">Felt like</span><span class="v">building the part that only pays off years from now, and choosing to build it anyway.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOUNDER -->
+<section class="band founder">
+  <div class="wrap">
+    <div class="sec-eyebrow rv">The one guy</div>
+    <h2 class="rv rv-d1">Firdaus Omar</h2>
+    <p class="sec-sub rv rv-d2">Grey Matter Coffee Werks · Brunei — coffee first, code second, both stubborn.</p>
+    <div class="founder-card rv">
+      <div class="founder-badge"><img src="../shared/assets/founder-firdaus.jpg" alt="Firdaus Omar"></div>
+      <div>
+        <div class="role">Founder · maker</div>
+        <p class="bio">In the coffee scene since <b>2012</b>. TwentyFive — the spiritual predecessor to Grey Matter — started in <b>2017</b>; Grey Matter Coffee Werks has carried it forward for the last five years. A competitor at ABTC since <b>2023</b>, and a judge for Malaysia's national coffee competition in <b>2019</b>, alongside various local competitions.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CLOSER -->
+<section class="closer">
+  <div class="wrap">
+    <div class="sec-eyebrow rv" style="display:inline-flex;">Enough of the back room</div>
+    <h2 class="rv rv-d1">That's the pour so far.<br>Come see what's <span style="color:var(--extraction);font-style:italic;">in the cup.</span></h2>
+    <a class="btn rv rv-d2" href="../pitch/">← Back to The Platform</a>
+  </div>
+</section>
+
+<footer>
+  <b>Seduh Score</b> · Grey Matter Coffee Werks · Brunei Darussalam<br>
+  seduhscore.com · <span id="v-foot">v—</span> · Behind the Seduh
+</footer>
+
+<script src="../shared/version.js"></script>
+<script>
+/* ---------- version: sourced from shared/version.js (POA-42 Part A pattern) ---------- */
+(function(){
+  const v = (typeof SEDUH_VERSION !== 'undefined') ? 'v' + SEDUH_VERSION : 'v—';
+  const foot = document.getElementById('v-foot');
+  const now = document.getElementById('v-now');
+  if(foot) foot.textContent = v;
+  if(now) now.textContent = v;
+})();
+
+/* ---------- steam particles ---------- */
+(function(){
+  const field = document.getElementById('steamField');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce) return;
+  for(let i=0;i<14;i++){
+    const p = document.createElement('div');
+    p.className = 'steam-p';
+    p.style.left = (4 + Math.random()*92) + '%';
+    p.style.setProperty('--drift', (Math.random()*70-35)+'px');
+    p.style.animationDuration = (9 + Math.random()*9) + 's';
+    p.style.animationDelay = (Math.random()*10) + 's';
+    p.style.width = p.style.height = (2 + Math.random()*3) + 'px';
+    field.appendChild(p);
+  }
+})();
+
+/* ---------- reveal on scroll ---------- */
+const io = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+},{threshold:.14});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+
+/* ---------- the spiral: 7 shipped codenames, Kiulap to Seria (KB-PROTOCOL-safe: no future codenames) ---------- */
+(function(){
+  const svg = document.getElementById('spiral');
+  const stage = document.getElementById('spiralStage');
+  const cx=336, cy=280, startR=26, rStep=26, aStep=132*Math.PI/180;
+  const cycles = [
+    {name:'KIULAP',ver:'v1.0'},{name:'GADONG',ver:'v2.0'},{name:'KIARONG',ver:'v3.0'},
+    {name:'MENGLAIT',ver:'v3.6'},{name:'BERAKAS',ver:'v4.x'},{name:'JERUDONG',ver:'v4.5'},
+    {name:'SERIA',ver:'v5.x'}
+  ];
+  const N = cycles.length;
+  // continuous Archimedean spiral — r and angle both linear in the parameter,
+  // so fractional sampling traces a clean curve with no self-intersecting loops.
+  const pos = t=>{ const a=t*aStep - Math.PI/2, r=startR + t*rStep; return {x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)}; };
+  const polyline = (from,to)=>{
+    const steps = Math.max(2, Math.round((to-from)*24));
+    let d = '';
+    for(let s=0;s<=steps;s++){ const p = pos(from+(to-from)*s/steps); d += (s?' L ':'M ')+p.x.toFixed(1)+' '+p.y.toFixed(1); }
+    return d;
+  };
+  let html = '<path class="orbit-path" d="'+polyline(0,N-1)+'"/>';
+  html += '<path class="tail-path" d="'+polyline(N-1,N+0.7)+'"/>';
+  cycles.forEach((c,i)=>{
+    const p = pos(i);
+    const above = (p.y<cy);
+    const ly = above ? p.y-22 : p.y+24;
+    const vy = above ? p.y-9 : p.y+36;
+    if(c.name==='SERIA'){
+      html += '<circle class="seria-glow" cx="'+p.x+'" cy="'+p.y+'" r="16" fill="none" stroke="#f8c87a" stroke-width="1.5"/>';
+      html += '<circle cx="'+p.x+'" cy="'+p.y+'" r="8" fill="#eaa54d"/>';
+      html += '<text class="name-lbl" x="'+p.x+'" y="'+ly+'" text-anchor="middle" fill="#f8c87a">SERIA</text>';
+      html += '<text class="ver-lbl" x="'+p.x+'" y="'+vy+'" text-anchor="middle">now · v5.x</text>';
+    } else {
+      html += '<circle class="node-dot" cx="'+p.x+'" cy="'+p.y+'" r="5.5" style="transition-delay:'+(0.5+i*0.16)+'s"/>';
+      html += '<text class="name-lbl" x="'+p.x+'" y="'+ly+'" text-anchor="middle" style="transition-delay:'+(0.7+i*0.16)+'s">'+c.name+'</text>';
+      html += '<text class="ver-lbl" x="'+p.x+'" y="'+vy+'" text-anchor="middle" style="transition-delay:'+(0.8+i*0.16)+'s">'+c.ver+'</text>';
+    }
+  });
+  svg.innerHTML = html;
+  new IntersectionObserver((es,obs)=>{
+    es.forEach(e=>{ if(e.isIntersecting){ stage.classList.add('in'); obs.disconnect(); } });
+  },{threshold:.3}).observe(stage);
+})();
+
+/* ---------- cycle pour: scroll fill + node lighting ---------- */
+(function(){
+  const pour = document.getElementById('cyclePour');
+  const fill = document.getElementById('cyclePourFill');
+  const items = [...document.querySelectorAll('[data-cyc]')];
+  function update(){
+    const r = pour.getBoundingClientRect(), vh = window.innerHeight;
+    const progress = Math.min(Math.max((vh*0.72 - r.top) / r.height, 0), 1);
+    fill.style.height = (progress*100) + '%';
+    const fillY = r.top + r.height*progress;
+    items.forEach(ms=>{
+      const node = ms.querySelector('.cyc-node').getBoundingClientRect();
+      ms.classList.toggle('lit', node.top + 8 <= fillY);
+    });
+  }
+  window.addEventListener('scroll', update, {passive:true});
+  window.addEventListener('resize', update);
+  update();
+})();
+</script>
+</body>
+</html>

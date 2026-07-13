@@ -1,6 +1,6 @@
 # Seduh Score — Claude Code orientation
 
-*State: v5.10.2 — matches CHANGELOG.md as of July 2026*
+*State: v5.10.3 — matches CHANGELOG.md as of July 2026*
 
 Read these two files in full before touching anything:
 1. `CONVENTIONS.md` — all patterns, naming rules, architecture decisions
@@ -86,7 +86,13 @@ timer/index.html         ← standalone timer page
 about/index.html         ← README renderer (public)
 coming-soon/index.html   ← teaser landing page (served at "/" via Hosting redirect)
 tour/index.html          ← module tour page (POA-43, v5.6.0)
-pitch/index.html         ← unlisted investor/customer pitch page (POA-52, v5.8.0)
+pitch/index.html         ← unlisted "The Platform" pitch page (POA-52, v5.8.0;
+                           restructured POA-60, v5.10.3 — problem-first,
+                           pricing + governance sections, no version/spiral
+                           lore — moved to bts/)
+bts/index.html            ← unlisted "Behind the Seduh" build-story page
+                           (POA-60, v5.10.3) — codename spiral (7 shipped
+                           cycles), per-cycle timeline, founder bio
 onboard/index.html       ← public org onboarding intake form (POA-47, v5.9.0)
 booth/                   ← mini-games (setup, display, guess, grinder) — live but
                            unlisted (ships with every Hosting deploy; confirmed
