@@ -2,6 +2,43 @@
 
 ---
 
+## [5.10.3] — POA-60: Pitch page restructure — "The Platform" + new BTS page · July 2026
+
+`pitch/index.html` reframed as "The Platform" following cross-review of four
+external AI pitch assessments (Qwen, Kimi, Gemini, ChatGPT), synthesized in
+Strategy session July 2026. The old page read as an engineering build-log
+(version numbers, phase timeline, codename lore); the reviews converged on
+the same diagnosis — it led with the platform's journey instead of the
+reader's problem, and buried pricing, the trust/governance story, and the
+competitor-record moat.
+
+Design produced a high-fidelity handoff (`Coffee-Themed Visual Identity`)
+splitting the single page into two, which this ticket implements:
+
+- **`pitch/index.html`** (URL unchanged) — new problem → product → proof →
+  moat → roadmap → pricing → closer narrative. New sections: a "Problem"
+  villain-card block naming the chaos Seduh Score replaces; a "Proof" event
+  grid (GGD Vol. 0 completed + the 30 Aug throwdown upcoming + a ghost slot
+  for future organiser events, designed to be data-driven later — see
+  Hooks & Integration in the design handoff); a "Roadmap" trust card framing
+  the score-integrity audit layer as *not yet shipped*, roadmap-only; a
+  plain three-tier pricing block (Community free / Per-Event BND $18 /
+  Annual BND $100) with no access gate. Removed entirely: the phase-by-phase
+  version timeline (v3.6 – v5.7), the codename spiral, and the "Now
+  brewing" countdown card — relocated/retired per the new page's proof-first
+  framing. Format cards and the Seduh ID/moat section carried over unchanged
+  (flagged by all four reviews as the page's strongest material).
+- **`bts/index.html`** (new route) — "Behind the Seduh": the expanded
+  codename spiral (7 shipped cycles, Kiulap → Seria — no future codenames,
+  per the ROADMAP.md disclosure protocol), a per-cycle timeline with a
+  technical "Shipped" line and a human "Felt like" line per cycle, and the
+  founder bio (locked copy). Cross-links both ways with the Platform page
+  (top-bar pill + footer).
+
+`SEDUH_VERSION` bumped to `5.10.3`.
+
+---
+
 ## [docs] — KB recon: POA-59 deploy status propagated to all six referencing docs · July 2026
 
 Mechanical stamp check clean (v5.10.2 anchor). Read-through found the
