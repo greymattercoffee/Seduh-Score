@@ -2,7 +2,7 @@
 
 ---
 
-## [pending-version] — POA-55: shared/pdf.js built, Throwdown wired as first consumer · July 2026
+## [5.11.0] — POA-55: shared/pdf.js built, Throwdown wired as first consumer · July 2026
 
 `shared/pdf.js` shipped for real, closing out the doc-vs-code drift POA-55
 tracked since the July 2026 full-repo audit (see the `[docs]` entry below).
@@ -40,12 +40,23 @@ targets this API and stays parked, untouched, for that session.
   export (`generatePDF()`) still works unchanged — verified live, both
   report pages render correctly. `bbtc/index.html` never loads
   `shared/pdf.js`, so there was no code path for interaction. `stash@{0}`
-  confirmed still present and untouched.
+  confirmed still present and untouched. **Caveat:** this PASS proves the
+  current inline BBTC path is undisturbed — it does not validate the future
+  BBTC migration (`stash@{0}`). That's still that session's own build-and-
+  verify work, not something this session could prove by construction.
 - **Docs corrected to match:** `CLAUDE.md` and `CONVENTIONS.md`'s
-  documented-not-implemented ⚠️ flags removed now that the module is real.
+  documented-not-implemented ⚠️ flags removed now that the module is real;
+  CONVENTIONS.md's field-mapping table gained an explicit "renders to"
+  column codifying the header layout decision (constant Seduh Score mark
+  line always shown; `eventSubtitle`/`eventDate`/`eventVenue` joined into
+  the single `.pdf-event-meta` line only when branded) so the next PDF
+  session (Liga, Cup Taster, eventually BBTC) doesn't have to
+  reverse-engineer it from source.
 
-**Not self-versioned** — this entry is intentionally left without a version
-number; Strategy confirms the bump.
+**Version:** confirmed by Strategy as v5.11.0 — a feature-level minor bump
+(shared module going from documented-but-fictional to actually shipped,
+Throwdown's first PDF export, a new commercial-tier gate), same weight
+class as v5.4.0/v5.5.0/v5.7.0.
 
 ---
 
