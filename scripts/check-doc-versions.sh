@@ -22,6 +22,7 @@ CHANGELOG="CHANGELOG.md"
 # Tier A + Tier B docs tracked by the KB Consistency Protocol.
 # Update this list when the registry in KB-PROTOCOL.md changes.
 DOCS=(
+  "KB-PROTOCOL.md"
   "CLAUDE.md"
   "CONVENTIONS.md"
   "README.md"

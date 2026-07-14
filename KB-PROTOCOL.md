@@ -1,5 +1,7 @@
 # KB Consistency Protocol — Seduh Score
 
+*State: v5.11.0 — matches CHANGELOG.md as of July 2026*
+
 *Load this document into any session — Strategy, Code, or Design — to run a
 drift audit. It is the single reference point for checking whether the
 internal knowledge base is internally consistent. It does not describe how to
@@ -46,6 +48,25 @@ A third instance, same failure mode, surfaced right after the v5.11.0 build:
 reconciliation pass caught it. Not a new drift mode; a version bump touching
 some Tier A/B docs and not others, exactly as above.
 
+A fourth instance is the most serious of the three, plainly stated: the
+**verification tooling itself had a blind spot**. `scripts/check-doc-versions.sh`
+never checked this document — `KB-PROTOCOL.md` — despite it being a
+git-tracked doc central to the very audit it runs, and this document never
+carried a version stamp for the script to check in the first place. Root
+cause traced to this same "Document Registry" table (Section 1): this
+document was never added as a row in its own registry, so the script (whose
+`DOCS` array is meant to mirror that table) inherited the omission
+mechanically, not by deliberate exclusion. This means every past "exits 0"
+result — including the one that closed the July 2026 repo audit — only ever
+certified five/six-doc coverage while appearing to certify all of it. A
+clean run from a tool with a hole in its own coverage is worse than a
+correctly-reported failure: it manufactures false confidence instead of
+surfacing the drift it exists to catch. Closed by adding a version stamp to
+this document, registering it in Section 1's table, and adding it to the
+script's `DOCS` array — verified both a deliberate mismatch (correctly
+reported `MISMATCH`, exit 1) and the corrected state (exit 0) before calling
+it fixed.
+
 There are **two independent axes of drift** to check, not one:
 
 1. **Doc-vs-doc drift** — do the documents agree with each other and with
@@ -66,6 +87,7 @@ independently maintained.
 | Document | Authority (owns this fact) | Tier | Public? |
 |---|---|---|---|
 | `CHANGELOG.md` | What shipped, and when — the ground truth | **Ground truth** — every session, no exceptions | No |
+| `KB-PROTOCOL.md` | This drift-audit procedure and this registry table itself | **A** | No — was previously unregistered in this very table, the exact failure mode this section warns about; added retroactively when `check-doc-versions.sh`'s blind spot on this doc was closed |
 | `CLAUDE.md` | Repo structure / architecture snapshot for Code sessions | **A** | Yes |
 | `CONVENTIONS.md` | Build patterns, session discipline, this protocol's home reference | **A** (structural check every bump; full pass at major/minor) | Yes |
 | `README.md` | Public-facing module state | **A**, only when a public-facing module changed | Yes |

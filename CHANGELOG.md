@@ -2,6 +2,25 @@
 
 ---
 
+## [docs] check-doc-versions.sh blind spot on KB-PROTOCOL.md closed · July 2026
+
+Script now covers all six Tier A/B docs. `KB-PROTOCOL.md` — the doc that
+defines the drift-audit registry — had never been added to its own
+Section 1 registry table, so it carried no version stamp and
+`check-doc-versions.sh`'s `DOCS` array (built to mirror that table) never
+checked it. Not a deliberate exclusion: a bootstrapping gap traced to the
+registry never registering itself. Every past "exits 0" result, including
+the one that closed the July 2026 repo audit, only ever certified the other
+docs' coverage while appearing to certify all of it — the most serious of
+the drift instances found this cycle, since it's a hole in the safety net
+rather than in the docs it checks. Fixed: version stamp added to
+`KB-PROTOCOL.md`, registered in its own Section 1 table, added to the
+script's `DOCS` array. Verified both directions — a deliberate mismatch
+correctly reported `MISMATCH`/exit 1, the corrected state reports exit 0.
+Logged as a fourth "why this exists" instance in `KB-PROTOCOL.md`.
+
+---
+
 ## [docs] v5.11.0 doc reconciliation across all Tier A/B docs · July 2026
 
 **Root cause, not routine upkeep:** the v5.11.0 build (`shared/pdf.js`
