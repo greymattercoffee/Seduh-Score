@@ -1,6 +1,6 @@
 # Seduh Score ☕
 
-*State: v5.10.3 — matches CHANGELOG.md as of July 2026*
+*State: v5.11.0 — matches CHANGELOG.md as of July 2026*
 
 **Coffee competition platform for organisers in Brunei and Southeast Asia.**
 
@@ -81,7 +81,7 @@ Adds a redemption round — losers re-enter in groups for a second chance. Optio
 **Limits:** Community tier caps at 16 participants. Redemption and revival draw require a paid tier.
 <!-- /MODULE:throwdown -->
 
-**Technical:** Variable judge count · colour-coded rounds · revival markers (⬆ R) · judge list record-keeping · audience overlay · demo mode · JSON save/load
+**Technical:** Variable judge count · colour-coded rounds · revival markers (⬆ R) · judge list record-keeping · audience overlay · PDF export · demo mode · JSON save/load
 
 ---
 

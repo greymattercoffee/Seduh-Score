@@ -1,6 +1,6 @@
 # Conventions — Seduh Score
 
-*State: v5.10.3 — matches CHANGELOG.md as of July 2026*
+*State: v5.11.0 — matches CHANGELOG.md as of July 2026*
 
 Coding patterns, architecture decisions, and development standards for the Seduh Score platform. Read this at the start of any new chat session before touching code.
 
@@ -49,7 +49,7 @@ seduh-score/
     ├── firebase.js             ← v4.8+ Firebase SDK init (app/auth/Firestore/Storage).
     │                              Consumers: admin, onboard, booth (v5.10.2-booth —
     │                              booth previously duplicated its own init)
-    ├── pdf.js                  ← ⚠️ documented, not implemented — see POA-55, no file exists yet
+    ├── pdf.js                  ← shared PDF export (POA-55) — first consumer Throwdown
     ├── sound.js                ← synthesised timer/reveal audio cues (no audio files); used by
     │                              bbtc/index.html, liga/index.html, timer/index.html
     ├── version.js              ← v5.5.1+ platform version constant (POA-42 Part A) — sourced by index.html footer
@@ -69,10 +69,11 @@ Each module includes shared files like this:
 <!-- firebase.js + auth.js loaded as type="module" before </body> -->
 ```
 
-⚠️ `pdf.js` is **documented, not built** — see POA-55 in PLAN_OF_ACTION.md. No
-module should add a `<script src="../shared/pdf.js">` include; the file does
-not exist. BBTC's PDF export today is a self-contained inline overlay, not
-this shared module.
+`pdf.js` shipped under POA-55 — see the PDF export section below for the full
+API. Throwdown is the first consumer (`<script src="../shared/pdf.js">`).
+BBTC's PDF export today remains a self-contained inline overlay, not this
+shared module; a stashed BBTC refactor (`stash@{0}` on `dev`) already targets
+this module's API and stays parked until its own later session.
 
 **Rule:** Never copy shared component code into a module file. Always reference from `../shared/`.
 

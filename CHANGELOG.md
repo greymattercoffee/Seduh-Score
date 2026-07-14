@@ -2,6 +2,49 @@
 
 ---
 
+## [docs] v5.11.0 doc reconciliation across all Tier A/B docs · July 2026
+
+**Root cause, not routine upkeep:** the v5.11.0 build (`shared/pdf.js`
+shipped) and the immediately following KB-sync doc session (`9fb7554`) both
+cascaded correctly to `CLAUDE.md` but not to the other five Tier A/B docs —
+`CONVENTIONS.md`, `README.md`, `PLAN_OF_ACTION.md`, `ROADMAP.md`, and
+`STRATEGY.md` all stayed stamped v5.10.3. `check-doc-versions.sh` caught the
+mismatch. This is the same drift class KB-PROTOCOL.md's "Why this exists"
+section already documents (a version bump touching some docs, not all) —
+logged there as a third instance alongside the original MUA-07 case.
+
+- **`CONVENTIONS.md`** — real content drift, not stamp-only: the
+  architecture tree and the `pdf.js` callout still carried the "⚠️
+  documented, not implemented" language from the earlier fact-drift
+  correction pass, contradicting the module's own (already-updated) "shipped
+  (POA-55)" section further down. Corrected to match. Stamp bumped v5.11.0.
+- **`PLAN_OF_ACTION.md`** — POA-55 entry (and its one-line index summary)
+  updated from "🟠 decided, build in progress" to "✅ shipped v5.11.0",
+  reflecting Throwdown wired as first consumer and the BBTC regression
+  check. Stamp bumped v5.11.0.
+- **`ROADMAP.md`** — the Phase 2 "Branded PDF exports — deferred" line
+  updated to shipped; new v5.11.0 row added to the version table; footer
+  summary updated. Stamp bumped v5.11.0.
+- **`STRATEGY.md`** — real content drift: "Branded PDF exports" was listed
+  only under the Annual tier, but the shipped gate
+  (`pdf_branding: { minTier: 'per_event' }`) means Per-Event also gets it —
+  same pattern as `audience_branding`/`audience_enhanced`, which the doc
+  already lists correctly as "Per-Event / Annual". Added to the Per-Event
+  bullet list; Annual's line reworded to show it's inherited, not exclusive.
+  Stamp bumped v5.11.0.
+- **`README.md`** — real content gap: Throwdown's "Technical" feature line
+  didn't mention PDF export despite being the first shipped consumer of
+  `shared/pdf.js`; BBTC's own (pre-existing, inline) PDF export was already
+  listed correctly. Added. Stamp bumped v5.11.0.
+- **`KB-PROTOCOL.md`** — added a one-line cross-reference to `CLAUDE.md`'s
+  `## KB sync architecture` section under the KB-vs-repo check step, and
+  logged this session's own miss as a third "Why this exists" example.
+
+`check-doc-versions.sh` now exits 0 across all six Tier A/B documents at
+v5.11.0.
+
+---
+
 ## [docs] KB sync split adopted · July 2026
 
 KB sync split adopted — six git-tracked docs (`CHANGELOG.md`,

@@ -38,6 +38,14 @@ pass and the next re-checked docs against CHANGELOG. This confirms the drift
 mode is recurring, not a one-off, which is why POA-38 folded the check into
 standing session discipline rather than treating it as a closed incident.
 
+A third instance, same failure mode, surfaced right after the v5.11.0 build:
+`shared/pdf.js` shipping (POA-55) and the follow-up KB-sync doc session
+(commit `9fb7554`) both cascaded correctly to `CLAUDE.md` but not to
+`CONVENTIONS.md`, `README.md`, `PLAN_OF_ACTION.md`, `ROADMAP.md`, or
+`STRATEGY.md` — all five still stamped v5.10.3 until a dedicated
+reconciliation pass caught it. Not a new drift mode; a version bump touching
+some Tier A/B docs and not others, exactly as above.
+
 There are **two independent axes of drift** to check, not one:
 
 1. **Doc-vs-doc drift** — do the documents agree with each other and with
@@ -161,7 +169,10 @@ or automatically per the trigger matrix above.
 7. **KB-vs-repo check** (Strategy sessions only): confirm the KB upload
    timestamps for any Tier A document match what's expected given the
    session history — if in doubt, ask for the local repo file to be
-   re-uploaded rather than assume the KB snapshot is current.
+   re-uploaded rather than assume the KB snapshot is current. See
+   `CLAUDE.md`'s `## KB sync architecture` section for which docs sync via
+   the GitHub integration (manual-trigger "Sync now") vs. which stay on
+   manual upload by necessity (gitignored docs).
 8. If working in the local repo (Code session), run
    `scripts/check-doc-versions.sh` — it mechanically checks step 2 across
    all Tier A/B documents in one pass. It does not do steps 3–7; those still
