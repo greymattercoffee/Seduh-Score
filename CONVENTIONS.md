@@ -527,11 +527,20 @@ footer (attribution + export timestamp).
 
 **Header/footer field mapping** (read from `seduh_handoff` v2, same key `audience.js` reads):
 
-| Element | Always shown | Behind `pdf_branding` gate |
-|---|---|---|
-| Seduh mark line | ✅ | — |
-| `eventName` (plain text) | ✅ (falls back to `fallbackTitle` if unset) | — |
-| `logoUrl`, `eventSubtitle`, `eventDate`, `eventVenue` | — | ✅ |
+| Element | Renders to | Always shown | Behind `pdf_branding` gate |
+|---|---|---|---|
+| Seduh mark line (constant `"Seduh Score"` text, not data-driven) | `.pdf-event-sub` | ✅ | — |
+| `eventName` (plain text, falls back to `fallbackTitle` if unset) | `.pdf-event-name` | ✅ | — |
+| `logoUrl` | `.pdf-logo` (`<img>`, inside `.pdf-id-block`) | — | ✅ |
+| `eventSubtitle`, `eventDate`, `eventVenue` | joined with `" · "`, filtered for blanks, into one `.pdf-event-meta` line | — | ✅ |
+
+This is a POA-55 implementation judgment call, not spelled out in the original
+MUA-07-SPEC-V2.md field table — resolved by precedent: `.pdf-event-meta` already
+carries exactly this shape in BBTC's inline PDF export (date + venue joined),
+and the constant-brand-line / data-driven-name split mirrors `audience.js`'s
+`aud-hdr-sub` ("Seduh Score", constant) vs. `aud-hdr-name` (event title, data-driven).
+Confirmed by Strategy — future PDF consumers (Liga, Cup Taster, eventually BBTC's
+migration off `shared/pdf.js`) should follow this table as-is, not re-derive it.
 
 `bgColor` never propagates to the PDF header, on any tier — stays scoped to `.event-band` per D1.
 
