@@ -108,7 +108,7 @@ shared/
   eventconfig.js        ← organiser customisation (accent, logo, event identity)
   timer.js              ← shared timer component
   audience.js           ← shared audience overlay
-  pdf.js                ← ⚠️ documented, not implemented — see POA-55, no file exists yet
+  pdf.js                ← shared PDF export module (POA-55) — first consumer Throwdown
   sound.js              ← shared sound effects (used by bbtc, liga, timer)
   version.js            ← platform version constant (v5.5.1, POA-42 Part A) — sourced by index.html footer
   upcoming-events.js    ← shared event carousel (v5.5.2, POA-42 Part B) — UpcomingEvents.mount(); used by index.html + coming-soon/index.html
@@ -125,13 +125,13 @@ Each module loads shared files via relative paths:
 <!-- firebase.js + auth.js loaded as type="module" before </body> -->
 ```
 
-`pdf.js` — ⚠️ **documented API, not yet built.** CONVENTIONS.md's
-`PdfExport.open/close/print` spec and the `pdf_branding` Gates key describe
-a module that has never been committed to any branch (see POA-55 in
-PLAN_OF_ACTION.md). BBTC's current PDF export runs its own self-contained
-inline overlay, not this module. Decision (build to spec vs. correct the
-docs) is pending in Strategy — do not write new code against this API
-until POA-55 resolves.
+`pdf.js` — shipped (POA-55 in PLAN_OF_ACTION.md). `PdfExport.open/close/print`
+per the CONVENTIONS.md spec, gated by the `pdf_branding` Gates key. First
+consumer is Throwdown (POA-55 Step 0 pivot — Throwdown had a 30 Aug 2026 event
+and benefited sooner than BBTC needed one). BBTC's current PDF export still
+runs its own self-contained inline overlay, not this module; a stashed BBTC
+refactor (`stash@{0}` on `dev`) already targets this module's API and stays
+parked until its own later session.
 
 ---
 

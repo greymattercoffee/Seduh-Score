@@ -494,22 +494,18 @@ Consumed by `audience.js` `_applyHandoff()` inside `Audience.show()`.
 v1 handoffs are gracefully upgraded to v2 on read — no data loss. Migration logic lives in
 `EventConfig.mount()`. v2 written back to sessionStorage immediately after upgrade.
 
-### PDF export (`shared/pdf.js`) — documented API, not yet built (see POA-55)
-
-⚠️ **This section describes a spec, not shipped code.** `shared/pdf.js` has never been
-committed to any branch and no such file exists on disk. CHANGELOG.md's v5.4.0 entry,
-this section, and CLAUDE.md's architecture tree all previously described it as shipped —
-that was inaccurate; corrected as of the July 2026 full-repo audit. BBTC's PDF export
-today is a self-contained inline overlay that does not use this API. Whether this module
-gets built to the spec below or the documentation gets unwound instead is a pending
-Strategy decision under POA-55 (PLAN_OF_ACTION.md) — do not write code against this API
-until that resolves.
+### PDF export (`shared/pdf.js`) — shipped (POA-55)
 
 Approved third post-B1 shared file (strategy chat, July 2026, MUA-07-SPEC-V2.md). Shared,
 format-agnostic PDF export module — owns the `#pdf-overlay` lifecycle, the gated event-identity
-header, and the print trigger. Piloted on BBTC; Throwdown/Liga/Cup Taster adoption is separate,
-future work (none of them has a PDF export today — see AUDIT.md / MUA-07-SPEC-V2.md for why the
-original all-four-modules draft was rescoped).
+header, and the print trigger. Built for real under POA-55 (PLAN_OF_ACTION.md) after a doc-vs-code
+drift correction found the module had been described as shipped since v5.4.0 while never existing
+on disk. **First consumer is Throwdown** (POA-55 Step 0 pivot — Throwdown had a live event
+30 Aug 2026 and benefited from a PDF export sooner than BBTC needed one). BBTC's PDF export
+today remains its own self-contained inline overlay, not this API; a stashed BBTC refactor
+(`stash@{0}` on `dev`) already targets this module's API and stays parked until its own later
+session. Liga/Cup Taster adoption is separate, future work (see AUDIT.md / MUA-07-SPEC-V2.md
+for why the original all-four-modules draft was rescoped).
 
 Public API (three methods only — never touch `#pdf-overlay` classList from a module):
 ```javascript
