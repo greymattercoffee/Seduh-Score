@@ -108,7 +108,7 @@ shared/
   eventconfig.js        ← organiser customisation (accent, logo, event identity)
   timer.js              ← shared timer component
   audience.js           ← shared audience overlay
-  pdf.js                ← shared PDF export module (v5.4, MUA-07 — BBTC pilot only)
+  pdf.js                ← ⚠️ documented, not implemented — see POA-55, no file exists yet
   sound.js              ← shared sound effects (used by bbtc, liga, timer)
   version.js            ← platform version constant (v5.5.1, POA-42 Part A) — sourced by index.html footer
   upcoming-events.js    ← shared event carousel (v5.5.2, POA-42 Part B) — UpcomingEvents.mount(); used by index.html + coming-soon/index.html
@@ -125,9 +125,13 @@ Each module loads shared files via relative paths:
 <!-- firebase.js + auth.js loaded as type="module" before </body> -->
 ```
 
-`pdf.js` is currently included by BBTC only — do not add it to
-Throwdown, Liga, or Cup Taster until each gets its own scoped
-adoption session.
+`pdf.js` — ⚠️ **documented API, not yet built.** CONVENTIONS.md's
+`PdfExport.open/close/print` spec and the `pdf_branding` Gates key describe
+a module that has never been committed to any branch (see POA-55 in
+PLAN_OF_ACTION.md). BBTC's current PDF export runs its own self-contained
+inline overlay, not this module. Decision (build to spec vs. correct the
+docs) is pending in Strategy — do not write new code against this API
+until POA-55 resolves.
 
 ---
 

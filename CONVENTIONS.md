@@ -49,7 +49,7 @@ seduh-score/
     ├── firebase.js             ← v4.8+ Firebase SDK init (app/auth/Firestore/Storage).
     │                              Consumers: admin, onboard, booth (v5.10.2-booth —
     │                              booth previously duplicated its own init)
-    ├── pdf.js                  ← v5.4+ shared PDF export module (MUA-07, BBTC pilot)
+    ├── pdf.js                  ← ⚠️ documented, not implemented — see POA-55, no file exists yet
     ├── sound.js                ← synthesised timer/reveal audio cues (no audio files); used by
     │                              bbtc/index.html, liga/index.html, timer/index.html
     ├── version.js              ← v5.5.1+ platform version constant (POA-42 Part A) — sourced by index.html footer
@@ -66,12 +66,13 @@ Each module includes shared files like this:
 <script src="../shared/timer.js"></script>
 <script src="../shared/audience.js"></script>
 <script src="../shared/eventconfig.js"></script>
-<script src="../shared/pdf.js"></script>
 <!-- firebase.js + auth.js loaded as type="module" before </body> -->
 ```
 
-`pdf.js` is currently included by BBTC only (MUA-07 pilot) — Throwdown, Liga, and Cup Taster
-have no PDF export yet and should not include it until each gets its own scoped adoption session.
+⚠️ `pdf.js` is **documented, not built** — see POA-55 in PLAN_OF_ACTION.md. No
+module should add a `<script src="../shared/pdf.js">` include; the file does
+not exist. BBTC's PDF export today is a self-contained inline overlay, not
+this shared module.
 
 **Rule:** Never copy shared component code into a module file. Always reference from `../shared/`.
 
@@ -493,7 +494,16 @@ Consumed by `audience.js` `_applyHandoff()` inside `Audience.show()`.
 v1 handoffs are gracefully upgraded to v2 on read — no data loss. Migration logic lives in
 `EventConfig.mount()`. v2 written back to sessionStorage immediately after upgrade.
 
-### PDF export (`shared/pdf.js`) — v5.4.0+ (MUA-07)
+### PDF export (`shared/pdf.js`) — documented API, not yet built (see POA-55)
+
+⚠️ **This section describes a spec, not shipped code.** `shared/pdf.js` has never been
+committed to any branch and no such file exists on disk. CHANGELOG.md's v5.4.0 entry,
+this section, and CLAUDE.md's architecture tree all previously described it as shipped —
+that was inaccurate; corrected as of the July 2026 full-repo audit. BBTC's PDF export
+today is a self-contained inline overlay that does not use this API. Whether this module
+gets built to the spec below or the documentation gets unwound instead is a pending
+Strategy decision under POA-55 (PLAN_OF_ACTION.md) — do not write code against this API
+until that resolves.
 
 Approved third post-B1 shared file (strategy chat, July 2026, MUA-07-SPEC-V2.md). Shared,
 format-agnostic PDF export module — owns the `#pdf-overlay` lifecycle, the gated event-identity

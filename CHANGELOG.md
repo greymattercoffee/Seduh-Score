@@ -2,6 +2,47 @@
 
 ---
 
+## [docs] — POA-55 documented drift confirmed and corrected · July 2026
+
+A Code session picked up a stashed BBTC PDF-export refactor (parked during the
+July 2026 full-repo audit) and, before continuing, verified the module it
+depends on. Two compounding issues confirmed:
+
+- **`shared/pdf.js` was never implemented.** POA-55 (opened after the POA-52/PR
+  #20 audit) already tracked this as a decision-pending item, but the decision
+  session never happened — so this Code session found real code (the stashed
+  BBTC refactor) written against the documented `PdfExport.open/close/print`
+  API, which does not exist in any commit on any branch. `shared/theme.css`
+  does genuinely contain the `.pdf-*` overlay CSS described in the v5.4.0
+  entry — only the JS module itself was never built. BBTC's live PDF export
+  is unaffected; it still runs its original self-contained inline overlay.
+- **POA-55's own text misdescribed the non-existence.** It stated
+  `shared/pdf.js` "exists only as an untracked file on disk" — no such file
+  exists anywhere (tracked, untracked, or gitignored) as of this check.
+  Whether it briefly existed untracked and was deleted, or the claim was
+  already inaccurate when written, isn't determinable from git history.
+  Corrected to state exactly that, rather than asserting either story.
+
+**Fixed this session (independent of the build-vs-unwind decision, which
+remains pending under POA-55):**
+- `PLAN_OF_ACTION.md` POA-55 — corrected the "untracked file" claim to the
+  honest, hedged framing above.
+- `CLAUDE.md` — architecture tree entry and `pdf.js` prose flagged
+  ⚠️ documented-not-implemented, pointing to POA-55; stopped describing it as
+  "currently included by BBTC."
+- `CONVENTIONS.md` — architecture tree entry, the shared-include code sample
+  (removed the `<script src="../shared/pdf.js">` line — no module should add
+  it), and the "PDF export" section header all flagged the same way.
+
+**Not fixed / still pending:** the v5.4.0 CHANGELOG entry itself is left
+as-is — CHANGELOG is ground truth and historical entries don't get rewritten,
+only corrected forward. The stashed BBTC refactor remains parked
+(`stash@{0}`, message updated to reference this entry) until Strategy decides
+whether to build `shared/pdf.js` to the existing spec or unwind the
+documentation claim.
+
+---
+
 ## [5.10.3] — POA-60: Pitch page restructure — "The Platform" + new BTS page · July 2026
 
 `pitch/index.html` reframed as "The Platform" following cross-review of four
