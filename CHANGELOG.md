@@ -2,6 +2,40 @@
 
 ---
 
+## [tooling] check-doc-versions.sh converted to stamp-based auto-discovery · July 2026
+
+Converted from a hardcoded `DOCS` array to auto-discovery: the script now
+scans every root-level `*.md` file and checks any that carry the Section 2
+`*State: vX.Y.Z*` contract stamp, skipping any that carry the Tier C
+`*Superseded as of vX.Y*` stamp instead, and silently ignoring files with
+neither. Closes the registration gap that let `KB-PROTOCOL.md` go unchecked
+for months — the last session's fix (adding it to the hardcoded array) was
+a patch on an instance, not a fix to the mechanism; two independent
+hand-maintained lists (the script's array, KB-PROTOCOL.md's own Section 1
+registry table) could still drift from each other the same way again. A new
+Tier A/B document now needs zero registration step to be covered — adding
+the stamp line is sufficient.
+
+Verified against five cases: clean current state (exit 0); an induced
+mismatch on `ROADMAP.md` (correctly reported `MISMATCH`, exit 1); Tier C
+docs (`AUDIT.md`, `PLAN_OF_ACTION_MUA.md`) correctly skipped, not flagged;
+a throwaway test `.md` file with a deliberately wrong stamped version,
+auto-discovered and flagged with zero code changes, then deleted; and
+`KB-PROTOCOL.md` itself still checked with no array entry required.
+
+`KB-PROTOCOL.md` updated to match: Section 6 rewritten to describe
+auto-discovery-by-convention; Section 1's registry table downgraded to a
+curated reference (tier/authority/public-facing notes for humans) that no
+longer gates script coverage — a doc missing from that table is now a
+documentation gap, not a verification gap; Section 7's maintenance bullets
+updated to drop the "update the DOCS array" step; the fourth "why this
+exists" instance (the blind spot itself) updated to note it's now
+structurally closed, not just patched — plus KB-PROTOCOL.md's own footer
+note about carrying "a date stamp, not a version number" removed, since it
+now carries the standard Section 2 stamp like every other Tier A doc.
+
+---
+
 ## [docs] check-doc-versions.sh blind spot on KB-PROTOCOL.md closed · July 2026
 
 Script now covers all six Tier A/B docs. `KB-PROTOCOL.md` — the doc that
