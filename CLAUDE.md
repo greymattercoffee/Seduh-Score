@@ -69,6 +69,29 @@ elements are hidden, not disabled. See CONVENTIONS.md for the full
 
 ---
 
+## KB sync architecture
+
+As of v5.11.0, Claude Projects knowledge base sync is split by git status:
+
+- **Git-tracked docs** (`CHANGELOG.md`, `KB-PROTOCOL.md`, `CLAUDE.md`,
+  `CONVENTIONS.md`, `README.md`, `AUDIT.md`) sync via the GitHub
+  integration (Settings → Connectors → GitHub →
+  `greymattercoffee/Seduh-Score`). Sync is manual-trigger, not automatic —
+  run "Sync now" at the start of any Strategy session that references
+  these docs, and after any Code session that edits them.
+- **Gitignored docs** (`STRATEGY.md`, `ROADMAP.md`, `PLAN_OF_ACTION.md`,
+  `PLAN_OF_ACTION_MUA.md`, `THROWDOWN-ARCHIVE-SPEC.md`) are excluded from
+  git by design (business-sensitive) and therefore invisible to the GitHub
+  integration. These stay on manual upload — no way around this without
+  changing the gitignore boundary itself (a separate, larger decision,
+  parked as of this writing).
+
+This split was adopted to close the KB-staleness gap found during the
+July 2026 repo audit (Strategy working from a KB snapshot one version
+behind live `main`/`dev`).
+
+---
+
 ## Architecture
 
 Static multi-file web app. No build step, no bundler,

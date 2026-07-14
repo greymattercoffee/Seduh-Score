@@ -2,6 +2,18 @@
 
 ---
 
+## [docs] KB sync split adopted · July 2026
+
+KB sync split adopted — six git-tracked docs (`CHANGELOG.md`,
+`KB-PROTOCOL.md`, `CLAUDE.md`, `CONVENTIONS.md`, `README.md`,
+`AUDIT.md`) now sync to Claude Projects via the GitHub integration
+instead of manual upload; five gitignored docs
+(`STRATEGY.md`/`ROADMAP.md`/`PLAN_OF_ACTION.md`/`PLAN_OF_ACTION_MUA.md`/
+`THROWDOWN-ARCHIVE-SPEC.md`) remain manual-upload by necessity. Adopted
+to close the KB-staleness gap found during the July 2026 repo audit.
+
+---
+
 ## [5.11.0] — POA-55: shared/pdf.js built, Throwdown wired as first consumer · July 2026
 
 `shared/pdf.js` shipped for real, closing out the doc-vs-code drift POA-55
