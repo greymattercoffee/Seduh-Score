@@ -81,6 +81,25 @@
 /* Event info responsive grid */
 .ev-info-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 @media(max-width:479px){.ev-info-grid{grid-template-columns:1fr 1fr}}
+/* PDF export report classes (POA-55) — hardcoded hex, not var(--*): print context */
+.pdf-td-podium{display:flex;gap:10px;margin-bottom:16px}
+.pdf-td-podium-tile{flex:1;text-align:center;padding:12px 8px;border-radius:6px;border:1.5px solid #efe9de}
+.pdf-td-podium-tile.champ{background:#fbf0df;border-color:#b45309}
+.pdf-td-podium-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#8a7f73;font-weight:700;margin-bottom:4px}
+.pdf-td-podium-name{font-size:15px;font-weight:700;color:#211a14}
+.pdf-td-subhead{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#b45309;font-weight:700;margin:14px 0 6px}
+.pdf-td-match-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px}
+.pdf-td-match-table th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#8a7f73;padding:5px 8px;border-bottom:1.5px solid #efe9de;text-align:left;font-weight:700}
+.pdf-td-match-table td{padding:7px 8px;border-bottom:1px solid #f3efe8}
+.pdf-td-win{font-weight:700;color:#b45309}
+.pdf-td-rb{font-size:9px;color:#8a7f73;background:#f3efe8;border:1px solid #efe9de;border-radius:3px;padding:1px 6px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;font-weight:700}
+.pdf-td-bracket-round{margin-bottom:16px}
+.pdf-td-bracket-round-hdr{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 8px;border-radius:4px;margin-bottom:6px;display:inline-block}
+.pdf-td-bracket-match{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border:1px solid #efe9de;border-radius:4px;margin-bottom:5px;font-size:12px}
+.pdf-td-bracket-team{flex:1}
+.pdf-td-bracket-team.winner{font-weight:700;color:#211a14}
+.pdf-td-bracket-team.loser{color:#8a7f73}
+.pdf-td-bracket-score{font-size:13px;font-weight:700;color:#b45309;padding:0 8px}
 </style>
 </head>
 <body>
@@ -133,6 +152,17 @@
   </div>
 </div>
 
+<!-- PDF export overlay (shared) -->
+<div id="pdf-overlay">
+  <div class="pdf-toolbar">
+    <div class="pdf-toolbar-title">📄 Export Preview</div>
+    <span class="pdf-toolbar-hint">Print dialog → <strong>Save as PDF</strong> · Paper: <strong>A4</strong></span>
+    <button class="btn-print" id="pdf-print">🖨 Print / Save PDF</button>
+    <button class="btn-o" id="pdf-close">✕ Close</button>
+  </div>
+  <div id="pdf-content"></div>
+</div>
+
 <!-- Score entry modal -->
 <div id="score-modal" style="display:none" class="score-modal">
   <div class="score-modal-box">
@@ -151,6 +181,7 @@
 <script src="../shared/eventconfig.js"></script>
 <script src="../shared/timer.js"></script>
 <script src="../shared/audience.js"></script>
+<script src="../shared/pdf.js"></script>
 <script>
 const STORE = Store('seduh_throwdown_v1');
 let mid = 0;
@@ -793,6 +824,7 @@ function rMain() {
     + '<button class="tb-pri" id="audbtn"><span class="ic">📺</span> Audience</button>'
     + '</div>'
     + '<div class="tb-secondary">'
+    + (Gates.canAccess('throwdown_report').allowed ? '<button class="tb-sec" id="exportbtn" data-act="export"><span class="ic">📄</span> PDF</button>' : '')
     + '<button class="tb-sec" id="savejsonbtn" data-act="save"><span class="ic">💾</span> Save</button>'
     + '<button class="tb-sec" id="loadjsonbtn" data-act="load"><span class="ic">📂</span> Load</button>'
     + (podiumEligible ? '<button class="tb-sec tb-sec-podium" id="podiumBtn" data-act="podium"><span class="ic">🏆</span> Podium</button>' : '')
@@ -1095,6 +1127,18 @@ function roundColour(label, phase) {
   return { bg: 'var(--bl-bg)', bd: 'var(--bl-bd)', fg: 'var(--bl)' };
 }
 
+/* Hardcoded hex per round — print context, same reasoning as audCol() in showAudience() */
+function pdfRoundColour(label, phase) {
+  if (phase === 'redemption') return { bg: '#DDD6FE', fg: '#5B21B6' };
+  if (phase === 'third')      return { bg: '#BFDBFE', fg: '#1D4ED8' };
+  const l = label.toLowerCase();
+  if (l === 'final')         return { bg: '#A7F3D0', fg: '#065F46' };
+  if (l.includes('semi'))    return { bg: '#FDE68A', fg: '#92400E' };
+  if (l.includes('quarter')) return { bg: '#BFDBFE', fg: '#1D4ED8' };
+  if (l.includes('round 1')) return { bg: '#E5E7EB', fg: '#374151' };
+  return { bg: '#BFDBFE', fg: '#1D4ED8' };
+}
+
 /* ── Audience ── */
 function showAudience() {
   EventConfig.writeHandoff();
@@ -1191,6 +1235,81 @@ function showAudience() {
   });
 }
 
+/* ── PDF export (POA-55, shared/pdf.js) ── */
+function generateThrowdownPDF() {
+  const b = S.bracket;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  // Podium — same lookup as maybeArchiveChampion/showAudience
+  const finalRound = b?.rounds.filter(r => r.phase === 'main' && r.label === 'Final').slice(-1)[0];
+  const thirdRound = b?.rounds.filter(r => r.phase === 'third').slice(-1)[0];
+  const finalPair  = finalRound?.pairs[0];
+  const thirdPair  = thirdRound?.pairs[0];
+  const sfLosers = b
+    ? b.rounds.filter(r => r.label === 'Semi Finals').flatMap(r => r.pairs.filter(p => p.loser).map(p => p.loser))
+    : [];
+  const rank3 = thirdPair?.winner || sfLosers.join(' · ');
+
+  const podiumHtml = finalPair?.winner
+    ? '<div class="pdf-td-podium">'
+      + '<div class="pdf-td-podium-tile champ"><div class="pdf-td-podium-label">🏆 Champion</div><div class="pdf-td-podium-name">' + finalPair.winner + '</div></div>'
+      + (finalPair.loser ? '<div class="pdf-td-podium-tile"><div class="pdf-td-podium-label">🥈 Runner Up</div><div class="pdf-td-podium-name">' + finalPair.loser + '</div></div>' : '')
+      + (rank3 ? '<div class="pdf-td-podium-tile"><div class="pdf-td-podium-label">🥉 3rd Place</div><div class="pdf-td-podium-name">' + rank3 + '</div></div>' : '')
+      + '</div>'
+    : '<p class="hint">Tournament still in progress — no champion confirmed yet.</p>';
+
+  // Match log — same data source as rHistory()
+  const done = b
+    ? b.rounds.flatMap(r => r.pairs.filter(p => p.winner && !p.bye).map(p => ({ ...p, roundLabel: r.label })))
+    : [];
+  const matchRows = done.map(p =>
+    '<tr>'
+    + '<td><span class="pdf-td-rb">' + p.roundLabel + '</span></td>'
+    + '<td class="' + (p.winner === p.t1 ? 'pdf-td-win' : '') + '">' + p.t1 + '</td>'
+    + '<td style="text-align:center">' + p.votes1 + '</td>'
+    + '<td style="text-align:center;color:#8a7f73;font-size:11px">vs</td>'
+    + '<td style="text-align:center">' + p.votes2 + '</td>'
+    + '<td class="' + (p.winner === p.t2 ? 'pdf-td-win' : '') + '" style="text-align:right">' + p.t2 + '</td>'
+    + '</tr>'
+  ).join('');
+
+  const resultsBody = podiumHtml
+    + '<div class="pdf-td-subhead">Match Results</div>'
+    + '<table class="pdf-td-match-table"><thead><tr><th>Round</th><th>Team 1</th><th style="text-align:center">Score</th><th></th><th style="text-align:center">Score</th><th style="text-align:right">Team 2</th></tr></thead><tbody>'
+    + (matchRows || '<tr><td colspan="6" style="text-align:center;color:#8a7f73;padding:20px">No completed matches yet.</td></tr>')
+    + '</tbody></table>';
+
+  // Bracket — Throwdown renders its live bracket as plain HTML/CSS (.bslot divs), no
+  // canvas/SVG, so it drops into a print bodyHtml string the same way the results page does.
+  const bracketBody = b
+    ? b.rounds.map(round => {
+        const col = pdfRoundColour(round.label, round.phase);
+        const matches = round.pairs.map(p => {
+          const t1cls = p.winner ? (p.winner === p.t1 ? 'winner' : 'loser') : '';
+          const t2cls = p.bye ? '' : (p.winner ? (p.winner === p.t2 ? 'winner' : 'loser') : '');
+          return '<div class="pdf-td-bracket-match">'
+            + '<span class="pdf-td-bracket-team ' + t1cls + '">' + (p.t1 || 'TBD') + '</span>'
+            + '<span class="pdf-td-bracket-score">' + (p.votes1 || 0) + ' – ' + (p.votes2 || 0) + '</span>'
+            + '<span class="pdf-td-bracket-team ' + t2cls + '" style="text-align:right">' + (p.bye ? 'BYE' : (p.t2 || 'TBD')) + '</span>'
+            + '</div>';
+        }).join('');
+        return '<div class="pdf-td-bracket-round">'
+          + '<span class="pdf-td-bracket-round-hdr" style="background:' + col.bg + ';color:' + col.fg + '">' + round.label + '</span>'
+          + matches
+          + '</div>';
+      }).join('')
+    : '<p class="hint">No bracket generated yet.</p>';
+
+  PdfExport.open({
+    fallbackTitle: 'Throwdown 1v1',
+    pages: [
+      { sectionTitle: 'Final Results', metaHtml: 'Results Report<br>' + dateStr, bodyHtml: resultsBody },
+      { sectionTitle: 'Bracket',       metaHtml: 'Full Bracket<br>' + dateStr,   bodyHtml: bracketBody },
+    ],
+  });
+}
+
 /* ── Seduh Records archive (POA-40) ──
    Fires once per event, as a side effect of the shared champion-confirmation
    choke point (render(), called by every path that sets b.phase = 'done').
@@ -1247,7 +1366,8 @@ function doReset() {
 }
 
 function handleToolbarAction(act) {
-  if (act === 'save')        exportJSON();
+  if (act === 'export')      generateThrowdownPDF();
+  else if (act === 'save')   exportJSON();
   else if (act === 'load')   importJSON();
   else if (act === 'podium') Audience.showPodium();
   else if (act === 'reset')  doReset();
@@ -1259,6 +1379,7 @@ function buildSheet(overflow, resetInMore) {
   if (!list) return;
   if (title) title.textContent = 'More actions';
   const meta = {
+    export: { label: 'Export PDF',  icon: '📄' },
     save:   { label: 'Save',        icon: '💾' },
     load:   { label: 'Load',        icon: '📂' },
     podium: { label: 'View podium', icon: '🏆' },
@@ -1343,6 +1464,9 @@ function bind() {
   Audience.init();
   EventConfig.mount('#event-config-slot');
   on('tmrbtn','click',() => Timer.open());
+  on('exportbtn','click',() => generateThrowdownPDF());
+  on('pdf-print','click',() => PdfExport.print());
+  on('pdf-close','click',() => PdfExport.close());
   on('savejsonbtn','click',() => exportJSON());
   on('loadjsonbtn','click',() => importJSON());
   on('audbtn','click',() => showAudience());
