@@ -39,6 +39,49 @@ splitting the single page into two, which this ticket implements:
 
 ---
 
+## [docs] — Full-repo audit: stale spec stamp, dead registry row, AUDIT.md retired · July 2026
+
+Code-session audit run against the live repo (KB snapshot Strategy was working
+from was anchored to v5.10.2; live `main`/`dev` had already advanced to
+**v5.10.3**, POA-60 — mechanical stamp check confirmed all six Tier A/B docs
+correctly read v5.10.3, so this was upload lag, not drift).
+
+- **`THROWDOWN-ARCHIVE-SPEC.md`** — header still said "SPEC — not yet built...
+  target ship v5.5.0." CHANGELOG.md and PLAN_OF_ACTION.md both confirm POA-40
+  shipped at v5.5.0 and is in its 27 Jul–9 Aug test window. Corrected to
+  "Built — shipped v5.5.0 (POA-40)... locked ready date 23 Aug 2026."
+- **`KB-PROTOCOL.md`** Section 1 registry — `MUA_mobile_audit.md` row removed
+  entirely. `git log --all --full-history` on the filename returns nothing —
+  no commit ever touched it, on any branch. The file also doesn't exist on
+  disk. Consistent with this repo's `.gitignore`-excluded local-only doc
+  pattern (`PLAN_OF_ACTION.md` root copy, `Strategy.md`, `roadmap.md`,
+  `PLAN_OF_ACTION_MUA.md` are all git-excluded the same way), but unlike
+  `PLAN_OF_ACTION_MUA.md` this one is gone from disk too, so it can't be
+  reconstructed or confirmed. Recorded plainly as a dead reference, not a
+  supersession — there was no verifiable "folded into X" story to assert.
+- **`AUDIT.md`** — retired: `Superseded as of v5.10.3`. Its POA-15 initiative
+  closed long ago, but two "found July 2026" sections had been appended to it
+  mid-audit, turning a closed Tier C document back into an active scratchpad.
+  Relocated rather than left in place:
+  - Docs/KB drift finding (CLAUDE.md and CONVENTIONS.md both found several
+    versions behind CHANGELOG.md ahead of this audit, same root cause as the
+    MUA-07 case) → folded into `KB-PROTOCOL.md`'s "Why this exists" as a
+    second concrete example of the drift mode it exists to catch.
+  - BBTC `.hdr-s`/`.hdr-t` naming debt → the note pointed at PLAN_OF_ACTION.md
+    POA-38 as having "no open home," but POA-38 is the closed docs-cadence
+    ticket, unrelated. A dedicated **POA-39** (same file, same classes,
+    already open in Backlog) already was the home — writing this into POA-38
+    would have put a false pointer into the ticket system. Corroborated on
+    POA-39 instead; a real near-miss the audit caught rather than propagated.
+
+**Parked, not audited this cycle:** an uncommitted BBTC PDF-export refactor
+(`bbtc/index.html` + `shared/gates.js`, new `pdf_branding` gate) sits in
+`stash@{0}` — still BBTC-only, reads as completing MUA-07's BBTC pilot rather
+than reopening its closed scope; needs its own Code session to land properly
+with a CHANGELOG entry.
+
+---
+
 ## [docs] — KB recon: POA-59 deploy status propagated to all six referencing docs · July 2026
 
 Mechanical stamp check clean (v5.10.2 anchor). Read-through found the

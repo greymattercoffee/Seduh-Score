@@ -28,6 +28,16 @@ This protocol replaces that asymmetry with an explicit, enumerable registry
 and a trigger matrix, plus a mechanical script for the part that doesn't need
 human judgment.
 
+A second, independent instance surfaced during the July 2026 full-repo audit:
+CLAUDE.md was found several versions behind CHANGELOG.md (missing architecture
+entries for `admin/`, `audience/`, `cup-taster/`, `about/`, `coming-soon/`,
+`booth/`, and five `shared/` files; a stale "Known quirks" section listing
+already-resolved items), and CONVENTIONS.md was a full audit cycle behind as
+well — same root cause as the MUA-07 case: no session between the last KB
+pass and the next re-checked docs against CHANGELOG. This confirms the drift
+mode is recurring, not a one-off, which is why POA-38 folded the check into
+standing session discipline rather than treating it as a closed incident.
+
 There are **two independent axes of drift** to check, not one:
 
 1. **Doc-vs-doc drift** — do the documents agree with each other and with
@@ -54,7 +64,7 @@ independently maintained.
 | `PLAN_OF_ACTION.md` | POA item status, the "NEXT UP" line | **A** | No |
 | `ROADMAP.md` | Version sequencing, phase status, Current State table | **A** | No |
 | `STRATEGY.md` | Business model, pricing, tiers, BNCC status | **B** | No |
-| `LIGA-SPEC.md`, `CUP-TASTER-SPEC.md`, `MUA_mobile_audit.md`, `PLAN_OF_ACTION_MUA.md`, `AUDIT.md`, `THROWDOWN-ARCHIVE-SPEC.md`, and similar single-initiative documents | Historical record of a closed initiative | **C** | No |
+| `LIGA-SPEC.md`, `CUP-TASTER-SPEC.md`, `PLAN_OF_ACTION_MUA.md`, `AUDIT.md`, `THROWDOWN-ARCHIVE-SPEC.md`, and similar single-initiative documents | Historical record of a closed initiative | **C** | No |
 | `FIREBASE-AUTH-SPEC.md` | Historical record — **partially superseded**: its "Org Management" section (manual find/set-claims panel, `setOrgClaims`/`getOrgByEmail`) was removed as of v5.10.1 (POA-57), flagged inline at that section rather than a whole-document stamp, since the document's Auth/Gates pillars are still current and load-bearing (real Firebase Auth login, `gates.js` custom claims). Do not apply a blanket `Superseded as of vX.Y` stamp to this one — check the inline flag at the Org Management section instead. Was previously unregistered in this table; added retroactively | **C** (partial) | No |
 
 **Tier definitions:**
@@ -200,7 +210,10 @@ document and compares it against CHANGELOG.md's latest numbered header.
 
 ---
 
-*Protocol established: July 2026. Last updated: July 2026 — `THROWDOWN-ARCHIVE-SPEC.md`
+*Protocol established: July 2026. Last updated: July 2026 — `MUA_mobile_audit.md`
+removed from registry — file no longer exists on disk or in git history; local-only
+working doc (consistent with the `.gitignore`-excluded `PLAN_OF_ACTION_MUA.md`
+pattern), untraceable, not a supersession. Prior update: `THROWDOWN-ARCHIVE-SPEC.md`
 registered as Tier C (POA-40 seed spec). Companion to CONVENTIONS.md — that document
 covers how to build; this one covers whether the knowledge base describing
 the build is telling the truth.*
