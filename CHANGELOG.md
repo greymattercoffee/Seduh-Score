@@ -2,6 +2,53 @@
 
 ---
 
+## [pending-version] — POA-55: shared/pdf.js built, Throwdown wired as first consumer · July 2026
+
+`shared/pdf.js` shipped for real, closing out the doc-vs-code drift POA-55
+tracked since the July 2026 full-repo audit (see the `[docs]` entry below).
+Built to the spec already documented in CONVENTIONS.md — the spec was judged
+sound during the Strategy decision session, so it got built rather than
+unwound.
+
+**Step 0 pivot (logged in `PLAN_OF_ACTION.md` before the build):** first
+consumer changed from BBTC to **Throwdown** — Throwdown has a live event
+30 Aug 2026 and benefits from a PDF export now, while BBTC has no pressing
+need. BBTC's own migration is deferred to a later session against this same
+finished module; the stashed BBTC refactor (`stash@{0}` on `dev`) already
+targets this API and stays parked, untouched, for that session.
+
+- **`shared/pdf.js`** (new file) — `PdfExport.open({fallbackTitle, pages})`,
+  `.close()`, `.print()`. Reads `seduh_handoff` v2 (`eventName` always shown,
+  falling back to `fallbackTitle`; `logoUrl`/`eventSubtitle`/`eventDate`/
+  `eventVenue` behind the `pdf_branding` gate). `bgColor` does not propagate
+  to the PDF header, per spec — stays scoped to `.event-band`. Verified
+  directly: Community tier renders `eventName` only (no logo, no meta line);
+  Per-Event tier renders the full branded header.
+- **`shared/gates.js`** — added `pdf_branding: { minTier: 'per_event' }`,
+  following the existing `FEATURES` shape.
+- **`throwdown/index.html`** — added `#pdf-overlay` markup (same shape as
+  `#aud-overlay`/`audience.js`), a toolbar PDF button gated by the existing
+  `throwdown_report` key, and `generateThrowdownPDF()` building two pages:
+  Final Results (podium + full match log) and Bracket. Throwdown's live
+  bracket renders as plain HTML/CSS (`.bslot` divs), not canvas/SVG, so it
+  dropped into a print `bodyHtml` string with no more effort than the
+  results page — the "open technical question" flagged going in did not
+  turn out to be a bigger lift. Report-table CSS (`.pdf-td-*`, hardcoded hex
+  for print-context reliability, same reasoning as `.aud-*`) lives in
+  Throwdown's own `<style>` block, not `shared/theme.css`.
+- **Regression-checked, explicit pass/fail:** BBTC's existing inline PDF
+  export (`generatePDF()`) still works unchanged — verified live, both
+  report pages render correctly. `bbtc/index.html` never loads
+  `shared/pdf.js`, so there was no code path for interaction. `stash@{0}`
+  confirmed still present and untouched.
+- **Docs corrected to match:** `CLAUDE.md` and `CONVENTIONS.md`'s
+  documented-not-implemented ⚠️ flags removed now that the module is real.
+
+**Not self-versioned** — this entry is intentionally left without a version
+number; Strategy confirms the bump.
+
+---
+
 ## [docs] — POA-55 documented drift confirmed and corrected · July 2026
 
 A Code session picked up a stashed BBTC PDF-export refactor (parked during the
