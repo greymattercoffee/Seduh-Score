@@ -1,6 +1,6 @@
 # Conventions — Seduh Score
 
-*State: v5.10.3 — matches CHANGELOG.md as of July 2026*
+*State: v5.12.0 — matches CHANGELOG.md as of July 2026*
 
 Coding patterns, architecture decisions, and development standards for the Seduh Score platform. Read this at the start of any new chat session before touching code.
 
@@ -49,7 +49,7 @@ seduh-score/
     ├── firebase.js             ← v4.8+ Firebase SDK init (app/auth/Firestore/Storage).
     │                              Consumers: admin, onboard, booth (v5.10.2-booth —
     │                              booth previously duplicated its own init)
-    ├── pdf.js                  ← v5.4+ shared PDF export module (MUA-07, BBTC pilot)
+    ├── pdf.js                  ← shared PDF export (POA-55) — first consumer Throwdown
     ├── sound.js                ← synthesised timer/reveal audio cues (no audio files); used by
     │                              bbtc/index.html, liga/index.html, timer/index.html
     ├── version.js              ← v5.5.1+ platform version constant (POA-42 Part A) — sourced by index.html footer
@@ -66,12 +66,14 @@ Each module includes shared files like this:
 <script src="../shared/timer.js"></script>
 <script src="../shared/audience.js"></script>
 <script src="../shared/eventconfig.js"></script>
-<script src="../shared/pdf.js"></script>
 <!-- firebase.js + auth.js loaded as type="module" before </body> -->
 ```
 
-`pdf.js` is currently included by BBTC only (MUA-07 pilot) — Throwdown, Liga, and Cup Taster
-have no PDF export yet and should not include it until each gets its own scoped adoption session.
+`pdf.js` shipped under POA-55 — see the PDF export section below for the full
+API. Throwdown is the first consumer (`<script src="../shared/pdf.js">`).
+BBTC's PDF export today remains a self-contained inline overlay, not this
+shared module; a stashed BBTC refactor (`stash@{0}` on `dev`) already targets
+this module's API and stays parked until its own later session.
 
 **Rule:** Never copy shared component code into a module file. Always reference from `../shared/`.
 
@@ -493,13 +495,18 @@ Consumed by `audience.js` `_applyHandoff()` inside `Audience.show()`.
 v1 handoffs are gracefully upgraded to v2 on read — no data loss. Migration logic lives in
 `EventConfig.mount()`. v2 written back to sessionStorage immediately after upgrade.
 
-### PDF export (`shared/pdf.js`) — v5.4.0+ (MUA-07)
+### PDF export (`shared/pdf.js`) — shipped (POA-55)
 
 Approved third post-B1 shared file (strategy chat, July 2026, MUA-07-SPEC-V2.md). Shared,
 format-agnostic PDF export module — owns the `#pdf-overlay` lifecycle, the gated event-identity
-header, and the print trigger. Piloted on BBTC; Throwdown/Liga/Cup Taster adoption is separate,
-future work (none of them has a PDF export today — see AUDIT.md / MUA-07-SPEC-V2.md for why the
-original all-four-modules draft was rescoped).
+header, and the print trigger. Built for real under POA-55 (PLAN_OF_ACTION.md) after a doc-vs-code
+drift correction found the module had been described as shipped since v5.4.0 while never existing
+on disk. **First consumer is Throwdown** (POA-55 Step 0 pivot — Throwdown had a live event
+30 Aug 2026 and benefited from a PDF export sooner than BBTC needed one). BBTC's PDF export
+today remains its own self-contained inline overlay, not this API; a stashed BBTC refactor
+(`stash@{0}` on `dev`) already targets this module's API and stays parked until its own later
+session. Liga/Cup Taster adoption is separate, future work (see AUDIT.md / MUA-07-SPEC-V2.md
+for why the original all-four-modules draft was rescoped).
 
 Public API (three methods only — never touch `#pdf-overlay` classList from a module):
 ```javascript
@@ -521,11 +528,20 @@ footer (attribution + export timestamp).
 
 **Header/footer field mapping** (read from `seduh_handoff` v2, same key `audience.js` reads):
 
-| Element | Always shown | Behind `pdf_branding` gate |
-|---|---|---|
-| Seduh mark line | ✅ | — |
-| `eventName` (plain text) | ✅ (falls back to `fallbackTitle` if unset) | — |
-| `logoUrl`, `eventSubtitle`, `eventDate`, `eventVenue` | — | ✅ |
+| Element | Renders to | Always shown | Behind `pdf_branding` gate |
+|---|---|---|---|
+| Seduh mark line (constant `"Seduh Score"` text, not data-driven) | `.pdf-event-sub` | ✅ | — |
+| `eventName` (plain text, falls back to `fallbackTitle` if unset) | `.pdf-event-name` | ✅ | — |
+| `logoUrl` | `.pdf-logo` (`<img>`, inside `.pdf-id-block`) | — | ✅ |
+| `eventSubtitle`, `eventDate`, `eventVenue` | joined with `" · "`, filtered for blanks, into one `.pdf-event-meta` line | — | ✅ |
+
+This is a POA-55 implementation judgment call, not spelled out in the original
+MUA-07-SPEC-V2.md field table — resolved by precedent: `.pdf-event-meta` already
+carries exactly this shape in BBTC's inline PDF export (date + venue joined),
+and the constant-brand-line / data-driven-name split mirrors `audience.js`'s
+`aud-hdr-sub` ("Seduh Score", constant) vs. `aud-hdr-name` (event title, data-driven).
+Confirmed by Strategy — future PDF consumers (Liga, Cup Taster, eventually BBTC's
+migration off `shared/pdf.js`) should follow this table as-is, not re-derive it.
 
 `bgColor` never propagates to the PDF header, on any tier — stays scoped to `.event-band` per D1.
 

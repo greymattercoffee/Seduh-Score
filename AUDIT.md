@@ -521,3 +521,11 @@ Both are v5.0 pre-conditions. Firebase adapter cannot work universally until bot
 - BBTC direct localStorage — migrate to `Store()` before Firebase adapter
 - Dashboard direct localStorage — migrate to `Store()` before Firebase adapter
 - `Store().load()` sync constraint — design decision required before Firebase seam opens
+
+---
+
+*Superseded as of v5.10.3 — see CHANGELOG.md. This document's initiative
+(POA-15) closed long ago; findings added during the July 2026 full-repo audit
+were relocated rather than appended here — naming debt to PLAN_OF_ACTION.md
+POA-39, docs/KB drift to KB-PROTOCOL.md's "Why this exists" section. No
+further standing check against this file.*

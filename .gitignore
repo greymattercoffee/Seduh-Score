@@ -37,10 +37,11 @@ functions/node_modules/
 
 # Claude Code
 .agents/
-.claude/
+.claude/settings.local.json
+.claude/*.log
 skills-lock.json
 
-# npm artefacts (no dependencies — ignore any auto-generated lockfile)
+# npm artefacts (dev tooling only — eslint/stylelint; the shipped app itself has no dependencies)
 package-lock.json
 node_modules/
 

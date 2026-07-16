@@ -99,6 +99,23 @@
       '.ue-btn-nav:hover{border-color:var(--am-bd);color:var(--am)}',
       '.ue-counter{font-family:var(--font-mono);font-size:var(--fs-sm);color:var(--txt3);min-width:44px;text-align:center}',
 
+      // media:'photo', overlay:true — caption overlaid on the image instead of
+      // stacked below it (index.html's logged-in Console reel; saves vertical
+      // space in a bento tile). coming-soon/index.html doesn't pass this option
+      // and is unaffected.
+      '.ue-photo-wrap.ue-overlay .ue-slide{position:relative}',
+      '.ue-photo-wrap.ue-overlay .ue-slide-content{position:absolute;left:0;right:0;bottom:0;padding:var(--space-4);margin:0;background:linear-gradient(transparent,rgba(0,0,0,.78));border-radius:0 0 var(--rad) var(--rad)}',
+      '.ue-photo-wrap.ue-overlay .ue-kicker{color:rgba(255,255,255,.72)}',
+      '.ue-photo-wrap.ue-overlay .ue-event-name{color:#fff}',
+      '.ue-photo-wrap.ue-overlay .ue-event-date,.ue-photo-wrap.ue-overlay .ue-event-venue{color:rgba(255,255,255,.85)}',
+      '.ue-photo-wrap.ue-overlay .ue-description{color:rgba(255,255,255,.75);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
+      '.ue-photo-wrap.ue-overlay .ue-timer-bar{display:none}',
+      '.ue-photo-wrap.ue-overlay{position:relative}',
+      '.ue-photo-wrap.ue-overlay .ue-controls{position:absolute;right:10px;bottom:10px;padding:4px 6px;gap:6px;background:rgba(0,0,0,.45);border-radius:var(--rad-pill)}',
+      '.ue-photo-wrap.ue-overlay .ue-btn-nav{width:26px;height:26px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);color:#fff;font-size:14px}',
+      '.ue-photo-wrap.ue-overlay .ue-btn-nav:hover{border-color:#fff;color:#fff}',
+      '.ue-photo-wrap.ue-overlay .ue-counter{color:rgba(255,255,255,.85);font-size:11px;min-width:32px}',
+
       // media:'icon' — full-bleed front-page banner
       '.ue-icon-wrap{position:relative;overflow:hidden}',
       '.ue-icon-slide{display:none;align-items:center;gap:20px;flex-wrap:wrap}',
@@ -120,6 +137,7 @@
 
   function makeInstance(container, options) {
     const media = options.media === 'icon' ? 'icon' : 'photo';
+    const overlay = media === 'photo' && options.overlay === true;
     const onEventClick = typeof options.onEventClick === 'function' ? options.onEventClick : function() {};
 
     let events = [];
@@ -160,7 +178,7 @@
       const ev = events[idx];
       const meta = fmtMeta(ev);
       const html =
-        '<div class="ue-photo-wrap">' +
+        '<div class="ue-photo-wrap' + (overlay ? ' ue-overlay' : '') + '">' +
           '<div class="ue-slide ue-active">' +
             (ev.imageUrl
               ? '<img class="ue-slide-image" src="' + esc(ev.imageUrl) + '" alt="">'

@@ -1,6 +1,6 @@
 # Seduh Score — Claude Code orientation
 
-*State: v5.10.3 — matches CHANGELOG.md as of July 2026*
+*State: v5.12.0 — matches CHANGELOG.md as of July 2026*
 
 Read these two files in full before touching anything:
 1. `CONVENTIONS.md` — all patterns, naming rules, architecture decisions
@@ -69,6 +69,29 @@ elements are hidden, not disabled. See CONVENTIONS.md for the full
 
 ---
 
+## KB sync architecture
+
+As of v5.11.0, Claude Projects knowledge base sync is split by git status:
+
+- **Git-tracked docs** (`CHANGELOG.md`, `KB-PROTOCOL.md`, `CLAUDE.md`,
+  `CONVENTIONS.md`, `README.md`, `AUDIT.md`) sync via the GitHub
+  integration (Settings → Connectors → GitHub →
+  `greymattercoffee/Seduh-Score`). Sync is manual-trigger, not automatic —
+  run "Sync now" at the start of any Strategy session that references
+  these docs, and after any Code session that edits them.
+- **Gitignored docs** (`STRATEGY.md`, `ROADMAP.md`, `PLAN_OF_ACTION.md`,
+  `PLAN_OF_ACTION_MUA.md`, `THROWDOWN-ARCHIVE-SPEC.md`) are excluded from
+  git by design (business-sensitive) and therefore invisible to the GitHub
+  integration. These stay on manual upload — no way around this without
+  changing the gitignore boundary itself (a separate, larger decision,
+  parked as of this writing).
+
+This split was adopted to close the KB-staleness gap found during the
+July 2026 repo audit (Strategy working from a KB snapshot one version
+behind live `main`/`dev`).
+
+---
+
 ## Architecture
 
 Static multi-file web app. No build step, no bundler,
@@ -108,7 +131,7 @@ shared/
   eventconfig.js        ← organiser customisation (accent, logo, event identity)
   timer.js              ← shared timer component
   audience.js           ← shared audience overlay
-  pdf.js                ← shared PDF export module (v5.4, MUA-07 — BBTC pilot only)
+  pdf.js                ← shared PDF export module (POA-55) — first consumer Throwdown
   sound.js              ← shared sound effects (used by bbtc, liga, timer)
   version.js            ← platform version constant (v5.5.1, POA-42 Part A) — sourced by index.html footer
   upcoming-events.js    ← shared event carousel (v5.5.2, POA-42 Part B) — UpcomingEvents.mount(); used by index.html + coming-soon/index.html
@@ -125,9 +148,13 @@ Each module loads shared files via relative paths:
 <!-- firebase.js + auth.js loaded as type="module" before </body> -->
 ```
 
-`pdf.js` is currently included by BBTC only — do not add it to
-Throwdown, Liga, or Cup Taster until each gets its own scoped
-adoption session.
+`pdf.js` — shipped (POA-55 in PLAN_OF_ACTION.md). `PdfExport.open/close/print`
+per the CONVENTIONS.md spec, gated by the `pdf_branding` Gates key. First
+consumer is Throwdown (POA-55 Step 0 pivot — Throwdown had a 30 Aug 2026 event
+and benefited sooner than BBTC needed one). BBTC's current PDF export still
+runs its own self-contained inline overlay, not this module; a stashed BBTC
+refactor (`stash@{0}` on `dev`) already targets this module's API and stays
+parked until its own later session.
 
 ---
 
