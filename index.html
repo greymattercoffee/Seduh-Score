@@ -12,19 +12,28 @@
 
 <!--
   ════════════════════════════════════════════════════════════════════
-  Seduh Score — Platform Front Door  ·  index.html  ·  v4.5  ·  Direction B
+  Seduh Score — Platform Front Door  ·  index.html  ·  v5.12.0  ·  Console
   Pure HTML/CSS/JS, single file, no build step (CONVENTIONS B1).
   Loads only shared/theme.css + shared/gates.js.
 
-  PALETTE (v4.5): the org zone uses --surface-deep (#1c1510) — the warm
-  "café at night" surface. Ship it as ONE additive token in shared/theme.css
-  (separate patch, see CONVENTIONS follow-up #4 / the timer-overlay value),
-  then delete the local :root block below. No existing token is renamed.
+  POA-61 — front page collapsed to two states (anonymous / logged in),
+  driven entirely by [data-auth] on <html> (set by shared/auth.js) and
+  Gates.canAccess(). Replaces the prior split of a marketing hero +
+  separate dark "org zone" with a single state-driven console: one
+  primary launcher tile, an account tile, and a always-visible module
+  rail. Only BTC carries a real routing gate (minTier: 'annual') — the
+  other three modules have no module-level gate and stay lit in both
+  states (see CONVENTIONS.md / shared/gates.js FEATURES registry).
 
-  AUTH: visitor vs org is simulated via [data-auth] on <html> until Firebase
-  (v4.7). gates.js stub returns allowed:true today and cannot drive the
-  visitor view yet — on v4.7, derive [data-auth] from auth state and gate the
-  module links with Gates.canAccess(). No persistence pre-Firebase (by design).
+  Deferred out of this pass (see CHANGELOG.md POA-61 entry):
+  - Personalised "Welcome back, {orgName}" greeting — auth.js only
+    carries user.email today, no org display name. Backlogged.
+  - A real "what's new" logged-in proof-band item — placeholder below,
+    marked TODO, standing in for the real changelog item.
+  - A cross-device "recent events" / "Resume" surface — no event/session
+    data model exists yet (storage.js is per-device localStorage only).
+    Logged-in state reuses the same tool launcher as anonymous instead
+    of implying a Resume action nothing on the page can back up.
   ════════════════════════════════════════════════════════════════════
 -->
 <style>
@@ -37,132 +46,113 @@
   .fd-ribbon{background:linear-gradient(100deg,var(--accent-bg),var(--surface2));border-bottom:1.5px solid var(--accent-bd)}
   .fd-ribbon-in{max-width:var(--container);margin:0 auto;padding:clamp(20px,3vw,28px) clamp(16px,4vw,40px)}
 
-  /* ——— hero (two-column action console) ——— */
-  .fd-hero{max-width:var(--container);margin:0 auto;padding:clamp(28px,5vw,52px) clamp(16px,4vw,40px) clamp(18px,3vw,28px)}
-  .fd-2col{display:grid;grid-template-columns:1.25fr .95fr;gap:clamp(24px,4vw,52px);align-items:center}
-  .fd-hero .hero-name{font-size:clamp(36px,6.2vw,66px);max-width:14ch;text-wrap:pretty}
-  .fd-hero .hero-sub{max-width:46ch}
-  .fd-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
-  .fd-cta .btn-p{font-size:15px;padding:13px 24px;border-radius:var(--rad-s);text-decoration:none;display:inline-flex;align-items:center}
-  .fd-cta .btn-o{font-size:14px;padding:12px 20px;border-radius:var(--rad-s);text-decoration:none;display:inline-flex;align-items:center}
+  /* ——— console head ——— */
+  .cs-console{max-width:var(--container);margin:0 auto;padding:clamp(26px,4vw,44px) clamp(16px,4vw,40px) clamp(18px,3vw,28px)}
+  .cs-head{display:flex;align-items:stretch;justify-content:space-between;gap:clamp(24px,4vw,52px);flex-wrap:wrap;margin-bottom:clamp(18px,2.5vw,26px)}
+  .cs-head h1{font-family:var(--font-display);font-weight:800;font-size:clamp(30px,4.6vw,50px);letter-spacing:-.03em;line-height:1.02;color:var(--ink);max-width:16ch;text-wrap:pretty}
+  .cs-head p{font-size:clamp(14px,1.6vw,16px);color:var(--ink2);margin-top:12px;max-width:44ch;line-height:1.5}
 
-  /* free quick-launch panel */
-  .fd-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);box-shadow:var(--shadow-md);overflow:hidden}
-  .fd-panel-hd{padding:13px 16px;border-bottom:1px solid var(--border2);background:var(--surface2);
+  /* right-side onboarding cluster — fills the anon hero gap with useful how-it-works */
+  .cs-head-aside{display:flex;flex-direction:column;justify-content:center;gap:16px;flex-shrink:0;
+    width:min(340px,40%);padding-left:clamp(20px,3vw,40px);border-left:1px solid var(--border)}
+  .cs-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:15px}
+  .cs-steps li{display:flex;gap:12px;align-items:flex-start}
+  .cs-steps .n{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--am-bg);border:1px solid var(--am-bd);color:var(--am);display:grid;place-items:center;font-family:var(--font-mono);font-size:12px;font-weight:700}
+  .cs-steps li b{display:block;font-weight:700;font-size:14px;color:var(--ink)}
+  .cs-steps li span{font-size:12px;color:var(--ink3);line-height:1.42}
+  .cs-steps-cta{align-self:flex-start;border-radius:var(--rad-s);text-decoration:none;display:inline-flex;align-items:center}
+  @media(max-width:760px){.cs-head-aside{width:100%;padding-left:0;border-left:none;border-top:1px solid var(--border);padding-top:20px}}
+
+  /* ——— bento ——— */
+  .cs-bento{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}
+  .cs-side{display:flex;flex-direction:column;gap:14px}
+
+  .cs-tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);box-shadow:var(--shadow-sm);overflow:hidden;display:flex;flex-direction:column}
+  .cs-tile-hd{padding:12px 16px;border-bottom:1px solid var(--border2);background:var(--surface2);
     font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);
-    display:flex;justify-content:space-between;align-items:center}
-  .fd-panel-hd em{font-style:normal;color:var(--gn)}
-  .fd-panel-body{padding:12px;display:flex;flex-direction:column;gap:8px}
-  .fd-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);
-    border-radius:var(--rad-s);text-decoration:none;color:inherit;transition:border-color .14s,background .14s}
-  .fd-row:hover{border-color:var(--accent);background:var(--surface3)}
-  .fd-row .ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);font-size:18px;flex-shrink:0}
-  .fd-row .tt{flex:1;min-width:0}
-  .fd-row .tt b{display:block;font-weight:700;font-size:13.5px;color:var(--ink)}
-  .fd-row .tt span{font-size:11.5px;color:var(--ink3)}
-  .fd-row .go{width:15px;height:15px;color:var(--ink4);flex-shrink:0}
+    display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .cs-tile-hd em{font-style:normal;color:var(--gn)}
+  .cs-tile-hd .cs-tag{font-style:normal;font-size:9px;color:var(--am);background:var(--am-bg);border:1px solid var(--am-bd);border-radius:var(--rad-pill);padding:2px 8px}
+  .cs-tile-body{padding:14px;flex:1;display:flex;flex-direction:column;gap:10px}
 
-  /* free cutline anchor */
-  .fd-freeline{max-width:var(--container);margin:0 auto;padding:clamp(6px,1.5vw,12px) clamp(16px,4vw,40px) clamp(30px,4vw,48px)}
+  /* primary: free-tool launcher, 2x2 — same links, state-driven labels */
+  .cs-launch{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .cs-launch-wrap{position:relative}
+  .cs-launch-btn{display:flex;align-items:center;gap:11px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rad-s);text-decoration:none;color:inherit;transition:border-color .14s,background .14s,transform .12s}
+  .cs-launch-btn:hover{border-color:var(--am);background:var(--surface3);transform:translateY(-2px)}
+  .cs-launch-btn:active{transform:scale(.99)}
+  .cs-launch-btn .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--border);font-size:19px;flex-shrink:0}
+  .cs-launch-btn .tt b{display:block;font-weight:700;font-size:13.5px;color:var(--ink)}
+  .cs-launch-btn .tt span{font-size:11px;color:var(--ink3)}
+  .cs-hint{font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink4);text-align:center;margin-top:2px}
 
-  /* ——— org platform (deep zone) ——— */
-  .fd-deep{background:var(--surface-deep);color:var(--deep-ink);padding:clamp(44px,6vw,82px) 0}
-  .fd-deep-in{max-width:var(--container);margin:0 auto;padding:0 clamp(16px,4vw,40px)}
-  .fd-deep-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:clamp(24px,4vw,48px);align-items:start}
-  .fd-deep-kick{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-  .fd-deep-kick .line{height:2px;width:34px;background:var(--am-bd);border-radius:2px}
-  .fd-deep-kick .eyebrow{color:var(--am-bd)}
-  .fd-deep h2{font-family:var(--font-display);font-weight:800;font-size:clamp(24px,3.2vw,36px);letter-spacing:-.025em;line-height:1.04;color:var(--deep-ink);max-width:18ch}
-  .fd-deep-sub{color:var(--deep-sub);font-size:clamp(14px,1.6vw,16px);margin-top:12px;max-width:48ch;line-height:1.5}
-  .fd-dgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:24px}
-  .fd-dmod{background:var(--deep-card);border:1px solid var(--deep-bd);border-radius:var(--rad-s);padding:14px 15px;cursor:pointer;transition:border-color .14s,background .14s}
-  .fd-dmod:hover{border-color:var(--accent);background:var(--deep-card-h, var(--deep-card))}
-  .fd-dmod b{font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--deep-ink)}
-  .fd-dmod b small{font-weight:400;color:var(--deep-ink3);font-size:13px}
-  .fd-dmod p{font-size:12.5px;color:var(--deep-sub);margin-top:5px;line-height:1.45}
-  .fd-dmod.locked{opacity:.4}
-  .fd-dmod.locked::before{content:'🔒';position:absolute;bottom:10px;right:10px;font-size:13px;line-height:1;pointer-events:none}
-  .fd-annual{font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--surface-deep);background:var(--am-bd);border-radius:var(--rad-pill);padding:2px 8px;vertical-align:middle}
+  /* account/login tile */
+  .cs-acct-form{display:flex;flex-direction:column;gap:10px}
+  .cs-acct-form label{font-size:11.5px;font-weight:700;color:var(--ink2);display:block;margin-bottom:5px}
+  .cs-acct-form input{background:var(--surface2);border:1.5px solid var(--border);color:var(--ink);border-radius:var(--rad-s);padding:9px 11px;font-size:13.5px;width:100%;outline:none;box-sizing:border-box;transition:border-color .14s}
+  .cs-acct-form input:focus{border-color:var(--am)}
+  .cs-acct-form .btn-p{border-radius:var(--rad-s);margin-top:2px}
+  .cs-acct-note{font-size:11px;color:var(--ink4);line-height:1.5;margin:0}
+  .cs-acct-note a{color:var(--am);font-weight:700;text-decoration:underline}
+  .cs-acct-in{display:flex;flex-direction:column;gap:8px;text-align:center;align-items:center;padding:4px 0}
+  .cs-acct-in .tick{width:42px;height:42px;border-radius:50%;background:var(--gn-bg);border:1px solid var(--gn-bd);display:grid;place-items:center;color:var(--gn);font-size:18px}
+  .cs-acct-in b{font-family:var(--font-display);font-weight:800;font-size:16px;color:var(--ink);word-break:break-word}
+  .cs-acct-in p{font-size:12px;color:var(--ink3)}
+  .cs-acct-in .btn-o{border-radius:var(--rad-s);margin-top:4px}
 
-  /* org login card */
-  .fd-login{background:var(--deep-card);border:1px solid var(--deep-bd);border-radius:var(--rad);overflow:hidden}
-  .fd-login-pad{padding:20px 22px}
-  .fd-login h3{font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--deep-ink)}
-  .fd-login-sub{font-family:var(--font-mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--deep-ink4);font-weight:700;margin-top:3px}
-  .fd-login-form{display:flex;flex-direction:column;gap:12px;margin-top:18px}
-  .fd-login-form label{font-size:12px;font-weight:700;color:var(--deep-ink2);display:block;margin-bottom:6px}
-  .fd-login-form input{background:var(--surface-deep);border:1.5px solid var(--deep-bd);color:var(--deep-ink);border-radius:var(--rad-s);padding:10px 12px;font-size:14px;width:100%;outline:none;transition:border-color .14s}
-  .fd-login-form input:focus{border-color:var(--am-bd)}
-  .fd-login-form .btn-p{margin-top:2px;border-radius:var(--rad-s)}
-  .fd-login-note{font-size:11.5px;color:var(--deep-ink4);line-height:1.5;text-align:center;margin:0}
-  .fd-login-note a{color:var(--am-h);font-weight:700;text-decoration:underline}
-  .fd-signedin{padding:24px 22px;text-align:center}
-  .fd-signedin .tick{width:46px;height:46px;border-radius:50%;background:rgba(11,122,82,.2);border:1px solid #2f6b4f;display:grid;place-items:center;margin:0 auto;color:#8fd9b8;font-size:20px}
-  .fd-signedin h3{margin-top:14px}
-  .fd-signedin p{font-size:12.5px;color:var(--deep-sub);margin-top:4px}
-  .fd-signedin .btn-o{margin-top:16px;border-radius:var(--rad-s);background:transparent;color:var(--deep-ink2);border-color:var(--deep-bd2)}
+  /* logged-in primary tile: real events reel (shared/upcoming-events.js, photo mode)
+     + Resume rows (read directly from this device's shared/storage.js saves —
+     no cross-device event/session model exists, so this is honestly scoped to
+     "what's saved in this browser", same as each module already does on its own) */
+  .cs-resume-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+  .cs-resume-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rad-s)}
+  .cs-resume-row .rail{width:4px;align-self:stretch;border-radius:2px;background:var(--am);flex-shrink:0}
+  .cs-resume-row .tt{flex:1;min-width:0}
+  .cs-resume-row .tt b{display:block;font-weight:700;font-size:13.5px;color:var(--ink)}
+  .cs-resume-row .tt span{font-size:11.5px;color:var(--ink3)}
+  .cs-resume-row .btn-p{border-radius:var(--rad-s);padding:9px 16px;font-size:13px;white-space:nowrap}
+  .cs-resume-empty{font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink4);text-align:center;padding:10px 0 2px}
 
-  /* org chip in header (signed in) */
-  .fd-org{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--ink2);background:var(--surface2);border:1px solid var(--border);border-radius:var(--rad-pill);padding:6px 13px}
-  .fd-org .dot{width:6px;height:6px;border-radius:50%;background:var(--gn)}
-
-  /* footer */
-  .fd-foot{max-width:var(--container);margin:0 auto;padding:clamp(26px,4vw,38px) clamp(16px,4vw,40px);
-    display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;border-top:1px solid var(--border)}
-  .fd-credit{font-size:12px;color:var(--ink3);line-height:1.7}
-  .fd-credit a{color:var(--am);text-decoration:none;font-weight:700}
-
-  /* auth visibility */
-  [data-auth="out"] .when-in{display:none}
-  [data-auth="in"] .when-out{display:none}
-  [data-auth="in"] .fd-panel{display:none}
-  [data-auth="out"] .fd-dmod{opacity:.4;cursor:default}
-
-  /* ——— front-door slideshow ——— */
-  [data-auth="out"] .fd-slideshow{display:none}
-  [data-auth="in"] .fd-slideshow{display:block}
-  .fd-slideshow{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:var(--rad);background:var(--surface-deep)}
+  /* org platform slideshow tile (logged-in, admin-configured photos) */
+  .fd-slideshow{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:var(--rad-s);background:var(--surface-deep)}
   .fd-slide{position:absolute;inset:0;opacity:0;transition:opacity 0.8s ease}
   .fd-slide.active{opacity:1}
   .fd-slide-img{width:100%;height:100%;object-fit:cover}
-  .fd-slide-caption{position:absolute;bottom:0;left:0;right:0;padding:1rem 1.25rem;background:linear-gradient(transparent,rgba(0,0,0,0.6));color:#fff;font-size:0.875rem;letter-spacing:0.04em}
-  [data-auth="out"] .fd-dmod:hover{border-color:var(--deep-bd);background:var(--deep-card)}
+  .fd-slide-caption{position:absolute;bottom:0;left:0;right:0;padding:.85rem 1rem;background:linear-gradient(transparent,rgba(0,0,0,0.6));color:#fff;font-size:0.8rem;letter-spacing:0.02em}
 
-  /* responsive — stack the two-column blocks (front door must work on a phone) */
-  @media(max-width:820px){
-    .fd-2col{grid-template-columns:1fr}
-    .fd-deep-grid{grid-template-columns:1fr}
-  }
+  /* ——— module rail (full width, always visible, state-aware) ——— */
+  .cs-rail{margin-top:14px}
+  .cs-rail-hd{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .cs-rail-hd .line{flex:1;height:1px;background:var(--border)}
+  .cs-mods{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .cs-mod{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);box-shadow:var(--shadow-sm);padding:16px;transition:border-color .14s,transform .12s,box-shadow .14s;cursor:pointer;display:flex;flex-direction:column;gap:8px}
+  .cs-mod:hover{border-color:var(--am);transform:translateY(-3px);box-shadow:var(--shadow-md)}
+  .cs-mod-em{font-size:24px;line-height:1}
+  .cs-mod b{font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--ink)}
+  .cs-mod p{font-size:12px;color:var(--ink3);line-height:1.45;flex:1}
+  .cs-mod-tag{align-self:flex-start;font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:var(--rad-pill);padding:3px 9px}
+  .cs-mod-tag--free{color:var(--bl);background:var(--bl-bg);border:1px solid var(--bl-bd)}
+  .cs-mod-tag--full{color:var(--surface);background:var(--gn-bd)}
+  .cs-mod-tag--locked{color:var(--am-h);background:transparent;border:1.5px solid var(--am-bd)}
+  .cs-mod.locked{opacity:.5;cursor:default}
+  .cs-mod.locked::after{content:'🔒';position:absolute;top:14px;right:14px;font-size:13px;line-height:1}
+  html:not([data-auth="in"]) .cs-mod[data-gate]{opacity:.5;cursor:default}
+  @media(max-width:900px){.cs-mods{grid-template-columns:1fr 1fr}}
 
-  /* ——— Tour nav link ——— */
-  .nav-link{font-size:13px;font-weight:700;color:var(--ink2);text-decoration:none;padding:9px 14px;border-radius:var(--rad-pill);transition:color .14s,background .14s;white-space:nowrap}
-  .nav-link:hover{color:var(--accent);background:var(--surface2)}
-  .nav-link.on{color:var(--accent)}
+  /* ——— proof band (integrated, state-driven) ——— */
+  .cs-proof{width:100%;background:var(--am-bg);border-top:1px solid var(--am-bd);border-bottom:1px solid var(--am-bd);
+    padding:clamp(36px,5vw,60px) clamp(16px,4vw,40px);margin-top:clamp(24px,4vw,44px)}
+  .cs-proof-in{max-width:920px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,3vw,38px);align-items:center}
+  .cs-proof-copy .eyebrow{display:inline-flex;align-items:center;gap:9px;margin-bottom:12px}
+  .cs-proof-copy .eyebrow .line{height:2px;width:26px;background:var(--am);border-radius:2px}
+  .cs-proof-copy h2{font-family:var(--font-display);font-weight:800;font-size:clamp(21px,2.6vw,28px);letter-spacing:-.02em;line-height:1.08;color:var(--ink);max-width:15ch}
+  .cs-proof-copy p{font-size:14px;color:var(--ink2);line-height:1.55;margin-top:11px;max-width:40ch}
+  .cs-proof-cta{display:inline-flex;align-items:center;gap:9px;margin-top:18px;background:var(--am);color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 20px;border-radius:var(--rad-s);min-height:44px;box-sizing:border-box;transition:background .14s,transform .12s;white-space:nowrap}
+  .cs-proof-cta:hover{background:var(--am-h)}
+  .cs-proof-cta:active{transform:scale(.99)}
+  .cs-proof-cta svg{width:16px;height:16px}
 
-  /* ——— Mobile header — scoped to home + tour pages only, not .plat-hdr platform-wide ——— */
-  @media(max-width:520px){
-    .plat-hdr--home{gap:10px}
-    .plat-hdr--home .plat-hdr-actions{width:100%;margin-left:0;justify-content:space-between;gap:10px;padding-top:11px;border-top:1px solid var(--border2)}
-  }
-
-  /* ——— Front-page teaser band ——— */
-  .teaser{max-width:var(--container);margin:0 auto;padding:clamp(20px,3.5vw,34px) clamp(16px,4vw,40px)}
-  .teaser-card{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(22px,3.5vw,44px);align-items:center;
-    background:var(--surface);border:1px solid var(--border);border-radius:var(--rad);box-shadow:var(--shadow-sm);
-    padding:clamp(18px,2.5vw,26px);overflow:hidden}
-  .teaser-copy .eyebrow{margin-bottom:12px;display:inline-flex;align-items:center;gap:9px}
-  .teaser-copy .eyebrow .line{height:2px;width:26px;background:var(--accent);border-radius:2px}
-  .teaser-copy h2{font-family:var(--font-display);font-weight:800;font-size:clamp(21px,2.6vw,28px);letter-spacing:-.02em;line-height:1.08;color:var(--ink);max-width:16ch}
-  .teaser-copy p{font-size:14.5px;color:var(--ink2);line-height:1.55;margin-top:12px;max-width:42ch}
-  .teaser-cta{display:inline-flex;align-items:center;gap:9px;margin-top:20px;background:var(--accent);color:var(--accent-ink);
-    text-decoration:none;font-weight:700;font-size:14px;padding:12px 20px;border-radius:var(--rad-s);
-    transition:background .14s,transform .12s;min-height:44px;box-sizing:border-box;white-space:nowrap}
-  .teaser-cta:hover{background:var(--accent-h)}
-  .teaser-cta:active{transform:scale(.99)}
-  .teaser-cta svg{width:16px;height:16px}
-  @media(max-width:760px){.teaser-card{grid-template-columns:1fr;gap:20px}}
-
-  /* ——— GIF-ready image frame (teaser) ——— */
+  /* GIF-ready image frame (proof band mock) */
   .shot{border:1px solid var(--border);border-radius:var(--rad);overflow:hidden;box-shadow:var(--shadow-md);background:var(--surface)}
   .shot-bar{display:flex;align-items:center;gap:8px;height:34px;padding:0 13px;background:var(--surface2);border-bottom:1px solid var(--border2)}
   .shot-dots{display:flex;gap:6px}
@@ -180,9 +170,37 @@
   .mk-nm{font-size:11.5px;font-weight:700;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .mk-num{font-family:var(--font-display);font-weight:800;font-size:15px;line-height:1}
 
+  /* ——— footer ——— */
+  .cs-foot{max-width:var(--container);margin:0 auto;padding:clamp(26px,4vw,38px) clamp(16px,4vw,40px);
+    display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;border-top:1px solid var(--border)}
+  .cs-credit{font-size:12px;color:var(--ink3);line-height:1.7}
+  .cs-credit a{color:var(--am);text-decoration:none;font-weight:700}
+
+  /* org chip in header (signed in) */
+  .fd-org{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--ink2);background:var(--surface2);border:1px solid var(--border);border-radius:var(--rad-pill);padding:6px 13px}
+  .fd-org .dot{width:6px;height:6px;border-radius:50%;background:var(--gn)}
+
+  /* auth visibility — root selector, matches shared/auth.js's [data-auth] on <html> */
+  [data-auth="out"] .when-in{display:none}
+  [data-auth="in"] .when-out{display:none}
+
+  @media(max-width:820px){
+    .cs-bento{grid-template-columns:1fr}
+    .cs-proof-in{grid-template-columns:1fr}
+  }
+
+  /* ——— Tour nav link ——— */
+  .nav-link{font-size:13px;font-weight:700;color:var(--ink2);text-decoration:none;padding:9px 14px;border-radius:var(--rad-pill);transition:color .14s,background .14s;white-space:nowrap}
+  .nav-link:hover{color:var(--accent);background:var(--surface2)}
+  .nav-link.on{color:var(--accent)}
+
+  /* ——— Mobile header — scoped to home + tour pages only, not .plat-hdr platform-wide ——— */
+  @media(max-width:520px){
+    .plat-hdr--home{gap:10px}
+    .plat-hdr--home .plat-hdr-actions{width:100%;margin-left:0;justify-content:space-between;gap:10px;padding-top:11px;border-top:1px solid var(--border2)}
+  }
+
   /* ——— module info button + modal ——— */
-  .fd-row-wrap{position:relative}
-  .fd-dmod{position:relative}
   .mod-info-btn{position:absolute;top:7px;right:7px;width:44px;height:44px;padding:0;border:none;background:transparent;color:var(--txt3);font-size:12px;cursor:pointer;border-radius:50%;display:grid;place-items:center;line-height:1;z-index:1}
   .mod-info-btn:hover{color:var(--txt);background:var(--surface2)}
   #mod-info-modal{display:none;position:fixed;inset:0;z-index:200}
@@ -203,7 +221,7 @@
 </style>
 </head>
 <body>
-<div class="shell">
+<div class="shell cs-doc">
 
   <!-- ══ Permanent platform lockup (Seduh / Grey Matter) ══ -->
   <header class="plat-hdr plat-hdr--home">
@@ -212,7 +230,7 @@
       <span><span class="plat-hdr-name">Seduh Score</span><span class="plat-hdr-sub">Coffee competition platform</span></span>
     </a>
     <div class="plat-hdr-actions">
-      <span class="plat-hdr-loc"><span class="dot"></span>Brunei Darussalam</span>
+      <span class="plat-hdr-loc" data-locale="BN" data-locale-aware="region"><span class="dot"></span>Brunei Darussalam</span>
       <a class="nav-link" href="tour/">Tour</a>
       <a class="btn-p when-out" href="#org-login" style="padding:9px 18px;font-size:13px">Org login</a>
       <span class="fd-org when-in"><span class="dot"></span><span id="org-chip-email"></span></span>
@@ -225,45 +243,116 @@
     <div class="fd-ribbon-in" id="fd-events"></div>
   </section>
 
-  <!-- ══ Hero — two-column action console ══ -->
-  <section class="fd-hero">
-    <div class="fd-2col">
+  <!-- ══ Console — one state-driven surface (POA-61) ══ -->
+  <section class="cs-console">
+    <div class="cs-head">
       <div>
-        <div class="hero-kicker"><span class="line"></span><span class="eyebrow">Brunei · Southeast Asia</span></div>
-        <h1 class="hero-name">Every format. One platform.</h1>
-        <p class="hero-sub">Brackets, leagues, sensory rounds and the court timer — score it the way it actually runs in the room.</p>
-        <div class="fd-cta">
-          <a class="btn-p" href="#free-tools">Open a free tool</a>
-          <a class="btn-o" href="#org-login">Org sign-in</a>
-        </div>
+        <div class="hero-kicker"><span class="line"></span><span class="eyebrow when-out">Brunei · Southeast Asia</span><span class="eyebrow when-in">Signed in</span></div>
+        <h1 class="when-out">Every format. One platform.</h1>
+        <h1 class="when-in">Welcome back.</h1>
+        <p class="when-out">Brackets, leagues, sensory rounds and the court timer — free tools save to this device, no account needed.</p>
+        <p class="when-in">Every module you're entitled to, ready to run from one place.</p>
       </div>
-      <div>
-        <div class="fd-panel" id="free-tools">
-          <div class="fd-panel-hd">Jump straight in — free<em>No account</em></div>
-          <div class="fd-panel-body">
-            <div class="fd-row-wrap"><a class="fd-row" href="throwdown/index.html"><span class="ic">⚡</span><span class="tt"><b>Throwdown Basic</b><span>1v1 knockout · up to 16</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><button class="mod-info-btn" data-module-key="throwdown" data-module-name="Throwdown" aria-label="About Throwdown">ℹ</button></div>
-            <div class="fd-row-wrap"><a class="fd-row" href="liga/index.html"><span class="ic">🏆</span><span class="tt"><b>Liga Basic</b><span>Round robin · up to 8</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><button class="mod-info-btn" data-module-key="liga" data-module-name="Liga Seduh" aria-label="About Liga Seduh">ℹ</button></div>
-            <div class="fd-row-wrap"><a class="fd-row" href="cup-taster/index.html"><span class="ic">☕</span><span class="tt"><b>Cup Taster Basic</b><span>Blind trio · up to 8</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><button class="mod-info-btn" data-module-key="cup_taster" data-module-name="Cup Taster" aria-label="About Cup Taster">ℹ</button></div>
-            <a class="fd-row" href="timer/index.html"><span class="ic">⏱</span><span class="tt"><b>Timer</b><span>5 / 7 / 10 / 15 min court timer</span></span><svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <div class="cs-head-aside when-out">
+        <ol class="cs-steps">
+          <li><span class="n">1</span><div><b>Pick a format</b><span>Throwdown, Liga, Cup Taster or the court timer</span></div></li>
+          <li><span class="n">2</span><div><b>Score live</b><span>Tap through rounds as they run in the room</span></div></li>
+          <li><span class="n">3</span><div><b>Show the room</b><span>Push results to the audience view</span></div></li>
+        </ol>
+        <a class="btn-o cs-steps-cta" href="tour/">Take the tour →</a>
+      </div>
+    </div>
+
+    <div class="cs-bento">
+      <!-- PRIMARY tile — tool launcher, same links both states -->
+      <div class="cs-tile">
+        <div class="cs-tile-hd">
+          <span class="when-out">Jump straight in — free</span><span class="when-out"><em>No account</em></span>
+          <span class="when-in">Your events</span><span class="when-in cs-tag">Auto-saved</span>
+        </div>
+        <div class="cs-tile-body">
+          <div class="cs-launch when-out">
+            <div class="cs-launch-wrap"><a class="cs-launch-btn" href="throwdown/index.html"><span class="ic">⚡</span><span class="tt"><b>Throwdown Basic</b><span>1v1 knockout · up to 16</span></span></a><button class="mod-info-btn" data-module-key="throwdown" data-module-name="Throwdown" aria-label="About Throwdown">ℹ</button></div>
+            <div class="cs-launch-wrap"><a class="cs-launch-btn" href="liga/index.html"><span class="ic">🏆</span><span class="tt"><b>Liga Basic</b><span>Round robin · up to 8</span></span></a><button class="mod-info-btn" data-module-key="liga" data-module-name="Liga Seduh" aria-label="About Liga Seduh">ℹ</button></div>
+            <div class="cs-launch-wrap"><a class="cs-launch-btn" href="cup-taster/index.html"><span class="ic">☕</span><span class="tt"><b>Cup Taster Basic</b><span>Blind trio · up to 8</span></span></a><button class="mod-info-btn" data-module-key="cup_taster" data-module-name="Cup Taster" aria-label="About Cup Taster">ℹ</button></div>
+            <a class="cs-launch-btn" href="timer/index.html"><span class="ic">⏱</span><span class="tt"><b>Timer</b><span>5 / 7 / 10 / 15 min</span></span></a>
+          </div>
+          <div class="cs-hint when-out">Free, on this device — start now</div>
+
+          <div class="when-in">
+            <div id="events-reel"></div>
+            <div class="cs-resume-list" id="cs-resume-list"></div>
           </div>
         </div>
-        <div class="fd-slideshow" id="fd-slideshow">
-          <!-- slides injected by JS -->
+      </div>
+
+      <!-- SIDE column -->
+      <div class="cs-side">
+        <!-- admin-configured photo slideshow (logged-in only; hides itself if empty) -->
+        <div class="cs-tile when-in">
+          <div class="cs-tile-hd"><span>Seduh Score</span><span>On the day</span></div>
+          <div class="cs-tile-body">
+            <div class="fd-slideshow" id="fd-slideshow"></div>
+          </div>
+        </div>
+
+        <!-- account / login -->
+        <div class="cs-tile">
+          <div class="cs-tile-hd"><span class="when-out">Org login</span><span class="when-out">Persistent</span><span class="when-in">Your organisation</span></div>
+          <div class="cs-tile-body">
+            <form id="org-login" class="when-out cs-acct-form" onsubmit="return false">
+              <div><label for="org-email">Organisation email</label><input id="org-email" type="email" placeholder="you@yourcafe.com" autocomplete="username"></div>
+              <div><label for="org-pass">Password</label><input id="org-pass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+              <button class="btn-p" type="submit" data-act="signin">Sign in</button>
+              <p id="login-error" style="color:var(--rd);font-size:12px;margin:4px 0 0;min-height:16px"></p>
+              <p class="cs-acct-note">No account? <a href="onboard/">Get started</a> — per-event access is arranged with your organiser.</p>
+            </form>
+            <div class="when-in cs-acct-in">
+              <div class="tick">✓</div>
+              <b id="org-signed-in-email"></b>
+              <p>All entitled modules unlocked</p>
+              <button class="btn-o" data-act="signout">Sign out</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- module rail -->
+    <div class="cs-rail">
+      <div class="cs-rail-hd"><span class="eyebrow">Competition formats</span><span class="line"></span></div>
+      <div class="cs-mods">
+        <div class="cs-mod" onclick="if(event.target.closest('.mod-info-btn'))return;location.href='throwdown/index.html'">
+          <span class="cs-mod-em">⚡</span><b>Throwdown</b><p>1v1 knockout — redemption &amp; revival draw, live audience view.</p>
+          <span class="cs-mod-tag cs-mod-tag--free when-out">Basic free</span>
+          <span class="cs-mod-tag cs-mod-tag--full when-in">Full access</span>
+          <button class="mod-info-btn" data-module-key="throwdown" data-module-name="Throwdown" aria-label="About Throwdown">ℹ</button>
+        </div>
+        <div class="cs-mod locked" data-gate="btc" id="btc-mod" onclick="if(event.target.closest('.mod-info-btn'))return;if(!Gates.canAccess('btc').allowed)return;location.href='bbtc/index.html'">
+          <span class="cs-mod-em">☕</span><b>BTC</b><p>Team championship — cup-by-cup token bracket.</p>
+          <span class="cs-mod-tag cs-mod-tag--locked" id="btc-tag">Annual plan</span>
+          <button class="mod-info-btn" data-module-key="btc" data-module-name="Barista Team Championship" aria-label="About Barista Team Championship">ℹ</button>
+        </div>
+        <div class="cs-mod" onclick="if(event.target.closest('.mod-info-btn'))return;location.href='liga/index.html'">
+          <span class="cs-mod-em">🏆</span><b>Liga Seduh</b><p>Round-robin league — device tracking, CSV standings, report.</p>
+          <span class="cs-mod-tag cs-mod-tag--free when-out">Basic free</span>
+          <span class="cs-mod-tag cs-mod-tag--full when-in">Full access</span>
+          <button class="mod-info-btn" data-module-key="liga" data-module-name="Liga Seduh" aria-label="About Liga Seduh">ℹ</button>
+        </div>
+        <div class="cs-mod" onclick="if(event.target.closest('.mod-info-btn'))return;location.href='cup-taster/index.html'">
+          <span class="cs-mod-em">☕</span><b>Cup Taster</b><p>Blind sensory rounds — set analytics, report.</p>
+          <span class="cs-mod-tag cs-mod-tag--free when-out">Basic free</span>
+          <span class="cs-mod-tag cs-mod-tag--full when-in">Full access</span>
+          <button class="mod-info-btn" data-module-key="cup_taster" data-module-name="Cup Taster" aria-label="About Cup Taster">ℹ</button>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ══ Tour teaser — one screenshot + CTA (POA-43) ══ -->
-  <section class="teaser">
-    <div class="teaser-card">
-      <div class="teaser-copy">
-        <span class="eyebrow"><span class="line"></span>See it in action</span>
-        <h2>This is what scoring looks like in the room.</h2>
-        <p>Live brackets, leagues and sensory rounds — running on real competition days in Brunei. Take the full tour of every module.</p>
-        <a class="teaser-cta" href="tour/">See the full tour <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-      </div>
-      <div class="teaser-media">
+  <!-- ══ Proof band — state-driven (POA-61) ══ -->
+  <section class="cs-proof">
+    <div class="cs-proof-in">
+      <div class="cs-proof-media">
         <div class="shot" style="border-top:3px solid var(--am)">
           <div class="shot-bar"><span class="shot-dots"><i></i><i></i><i></i></span><span class="shot-tab">seduhscore.com / throwdown</span></div>
           <div class="shot-media">
@@ -279,53 +368,21 @@
           </div>
         </div>
       </div>
-    </div>
-  </section>
-
-  <!-- free anchor -->
-  <section id="free" class="fd-freeline"><div class="cutline">Free, on this device — start now</div></section>
-
-  <!-- ══ The org platform — deep zone, embedded login ══ -->
-  <section id="org-login" class="fd-deep">
-    <div class="fd-deep-in">
-      <div class="fd-deep-grid">
-        <div>
-          <div class="fd-deep-kick"><span class="line"></span><span class="eyebrow">The org platform</span></div>
-          <h2>The full platform, for organisations.</h2>
-          <p class="fd-deep-sub">Unlimited fields, persistent data and branded exports across every module.</p>
-          <div class="fd-dgrid">
-            <div class="fd-dmod" data-gate="throwdown_redemption" onclick="if(document.documentElement.dataset.auth!=='in'||event.target.closest('.mod-info-btn'))return;location.href='throwdown/index.html'"><b>⚡ Throwdown <small>— full</small></b><p>Unlimited brewers, redemption + revival draw, report.</p><button class="mod-info-btn" data-module-key="throwdown" data-module-name="Throwdown" aria-label="About Throwdown">ℹ</button></div>
-            <div class="fd-dmod" data-gate="btc" onclick="if(document.documentElement.dataset.auth!=='in'||event.target.closest('.mod-info-btn'))return;if(!Gates.canAccess('btc').allowed)return;location.href='bbtc/index.html'"><b>☕ BTC <span class="fd-annual">Annual</span></b><p>Team championship · cup-by-cup token bracket.</p><button class="mod-info-btn" data-module-key="btc" data-module-name="Barista Team Championship" aria-label="About Barista Team Championship">ℹ</button></div>
-            <div class="fd-dmod" data-gate="liga_unlimited" onclick="if(document.documentElement.dataset.auth!=='in'||event.target.closest('.mod-info-btn'))return;location.href='liga/index.html'"><b>🏆 Liga Seduh <small>— full</small></b><p>Unlimited brewers, device tracking, CSV, report.</p><button class="mod-info-btn" data-module-key="liga" data-module-name="Liga Seduh" aria-label="About Liga Seduh">ℹ</button></div>
-            <div class="fd-dmod" data-gate="cup_taster_unlimited" onclick="if(document.documentElement.dataset.auth!=='in'||event.target.closest('.mod-info-btn'))return;location.href='cup-taster/index.html'"><b>☕ Cup Taster <small>— full</small></b><p>Unlimited sets, round analytics, report.</p><button class="mod-info-btn" data-module-key="cup_taster" data-module-name="Cup Taster" aria-label="About Cup Taster">ℹ</button></div>
-          </div>
-        </div>
-
-        <div class="fd-login">
-          <div class="when-out fd-login-pad">
-            <h3>Org login</h3>
-            <div class="fd-login-sub">Persistent · multi-user</div>
-            <form class="fd-login-form" onsubmit="return false">
-              <div><label for="org-email">Organisation email</label><input id="org-email" type="email" placeholder="you@yourcafe.com" autocomplete="username"></div>
-              <div><label for="org-pass">Password</label><input id="org-pass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
-              <button class="btn-p" type="submit" data-act="signin">Sign in</button>
-              <p id="login-error" style="color:var(--rd);font-size:12px;margin:4px 0 0;min-height:16px"></p>
-              <p class="fd-login-note">No account? <a href="onboard/">Get started</a> — per-event access is arranged with your organiser.</p>
-            </form>
-          </div>
-          <div class="when-in fd-signedin">
-            <div class="tick">✓</div>
-            <h3 id="org-signed-in-email"></h3>
-            <p>All modules unlocked — pick one above.</p>
-            <button class="btn-o" data-act="signout">Sign out</button>
-          </div>
-        </div>
+      <div class="cs-proof-copy">
+        <span class="eyebrow"><span class="line"></span><span class="when-out">See it in action</span><span class="when-in">What's new</span></span>
+        <h2 class="when-out">This is what scoring looks like in the room.</h2>
+        <!-- TODO(POA-61): placeholder logged-in item — swap for the real changelog entry before launch -->
+        <h2 class="when-in">Liga Seduh now exports CSV standings.</h2>
+        <p class="when-out">Live brackets, leagues and sensory rounds — running on real competition days in Brunei.</p>
+        <p class="when-in">Season standings download straight to CSV, ready for your reports. Rolling out to every paid league this month.</p>
+        <a class="cs-proof-cta when-out" href="tour/">See the full tour <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="cs-proof-cta when-in" href="tour/">See what's changed <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
       </div>
     </div>
   </section>
 
-  <footer class="fd-foot">
-    <div class="fd-credit">Built by <a href="https://instagram.com/mfosaminumkopi" target="_blank" rel="noreferrer">Firdaus Omar</a> · Grey Matter Coffee Werks, Brunei<br>Free tools save to this device.</div>
+  <footer class="cs-foot">
+    <div class="cs-credit">Built by <a href="https://instagram.com/mfosaminumkopi" target="_blank" rel="noreferrer">Firdaus Omar</a> · Grey Matter Coffee Werks, Brunei<br>Free tools save to this device.</div>
     <span class="live-pill"><span class="dot"></span>Seduh Score · v<span id="footer-version"></span></span>
   </footer>
 
@@ -345,10 +402,49 @@
 
 <script src="shared/version.js"></script>
 <script src="shared/gates.js"></script>
+<script src="shared/storage.js"></script>
 <script src="shared/upcoming-events.js"></script>
 <script>
   document.getElementById('footer-version').textContent = SEDUH_VERSION;
   UpcomingEvents.mount('#fd-events', { media: 'icon' });
+
+  // —— "Your events" reel + Resume rows (logged-in primary tile) ——
+  // Reel reuses the same live shared/upcoming-events.js feed as the top ribbon
+  // (real data, no independent copy). Resume reads this device's own
+  // shared/storage.js saves directly — there's no cross-device event/session
+  // model, so this is honestly scoped to "what's saved in this browser",
+  // exactly what each module already resumes into on its own if you open it.
+  function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+  }); }
+
+  var RESUMABLE_MODULES = [
+    { key: 'seduh_throwdown_v1',  label: 'Throwdown',   href: 'throwdown/index.html',
+      isActive: function(d) { return !!(d && d.eventName && d.eventName.trim()); } },
+    { key: 'seduh_liga_v1',       label: 'Liga Seduh',  href: 'liga/index.html',
+      isActive: function(d) { return !!(d && d.eventName && d.eventName !== 'Liga Seduh Bawah Tanah'); } },
+    { key: 'seduh_cup_taster_v1', label: 'Cup Taster',  href: 'cup-taster/index.html',
+      isActive: function(d) { return !!(d && d.eventName && d.eventName !== 'Cup Taster'); } }
+  ];
+
+  function renderResume() {
+    var list = document.getElementById('cs-resume-list');
+    if (!list) return;
+    var rows = RESUMABLE_MODULES.reduce(function(acc, m) {
+      var data = Store(m.key).load();
+      if (m.isActive(data)) {
+        acc.push(
+          '<div class="cs-resume-row"><span class="rail"></span>' +
+          '<span class="tt"><b>' + escHtml(data.eventName) + '</b><span>' + m.label + ' · saved on this device</span></span>' +
+          '<a class="btn-p" href="' + m.href + '">Resume ▶</a></div>'
+        );
+      }
+      return acc;
+    }, []);
+    list.innerHTML = rows.length
+      ? rows.join('')
+      : '<div class="cs-resume-empty">No in-progress events saved on this device yet</div>';
+  }
 
 (function(){
   "use strict";
@@ -427,11 +523,15 @@
 })();
 
 window.addEventListener('seduh:gates-ready', function() {
-  document.querySelectorAll('.fd-dmod[data-gate]').forEach(function(card) {
-    var access = Gates.canAccess(card.dataset.gate);
-    card.classList.toggle('locked', !access.allowed);
-  });
+  var access = Gates.canAccess('btc');
+  var tile = document.getElementById('btc-mod');
+  var tag = document.getElementById('btc-tag');
+  tile.classList.toggle('locked', !access.allowed);
+  tag.textContent = access.allowed ? 'Full access' : 'Annual plan';
+  tag.className = 'cs-mod-tag ' + (access.allowed ? 'cs-mod-tag--full' : 'cs-mod-tag--locked');
   initSlideshow();
+  UpcomingEvents.mount('#events-reel', { media: 'photo', overlay: true });
+  renderResume();
 }, { once: true });
 
 async function initSlideshow() {
@@ -443,7 +543,7 @@ async function initSlideshow() {
     var { db } = await import('./shared/firebase.js');
     var q = query(collection(db, 'slideshow'), orderBy('order'));
     var snap = await getDocs(q);
-    if (snap.empty) { container.style.display = 'none'; return; }
+    if (snap.empty) { container.closest('.cs-tile').style.display = 'none'; return; }
     var slides = [];
     snap.forEach(function(d) { slides.push(d.data()); });
     container.innerHTML = slides.map(function(s, i) {
@@ -463,7 +563,7 @@ async function initSlideshow() {
     }
   } catch (e) {
     console.warn('Slideshow unavailable:', e);
-    container.style.display = 'none';
+    container.closest('.cs-tile').style.display = 'none';
   }
 }
 </script>
