@@ -20,20 +20,30 @@
   driven entirely by [data-auth] on <html> (set by shared/auth.js) and
   Gates.canAccess(). Replaces the prior split of a marketing hero +
   separate dark "org zone" with a single state-driven console: one
-  primary launcher tile, an account tile, and a always-visible module
-  rail. Only BTC carries a real routing gate (minTier: 'annual') — the
-  other three modules have no module-level gate and stay lit in both
-  states (see CONVENTIONS.md / shared/gates.js FEATURES registry).
+  primary tile (tool launcher / events reel + Resume), an account tile,
+  and an always-visible module rail. Only BTC carries a real routing
+  gate (minTier: 'annual') — the other three modules have no
+  module-level gate and stay lit in both states (see CONVENTIONS.md /
+  shared/gates.js FEATURES registry).
 
-  Deferred out of this pass (see CHANGELOG.md POA-61 entry):
+  Logged-in primary tile: real events reel (shared/upcoming-events.js,
+  overlay photo mode) + Resume rows read from this device's own
+  shared/storage.js saves — no cross-device event/session model exists,
+  scoped honestly to what's actually resumable on this browser.
+
+  Side column is a single account/login tile, stretched to match the
+  primary tile's height (.cs-side .cs-tile{flex:1}, .cs-tile-body{
+  justify-content:center}) — post-launch revamp, POA-61 follow-up: the
+  admin-configured photo slideshow that used to sit above it was
+  dropped (busied the page without adding information the reel/rail
+  don't already cover); admin's slideshow upload/reorder UI has no
+  consumer now, parked as a later re-home candidate if ever needed.
+
+  Deferred (see CHANGELOG.md POA-61 entry):
   - Personalised "Welcome back, {orgName}" greeting — auth.js only
     carries user.email today, no org display name. Backlogged.
   - A real "what's new" logged-in proof-band item — placeholder below,
     marked TODO, standing in for the real changelog item.
-  - A cross-device "recent events" / "Resume" surface — no event/session
-    data model exists yet (storage.js is per-device localStorage only).
-    Logged-in state reuses the same tool launcher as anonymous instead
-    of implying a Resume action nothing on the page can back up.
   ════════════════════════════════════════════════════════════════════
 -->
 <style>
@@ -73,7 +83,10 @@
     display:flex;justify-content:space-between;align-items:center;gap:10px}
   .cs-tile-hd em{font-style:normal;color:var(--gn)}
   .cs-tile-hd .cs-tag{font-style:normal;font-size:9px;color:var(--am);background:var(--am-bg);border:1px solid var(--am-bd);border-radius:var(--rad-pill);padding:2px 8px}
-  .cs-tile-body{padding:14px;flex:1;display:flex;flex-direction:column;gap:10px}
+  .cs-tile-body{padding:14px;flex:1;display:flex;flex-direction:column;gap:10px;justify-content:center}
+  /* side column now holds a single tile (account) — stretch it to match the
+     primary tile's height instead of leaving it short next to a taller sibling */
+  .cs-side .cs-tile{flex:1}
 
   /* primary: free-tool launcher, 2x2 — same links, state-driven labels */
   .cs-launch{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -112,13 +125,6 @@
   .cs-resume-row .tt span{font-size:11.5px;color:var(--ink3)}
   .cs-resume-row .btn-p{border-radius:var(--rad-s);padding:9px 16px;font-size:13px;white-space:nowrap}
   .cs-resume-empty{font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink4);text-align:center;padding:10px 0 2px}
-
-  /* org platform slideshow tile (logged-in, admin-configured photos) */
-  .fd-slideshow{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:var(--rad-s);background:var(--surface-deep)}
-  .fd-slide{position:absolute;inset:0;opacity:0;transition:opacity 0.8s ease}
-  .fd-slide.active{opacity:1}
-  .fd-slide-img{width:100%;height:100%;object-fit:cover}
-  .fd-slide-caption{position:absolute;bottom:0;left:0;right:0;padding:.85rem 1rem;background:linear-gradient(transparent,rgba(0,0,0,0.6));color:#fff;font-size:0.8rem;letter-spacing:0.02em}
 
   /* ——— module rail (full width, always visible, state-aware) ——— */
   .cs-rail{margin-top:14px}
@@ -286,16 +292,8 @@
         </div>
       </div>
 
-      <!-- SIDE column -->
+      <!-- SIDE column — single tile, stretched to match the primary tile's height (POA-61 revamp) -->
       <div class="cs-side">
-        <!-- admin-configured photo slideshow (logged-in only; hides itself if empty) -->
-        <div class="cs-tile when-in">
-          <div class="cs-tile-hd"><span>Seduh Score</span><span>On the day</span></div>
-          <div class="cs-tile-body">
-            <div class="fd-slideshow" id="fd-slideshow"></div>
-          </div>
-        </div>
-
         <!-- account / login -->
         <div class="cs-tile">
           <div class="cs-tile-hd"><span class="when-out">Org login</span><span class="when-out">Persistent</span><span class="when-in">Your organisation</span></div>
@@ -529,43 +527,9 @@ window.addEventListener('seduh:gates-ready', function() {
   tile.classList.toggle('locked', !access.allowed);
   tag.textContent = access.allowed ? 'Full access' : 'Annual plan';
   tag.className = 'cs-mod-tag ' + (access.allowed ? 'cs-mod-tag--full' : 'cs-mod-tag--locked');
-  initSlideshow();
   UpcomingEvents.mount('#events-reel', { media: 'photo', overlay: true });
   renderResume();
 }, { once: true });
-
-async function initSlideshow() {
-  var container = document.getElementById('fd-slideshow');
-  if (!container) return;
-  try {
-    var { getDocs, collection, orderBy, query } =
-      await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    var { db } = await import('./shared/firebase.js');
-    var q = query(collection(db, 'slideshow'), orderBy('order'));
-    var snap = await getDocs(q);
-    if (snap.empty) { container.closest('.cs-tile').style.display = 'none'; return; }
-    var slides = [];
-    snap.forEach(function(d) { slides.push(d.data()); });
-    container.innerHTML = slides.map(function(s, i) {
-      return '<div class="fd-slide' + (i === 0 ? ' active' : '') + '">' +
-        '<img src="' + s.photoUrl + '" alt="' + s.caption.replace(/"/g, '&quot;') + '" class="fd-slide-img">' +
-        '<div class="fd-slide-caption">' + s.caption + '</div>' +
-        '</div>';
-    }).join('');
-    if (slides.length > 1) {
-      var current = 0;
-      setInterval(function() {
-        var all = container.querySelectorAll('.fd-slide');
-        all[current].classList.remove('active');
-        current = (current + 1) % all.length;
-        all[current].classList.add('active');
-      }, 5000);
-    }
-  } catch (e) {
-    console.warn('Slideshow unavailable:', e);
-    container.closest('.cs-tile').style.display = 'none';
-  }
-}
 </script>
 <script type="module" src="shared/firebase.js"></script>
 <script type="module" src="shared/auth.js"></script>

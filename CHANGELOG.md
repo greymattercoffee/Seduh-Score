@@ -2,6 +2,56 @@
 
 ---
 
+## [5.12.1] — POA-61 follow-up: side-column revamp, post-launch · July 2026
+
+**First real-production feedback on v5.12.0's Console:** once live, the
+logged-in state read as busier than intended — six stacked zones (ribbon,
+head, primary tile, side column with two tiles, module rail, proof band),
+two of which (the admin photo slideshow and the new events reel) were both
+photo carousels doing similar visual work. Traced to several individually-
+reasonable "keep this too" calls made during implementation rather than one
+holistic layout decision.
+
+Mocked two options for the side column (stretch the lone account tile vs.
+replace the slideshow slot with a real `Gates.canAccess()`-driven "Your
+plan" summary) and reviewed them against a live production screenshot
+before picking: **stretch the account tile.** The plan-summary alternative
+would have repeated, per-module, exactly what the module rail already shows
+lower on the page — same fact twice for a different kind of clutter, not
+less of it.
+
+Shipped:
+- Dropped the admin-configured photo slideshow tile entirely (markup, its
+  `initSlideshow()` fetch-and-rotate logic, and its `.fd-slideshow`/
+  `.fd-slide*` CSS all removed from `index.html`). Admin's slideshow
+  upload/reorder UI (`admin/index.html`) now has no consumer — not deleted,
+  parked as a later re-home candidate if a real use resurfaces.
+- Side column is now a single account/login tile. `.cs-side .cs-tile{
+  flex:1}` stretches it to match the primary tile's height instead of
+  sitting short next to a since-removed taller sibling;
+  `.cs-tile-body{justify-content:center}` centers whichever tile's content
+  is shorter than the row height it now shares — applies uniformly to both
+  auth states rather than needing separate anon/logged-in fixes.
+- This also fixed a real layout bug the screenshot surfaced: the primary
+  tile (events reel + Resume) had a large dead-space gap below its content,
+  because the *other* column (slideshow + account, two tiles stacked) had
+  been the taller sibling forcing the row height — the primary tile
+  stretched to match and left blank flex space at the bottom. Removing the
+  now-redundant slideshow tile removes that height mismatch at the source,
+  same fix as the decluttering itself, not a separate patch.
+
+Verified locally: anon and logged-in states both show the primary and side
+tiles at matching heights with no dead space (heights confirmed equal via
+`getBoundingClientRect()`); since the local Firebase emulator had stopped
+running mid-session, the events reel's real photo/caption content was
+reconstructed inline for the logged-in check rather than skipped, so the
+height-matching was confirmed under realistic content, not just the
+empty-state fallback.
+
+`SEDUH_VERSION` bumped to `5.12.1`.
+
+---
+
 ## [5.12.0] — POA-61: front-page login-state adaptation — Console rewrite · July 2026
 
 **Root cause, not a local patch:** `index.html` rendered one fixed layout
