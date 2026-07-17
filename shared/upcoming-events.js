@@ -106,7 +106,7 @@
       '.ue-photo-wrap.ue-overlay .ue-slide{position:relative}',
       '.ue-photo-wrap.ue-overlay .ue-slide-content{position:absolute;left:0;right:0;bottom:0;padding:var(--space-4);margin:0;background:linear-gradient(transparent,rgba(0,0,0,.78));border-radius:0 0 var(--rad) var(--rad)}',
       '.ue-photo-wrap.ue-overlay .ue-kicker{color:rgba(255,255,255,.72)}',
-      '.ue-photo-wrap.ue-overlay .ue-event-name{color:#fff}',
+      '.ue-photo-wrap.ue-overlay .ue-event-name{color:#fff;font-size:clamp(17px,2.3vw,22px);line-height:1.2;margin-bottom:6px}',
       '.ue-photo-wrap.ue-overlay .ue-event-date,.ue-photo-wrap.ue-overlay .ue-event-venue{color:rgba(255,255,255,.85)}',
       '.ue-photo-wrap.ue-overlay .ue-description{color:rgba(255,255,255,.75);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
       '.ue-photo-wrap.ue-overlay .ue-timer-bar{display:none}',

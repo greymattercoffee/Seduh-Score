@@ -2,6 +2,28 @@
 
 ---
 
+## [5.12.2] — POA-61 follow-up: reel headline sized down · July 2026
+
+**Root cause, one-line fix:** the Console reel's `.ue-overlay` mode
+(`shared/upcoming-events.js`) inherited `.ue-event-name`'s base font-size,
+`var(--fs-display)` (`clamp(28px,4vw,44px)`) — a token sized for
+`coming-soon/index.html`'s full-page hero carousel, where the event name
+*is* the page headline. In the compact overlay caption it rendered large
+enough to cover most of the photo (confirmed on live production: "ASEAN
+Team Barista Championship" wrapped to two lines at ~35px and ate the top
+half of the image). Scoped an override to
+`.ue-photo-wrap.ue-overlay .ue-event-name` — `clamp(17px,2.3vw,22px)` — so
+only the overlay caption shrinks; `coming-soon/index.html`'s non-overlay
+carousel never gets the `.ue-overlay` class and is unaffected.
+
+Verified locally: reconstructed the overlay with the real production event
+name/venue/date, confirmed computed font-size is 22px (down from the
+inherited ~35-40px), single-line instead of wrapping over the photo.
+
+`SEDUH_VERSION` bumped to `5.12.2`.
+
+---
+
 ## [5.12.1] — POA-61 follow-up: side-column revamp, post-launch · July 2026
 
 **First real-production feedback on v5.12.0's Console:** once live, the
