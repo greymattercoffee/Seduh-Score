@@ -2,6 +2,35 @@
 
 ---
 
+## [5.12.4] — POA-61 follow-up: restore reel corner badge's format color · July 2026
+
+**Second-guessed my own v5.12.3 call, correctly:** when the format-badge
+pill moved to float on the raw photo (v5.12.3), I gave it a flat dark
+scrim background instead of its semantic format tint (purple for BTC,
+amber for Throwdown, etc.), reasoning the light pastel tints might wash
+out against an arbitrary photo. Firdaus asked why the color coding
+disappeared — checking `shared/theme.css`'s actual token values
+(`--pu-bg:#f1ecfe`, `--bl-bg:#eaf1fe`, `--gn-bg:#e6f6ee`, `--am-bg:#fbf0df`)
+showed they're solid opaque hex colors, not translucent — the "washes
+out" concern was unfounded, since an opaque pill reads as a distinct
+colored shape against any photo regardless of what's behind it.
+
+Reverted the forced dark background/border/color override; the corner
+badge now inherits its normal `.ue-format-badge.fmt-*` styling (real
+format tint) same as everywhere else on the platform. Kept a small
+`box-shadow` for depth/separation from the photo — the thing the dark
+background was actually solving for — without sacrificing the color
+signal.
+
+Verified locally: computed styles on the reconstructed corner badge show
+`background: rgb(241,236,254)` / `color: rgb(109,40,217)` (BTC's real
+`--pu`/`--pu-bg` tokens) plus the box-shadow, in place of the flat dark
+override.
+
+`SEDUH_VERSION` bumped to `5.12.4`.
+
+---
+
 ## [5.12.3] — POA-61 follow-up: reel caption tightened further · July 2026
 
 **Third live-production look, three more cosmetic tightenings to the same

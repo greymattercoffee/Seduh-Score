@@ -117,7 +117,7 @@
       '.ue-photo-wrap.ue-overlay .ue-timer-bar{display:none}',
       '.ue-photo-wrap.ue-overlay{position:relative}',
       '.ue-photo-wrap.ue-overlay .ue-overlay-corner{display:flex;flex-direction:column;align-items:flex-end;gap:8px;position:absolute;right:10px;bottom:10px}',
-      '.ue-photo-wrap.ue-overlay .ue-format-badge-corner{display:inline-block;margin-bottom:0;background:rgba(20,14,8,.65);border-color:rgba(255,255,255,.32);color:#fff}',
+      '.ue-photo-wrap.ue-overlay .ue-format-badge-corner{display:inline-block;margin-bottom:0;box-shadow:0 2px 8px rgba(20,14,8,.45)}',
       '.ue-photo-wrap.ue-overlay .ue-controls{padding:4px 6px;gap:6px;background:rgba(0,0,0,.45);border-radius:var(--rad-pill)}',
       '.ue-photo-wrap.ue-overlay .ue-btn-nav{width:26px;height:26px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);color:#fff;font-size:14px}',
       '.ue-photo-wrap.ue-overlay .ue-btn-nav:hover{border-color:#fff;color:#fff}',
