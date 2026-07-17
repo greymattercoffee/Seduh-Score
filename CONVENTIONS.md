@@ -1,6 +1,6 @@
 # Conventions — Seduh Score
 
-*State: v5.12.3 — matches CHANGELOG.md as of July 2026*
+*State: v5.12.4 — matches CHANGELOG.md as of July 2026*
 
 Coding patterns, architecture decisions, and development standards for the Seduh Score platform. Read this at the start of any new chat session before touching code.
 
