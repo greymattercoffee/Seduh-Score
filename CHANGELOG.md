@@ -2,6 +2,50 @@
 
 ---
 
+## [5.12.3] — POA-61 follow-up: reel caption tightened further · July 2026
+
+**Third live-production look, three more cosmetic tightenings to the same
+`.ue-overlay` mode (`shared/upcoming-events.js`), all scoped so
+`coming-soon/index.html`'s non-overlay carousel stays byte-for-byte
+unaffected:**
+
+- **Date + venue combined to one line** ("22 July 2026 at 08:28 BNT |
+  MITEC, Kuala Lumpur") instead of two stacked lines. Implementation:
+  `renderPhoto()` now always emits both the original separate
+  `.ue-event-date`/`.ue-event-venue` divs *and* a new `.ue-event-meta-line`
+  combining them — CSS decides which one shows per mode
+  (`.ue-event-meta-line{display:none}` by default, shown only under
+  `.ue-overlay`; the two original lines hidden only under `.ue-overlay`).
+  No JS branching, same pattern already used for the kicker/timer-bar.
+- **"Upcoming on Seduh Score" kicker removed** from the overlay caption
+  entirely (`.ue-photo-wrap.ue-overlay .ue-kicker{display:none}`) — pure
+  chrome, no longer needed once the reel's context (a logged-in org's own
+  front page) already makes it obvious what the card is for.
+- **Format-badge pill relocated** from the top of the caption block to
+  sit directly above the prev/counter/next controls, bottom-right corner,
+  both anchored together. New `.ue-overlay-corner` wrapper holds a second
+  badge instance (`.ue-format-badge.ue-format-badge-corner`) plus the
+  existing `.ue-controls` markup; default CSS (`display:contents` on the
+  wrapper, `display:none` on the corner badge) keeps `coming-soon`'s layout
+  identical to before since neither rule does anything without
+  `.ue-overlay` present. The corner badge gets its own dark scrim
+  background (`rgba(20,14,8,.65)`) rather than its semantic format tint,
+  since it's now floating directly on the photo instead of inside the
+  gradient-shaded caption — same information (the format label text),
+  prioritizing legibility over the tint in this one relocated spot.
+
+Verified locally (Firestore emulator was down again this session):
+reconstructed the overlay and non-overlay renders by hand from the exact
+markup `renderPhoto()` now emits, confirmed via computed styles that all
+three changes apply correctly under `.ue-overlay` and produce zero
+difference under `coming-soon`'s non-overlay call — kicker/original badge/
+separate date+venue lines all still visible there, corner badge and
+meta-line still hidden, controls still in normal static flow.
+
+`SEDUH_VERSION` bumped to `5.12.3`.
+
+---
+
 ## [5.12.2] — POA-61 follow-up: reel headline sized down · July 2026
 
 **Root cause, one-line fix:** the Console reel's `.ue-overlay` mode

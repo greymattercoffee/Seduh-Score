@@ -91,9 +91,12 @@
       '.ue-format-badge.fmt-pu{background:var(--pu-bg);border-color:var(--pu-bd);color:var(--pu)}',
       '.ue-event-name{font-family:var(--font-display);font-weight:var(--fw-extrabold);font-size:var(--fs-display);color:var(--txt);letter-spacing:var(--ls-tight);line-height:var(--lh-snug);margin-bottom:var(--space-2)}',
       '.ue-event-date,.ue-event-venue{font-size:var(--fs-body);color:var(--txt2)}',
+      '.ue-event-meta-line{display:none}',
       '.ue-description{font-size:var(--fs-body);color:var(--txt3);margin-top:var(--space-3);line-height:var(--lh-body)}',
       '.ue-timer-bar{height:3px;background:var(--border);border-radius:var(--rad-pill);overflow:hidden;margin-top:var(--space-5)}',
       '.ue-timer-bar-fill{height:100%;width:0%;background:var(--am)}',
+      '.ue-overlay-corner{display:contents}',
+      '.ue-format-badge-corner{display:none}',
       '.ue-controls{display:flex;align-items:center;justify-content:center;gap:var(--space-4);padding:var(--space-4) 0 var(--space-2)}',
       '.ue-btn-nav{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface);color:var(--txt2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .14s,color .14s}',
       '.ue-btn-nav:hover{border-color:var(--am-bd);color:var(--am)}',
@@ -105,13 +108,17 @@
       // and is unaffected.
       '.ue-photo-wrap.ue-overlay .ue-slide{position:relative}',
       '.ue-photo-wrap.ue-overlay .ue-slide-content{position:absolute;left:0;right:0;bottom:0;padding:var(--space-4);margin:0;background:linear-gradient(transparent,rgba(0,0,0,.78));border-radius:0 0 var(--rad) var(--rad)}',
-      '.ue-photo-wrap.ue-overlay .ue-kicker{color:rgba(255,255,255,.72)}',
+      '.ue-photo-wrap.ue-overlay .ue-kicker{display:none}',
+      '.ue-photo-wrap.ue-overlay .ue-slide-content .ue-format-badge{display:none}',
       '.ue-photo-wrap.ue-overlay .ue-event-name{color:#fff;font-size:clamp(17px,2.3vw,22px);line-height:1.2;margin-bottom:6px}',
-      '.ue-photo-wrap.ue-overlay .ue-event-date,.ue-photo-wrap.ue-overlay .ue-event-venue{color:rgba(255,255,255,.85)}',
+      '.ue-photo-wrap.ue-overlay .ue-event-date,.ue-photo-wrap.ue-overlay .ue-event-venue{display:none}',
+      '.ue-photo-wrap.ue-overlay .ue-event-meta-line{display:block;color:rgba(255,255,255,.85);font-size:var(--fs-body)}',
       '.ue-photo-wrap.ue-overlay .ue-description{color:rgba(255,255,255,.75);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
       '.ue-photo-wrap.ue-overlay .ue-timer-bar{display:none}',
       '.ue-photo-wrap.ue-overlay{position:relative}',
-      '.ue-photo-wrap.ue-overlay .ue-controls{position:absolute;right:10px;bottom:10px;padding:4px 6px;gap:6px;background:rgba(0,0,0,.45);border-radius:var(--rad-pill)}',
+      '.ue-photo-wrap.ue-overlay .ue-overlay-corner{display:flex;flex-direction:column;align-items:flex-end;gap:8px;position:absolute;right:10px;bottom:10px}',
+      '.ue-photo-wrap.ue-overlay .ue-format-badge-corner{display:inline-block;margin-bottom:0;background:rgba(20,14,8,.65);border-color:rgba(255,255,255,.32);color:#fff}',
+      '.ue-photo-wrap.ue-overlay .ue-controls{padding:4px 6px;gap:6px;background:rgba(0,0,0,.45);border-radius:var(--rad-pill)}',
       '.ue-photo-wrap.ue-overlay .ue-btn-nav{width:26px;height:26px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);color:#fff;font-size:14px}',
       '.ue-photo-wrap.ue-overlay .ue-btn-nav:hover{border-color:#fff;color:#fff}',
       '.ue-photo-wrap.ue-overlay .ue-counter{color:rgba(255,255,255,.85);font-size:11px;min-width:32px}',
@@ -189,17 +196,21 @@
               '<div class="ue-event-name">' + esc(ev.eventName) + '</div>' +
               '<div class="ue-event-date">' + formatDate(ev.eventDate) + '</div>' +
               '<div class="ue-event-venue">' + esc(ev.eventVenue) + '</div>' +
+              '<div class="ue-event-meta-line">' + formatDate(ev.eventDate) + ' | ' + esc(ev.eventVenue) + '</div>' +
               (ev.eventDescription ? '<div class="ue-description">' + esc(ev.eventDescription) + '</div>' : '') +
               '<div class="ue-timer-bar"><div class="ue-timer-bar-fill"></div></div>' +
             '</div>' +
           '</div>' +
-          (events.length > 1
-            ? '<div class="ue-controls">' +
-                '<button class="ue-btn-nav" id="ue-prev" aria-label="Previous event">‹</button>' +
-                '<span class="ue-counter">' + (idx + 1) + ' / ' + events.length + '</span>' +
-                '<button class="ue-btn-nav" id="ue-next" aria-label="Next event">›</button>' +
-              '</div>'
-            : '') +
+          '<div class="ue-overlay-corner">' +
+            '<div class="ue-format-badge ue-format-badge-corner ' + meta.cls + '">' + esc(meta.label) + '</div>' +
+            (events.length > 1
+              ? '<div class="ue-controls">' +
+                  '<button class="ue-btn-nav" id="ue-prev" aria-label="Previous event">‹</button>' +
+                  '<span class="ue-counter">' + (idx + 1) + ' / ' + events.length + '</span>' +
+                  '<button class="ue-btn-nav" id="ue-next" aria-label="Next event">›</button>' +
+                '</div>'
+              : '') +
+          '</div>' +
         '</div>';
 
       const apply = () => {
