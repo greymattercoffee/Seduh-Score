@@ -173,21 +173,8 @@ input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--
 .sc-tot-n{font-size:34px;line-height:1.1;font-weight:700}
 .sc-tot-n.t1{color:var(--am)}.sc-tot-n.t2{color:var(--bl)}
 .sc-tot-sub{font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.1em;font-weight:600}
-/* PDF overlay */
-#pdf-overlay{display:none;position:fixed;inset:0;z-index:1000;background:#efe9de;overflow-y:auto;flex-direction:column}
-#pdf-overlay.show{display:flex}
-.pdf-toolbar{display:flex;align-items:center;gap:10px;padding:.85rem 2rem;background:#fff;border-bottom:2px solid #b45309;flex-shrink:0;position:sticky;top:0;z-index:10;flex-wrap:wrap}
-.pdf-toolbar-title{font-size:14px;font-weight:700;flex:1;color:#211a14}
-.pdf-toolbar-hint{font-size:12px;color:#8a7f73}
-.btn-print{background:#b45309;color:#fff;border:none;padding:9px 20px;border-radius:5px;font-size:13px;font-weight:700;cursor:pointer}
-.btn-print:hover{background:#92400e}
-.pdf-page{width:210mm;min-height:297mm;background:#fff;margin:1.5rem auto;padding:16mm;box-shadow:0 2px 20px rgba(0,0,0,.12);font-family:var(--font-body);color:#211a14;page-break-after:always}
-.pdf-page:last-child{page-break-after:auto}
-.pdf-logo-row{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:3px solid #b45309;padding-bottom:10px;margin-bottom:18px}
-.pdf-event-name{font-size:22px;font-weight:700;letter-spacing:-.01em}
-.pdf-event-sub{font-size:10px;color:#b45309;letter-spacing:.2em;text-transform:uppercase;margin-bottom:4px;font-weight:700}
-.pdf-meta{text-align:right;font-size:11px;color:#8a7f73;line-height:1.8;font-weight:500}
-.pdf-section-title{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#b45309;border-bottom:1.5px solid #efe9de;padding-bottom:5px;margin:20px 0 12px;font-weight:700}
+/* PDF overlay chrome (#pdf-overlay, .pdf-page, header/footer) now lives in shared/theme.css
+   (shared/pdf.js owns it). Report-table classes below are BBTC-specific. */
 .pdf-lb-table{width:100%;border-collapse:collapse;font-size:12px}
 .pdf-lb-table th{text-align:left;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#8a7f73;padding:5px 8px;border-bottom:1.5px solid #efe9de;font-weight:700}
 .pdf-lb-table th:last-child,.pdf-lb-table td:last-child{text-align:right}
@@ -208,14 +195,7 @@ input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--
 .pdf-score{font-size:16px;font-weight:700}
 .pdf-score.w{color:#b45309}
 .pdf-time-cell{font-size:10px;color:#8a7f73;text-align:center}
-.pdf-footer{margin-top:24px;padding-top:10px;border-top:1.5px solid #efe9de;display:flex;justify-content:space-between;font-size:9px;color:#8a7f73;letter-spacing:.06em}
 .empty{text-align:center;padding:3rem 1rem;color:var(--txt3);font-size:13px}
-@media print{
-  body>*{display:none!important}
-  #pdf-overlay{display:block!important;position:static!important;background:#fff!important;overflow:visible!important}
-  .pdf-toolbar{display:none!important}
-  .pdf-page{width:100%!important;margin:0!important;padding:12mm 14mm!important;box-shadow:none!important}
-}
 </style>
 </head>
 <body>
@@ -290,6 +270,7 @@ input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--
 <script src="../shared/gates.js"></script>
 <script src="../shared/eventconfig.js"></script>
 <script src="../shared/audience.js"></script>
+<script src="../shared/pdf.js"></script>
 <script>
 const RC={
   preliminary:   {label:'Preliminary',   drinks:15,time:'10 min',maxJ:45},
@@ -515,8 +496,6 @@ function generatePDF(){
   const done=S.matches.filter(m=>m.done);
   const now=new Date();
   const dateStr=now.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-  const timeStr=now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  const eventMeta=[S.eventDate,S.eventVenue].filter(Boolean).join(' · ');
   const rnkCls=i=>i===0?'pdf-r1':i===1?'pdf-r2':i===2?'pdf-r3':'pdf-ro';
   const lbRows=lb.map((s,i)=>{
     const isQF=(i+1)<=S.qfSlots,showCut=i===S.qfSlots-1&&S.qfSlots<lb.length;
@@ -542,10 +521,21 @@ function generatePDF(){
     }).join('');
     return header+rows;
   }).join('');
-  const footer='<div class="pdf-footer"><span>Barista Team Championship'+(S.eventVenue?' · '+S.eventVenue:'')+'</span><span>Exported '+dateStr+' at '+timeStr+'</span></div>';
-  const logoSub=eventMeta?'<div style="font-size:11px;color:#8a7f73;margin-top:5px">'+eventMeta+'</div>':'';
-  document.getElementById('pdf-content').innerHTML='<div class="pdf-page"><div class="pdf-logo-row"><div><div class="pdf-event-sub">Seduh Score · Grey Matter Coffee Werks</div><div class="pdf-event-name">Barista Team Championship</div>'+logoSub+'</div><div class="pdf-meta"><div>Preliminary Standings</div><div>'+dateStr+'</div><div style="color:#b45309">QF Spots: Top '+S.qfSlots+'</div></div></div><div class="pdf-section-title">Preliminary Standings</div><table class="pdf-lb-table"><thead><tr><th>#</th><th>Team</th><th style="text-align:center">Record</th><th style="text-align:center">Played</th><th style="text-align:right">Points</th></tr></thead><tbody>'+(lbRows||'<tr><td colspan="5" style="text-align:center;color:#8a7f73;padding:20px">No teams registered.</td></tr>')+'</tbody></table>'+footer+'</div><div class="pdf-page"><div class="pdf-logo-row"><div><div class="pdf-event-sub">Seduh Score · Grey Matter Coffee Werks</div><div class="pdf-event-name">Barista Team Championship</div>'+logoSub+'</div><div class="pdf-meta"><div>Match Results</div><div>'+dateStr+'</div><div>'+done.length+' matches completed</div></div></div><div class="pdf-section-title">Match Results</div><table class="pdf-res-table"><thead><tr><th>Round</th><th>Team 1</th><th style="text-align:center">Score</th><th style="text-align:center"></th><th style="text-align:center">Score</th><th style="text-align:right">Team 2</th><th style="text-align:center">Time</th></tr></thead><tbody>'+(resultsHTML||'<tr><td colspan="7" style="text-align:center;color:#8a7f73;padding:20px">No completed matches yet.</td></tr>')+'</tbody></table>'+footer+'</div>';
-  document.getElementById('pdf-overlay').classList.add('show');
+  PdfExport.open({
+    fallbackTitle: 'Barista Team Championship',
+    pages: [
+      {
+        sectionTitle: 'Preliminary Standings',
+        metaHtml: '<div>Preliminary Standings</div><div>'+dateStr+'</div><div style="color:#b45309">QF Spots: Top '+S.qfSlots+'</div>',
+        bodyHtml: '<table class="pdf-lb-table"><thead><tr><th>#</th><th>Team</th><th style="text-align:center">Record</th><th style="text-align:center">Played</th><th style="text-align:right">Points</th></tr></thead><tbody>'+(lbRows||'<tr><td colspan="5" style="text-align:center;color:#8a7f73;padding:20px">No teams registered.</td></tr>')+'</tbody></table>'
+      },
+      {
+        sectionTitle: 'Match Results',
+        metaHtml: '<div>Match Results</div><div>'+dateStr+'</div><div>'+done.length+' matches completed</div>',
+        bodyHtml: '<table class="pdf-res-table"><thead><tr><th>Round</th><th>Team 1</th><th style="text-align:center">Score</th><th style="text-align:center"></th><th style="text-align:center">Score</th><th style="text-align:right">Team 2</th><th style="text-align:center">Time</th></tr></thead><tbody>'+(resultsHTML||'<tr><td colspan="7" style="text-align:center;color:#8a7f73;padding:20px">No completed matches yet.</td></tr>')+'</tbody></table>'
+      }
+    ]
+  });
 }
 
 /* ── CSV ── */
@@ -876,8 +866,8 @@ function bind(){
   // Overlays
   on('pubview','click',()=>showAudience());
   on('exportbtn','click',()=>generatePDF());
-  on('pdf-close','click',()=>document.getElementById('pdf-overlay').classList.remove('show'));
-  on('pdf-print','click',()=>window.print());
+  on('pdf-close','click',()=>PdfExport.close());
+  on('pdf-print','click',()=>PdfExport.print());
   on('csvbtn','click',()=>generateCSV());
 
   // Shared modules — init() is idempotent on both
