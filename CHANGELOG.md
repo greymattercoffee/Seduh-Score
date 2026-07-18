@@ -2,6 +2,69 @@
 
 ---
 
+## [5.12.5] — MUA-07: BBTC PDF export migrated onto shared/pdf.js · July 2026
+
+BBTC's self-contained inline PDF export replaced with `shared/pdf.js`'s `PdfExport` API —
+same module Throwdown has used since v5.11.0. Closes out the `stash@{0}` migration parked
+since the July 2026 full-repo audit.
+
+### bbtc/index.html
+
+- **refactor:** `generatePDF()` now calls `PdfExport.open({ fallbackTitle: 'Barista Team
+  Championship', pages })` instead of manipulating `#pdf-overlay` directly. Hardcoded module
+  title and Seduh attribution line removed — header identity now sourced from
+  `seduh_handoff` v2 via `shared/pdf.js`, same as Throwdown.
+- **refactor:** print/close toolbar buttons call `PdfExport.print()`/`PdfExport.close()`.
+- BBTC's report-table markup and CSS (`.pdf-lb-table`, `.pdf-res-table`, rank/score/badge
+  classes) unchanged, stay in BBTC's own `<style>` block — same pattern as Throwdown's
+  `.pdf-td-*`.
+- BBTC's local duplicates of the shared `.pdf-*` overlay/header/footer/print rules (already
+  owned by `shared/theme.css` since POA-55) removed from BBTC's inline `<style>` block.
+
+### Files touched (5)
+
+`bbtc/index.html` (the actual code change) plus four docs updated to reflect it:
+`CHANGELOG.md`, `CLAUDE.md`, `CONVENTIONS.md`, `shared/version.js`.
+
+### Regression-checked, explicit pass/fail
+
+All checked in-browser against the popped `stash@{0}` diff, with demo data (8 teams, 14
+matches, all 14 marked done across 2 rounds) loaded via `loadBBTCDemo()`:
+
+- Stash popped cleanly onto current `dev`; one conflict in `shared/gates.js` — the stash's
+  `pdf_branding` FEATURES hunk predated the real POA-55 build and was already superseded by
+  the shipped key (same key, same `{ minTier: 'per_event' }` value, only comment wording
+  differed). Resolved by keeping the current upstream side and discarding the stashed side.
+  Checked explicitly post-resolution: `git diff HEAD -- shared/gates.js` returns empty —
+  `gates.js` was touched during conflict resolution but landed byte-identical to `HEAD`,
+  confirmed rather than silently absent from the final diff.
+- `PdfExport` API (method names, `pages`/`fallbackTitle` shape) verified against the real
+  `shared/pdf.js` source — matched the stash's assumptions exactly, no fixes needed.
+- Community tier: PDF renders fallback title only, no logo/subtitle/date/venue — confirmed.
+- Per-Event tier: full branded header (logo, subtitle, date, venue) — confirmed via
+  `Gates.canAccess('pdf_branding')`.
+- Preliminary Standings page checked in isolation: `.pdf-lb-table`, headers
+  `[#, Team, Record, Played, Points]`, 8 rows (8 demo teams), rank/QF-pip/points badge
+  classes intact.
+- Match Results page checked in isolation (after an explicit close→reopen cycle):
+  `.pdf-res-table`, headers `[Round, Team 1, Score, "", Score, Team 2, Time]`, 16 tbody rows
+  = 14 match rows + 2 round-group header rows (Preliminary, Quarterfinals) — pre-existing
+  grouping logic, unrelated to this migration. Score badge classes (`pdf-score`,
+  `pdf-score w`) intact.
+- Print and Close buttons call `PdfExport.print()`/`PdfExport.close()` — confirmed, overlay
+  hides correctly.
+- No console errors on open, print, or close, in either tier state.
+- Throwdown's `generateThrowdownPDF()` — unaffected, zero diff against pre-session `dev`.
+  `shared/pdf.js` — unmodified, zero diff.
+- BBTC's storage key (`seduh_bbtc_v3`) and save/load cycle — unaffected, spot-checked.
+- `stash@{0}` dropped only after all above checks passed.
+
+### shared/version.js
+
+`SEDUH_VERSION` bumped to `5.12.5`.
+
+---
+
 ## [5.12.4] — POA-61 follow-up: restore reel corner badge's format color · July 2026
 
 **Second-guessed my own v5.12.3 call, correctly:** when the format-badge

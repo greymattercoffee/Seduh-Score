@@ -71,9 +71,9 @@ Each module includes shared files like this:
 
 `pdf.js` shipped under POA-55 — see the PDF export section below for the full
 API. Throwdown is the first consumer (`<script src="../shared/pdf.js">`).
-BBTC's PDF export today remains a self-contained inline overlay, not this
-shared module; a stashed BBTC refactor (`stash@{0}` on `dev`) already targets
-this module's API and stays parked until its own later session.
+BBTC migrated onto it at v5.12.5 (MUA-07), closing out the stash that had
+been parked since the July 2026 full-repo audit. Liga/Cup Taster adoption is
+separate, future work.
 
 **Rule:** Never copy shared component code into a module file. Always reference from `../shared/`.
 
@@ -502,11 +502,11 @@ format-agnostic PDF export module — owns the `#pdf-overlay` lifecycle, the gat
 header, and the print trigger. Built for real under POA-55 (PLAN_OF_ACTION.md) after a doc-vs-code
 drift correction found the module had been described as shipped since v5.4.0 while never existing
 on disk. **First consumer is Throwdown** (POA-55 Step 0 pivot — Throwdown had a live event
-30 Aug 2026 and benefited from a PDF export sooner than BBTC needed one). BBTC's PDF export
-today remains its own self-contained inline overlay, not this API; a stashed BBTC refactor
-(`stash@{0}` on `dev`) already targets this module's API and stays parked until its own later
-session. Liga/Cup Taster adoption is separate, future work (see AUDIT.md / MUA-07-SPEC-V2.md
-for why the original all-four-modules draft was rescoped).
+30 Aug 2026 and benefited from a PDF export sooner than BBTC needed one). **BBTC migrated onto
+this API at v5.12.5** (MUA-07 follow-up), closing out the `stash@{0}` refactor that had been
+parked on `dev` since the July 2026 full-repo audit. Liga/Cup Taster adoption is separate,
+future work (see AUDIT.md / MUA-07-SPEC-V2.md for why the original all-four-modules draft was
+rescoped).
 
 Public API (three methods only — never touch `#pdf-overlay` classList from a module):
 ```javascript
