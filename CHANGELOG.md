@@ -2,6 +2,174 @@
 
 ---
 
+## [5.13.0] — POA-62 Phase 1: Bracket-tree renderer + bracket_branding gate · July 2026
+
+New shared rendering capability for a persistent, projector-scale bracket-tree display —
+first half of POA-62 (absorbs the parked POA-36 remote-audience stub). Standalone this
+session: no Firestore, no `audience/index.html` wiring, no Throwdown changes — the
+renderer is verified entirely against hand-built fake data per `BRACKET-LIVE-SPEC.md` §3.
+Phase 2 (separate session) connects it to `throwdown_live/{orgId}` and the actual remote
+viewer page.
+
+### shared/audience.js
+
+- **feat:** `Audience.renderBracketTree(container, bracketData, options)` — new public
+  function, mirrored/converging-tree layout, size-agnostic (every layout number derives
+  from `rounds.length`/`slots.length` at call time — no branching on `bracketSize`, an
+  irregular 13-participant bracket renders exactly as correctly as 8/16/24). Supports
+  bye handling, revival-marker badges, active/pending glow, a just-resolved flash on
+  newly-changed slots, dark/light theme, and both `champMode: 'tree'`/`'podium'` display
+  states. Ported from a Design-session prototype's visual pattern (not its demo-data
+  generator or React scaffolding, neither of which is production logic). Distinct from
+  `Audience.show()`/`Audience.showPodium()` — targets a separate rendering surface
+  (Phase 2's remote viewer page), not the existing `#aud-overlay`.
+- Chose **full re-render** on each call (`container.innerHTML` replaced), matching this
+  codebase's universal render convention, given the expected cadence of roughly one call
+  per match result, not per-frame. The just-resolved flash still works under full
+  re-render because it diffs `bracketData` *snapshots* (`_bktPrevData`, a `WeakMap` keyed
+  per container), not DOM — the "just resolved" class is computed once during string-
+  building, before the innerHTML swap.
+- Scale-to-fit via a `ResizeObserver` on the caller's `container` (`_bktObservers`, also
+  container-keyed) — necessary because `renderBracketTree()` replaces `container`'s
+  children, including the stage element, on every call, so the observer has to outlive
+  any single render rather than being recreated each time.
+
+### shared/gates.js
+
+- **feat:** `bracket_branding` key added to `FEATURES` registry — `{ minTier: 'per_event' }`,
+  same shape as `audience_branding`/`pdf_branding`. Gates only the branded identity block
+  within the bracket-tree view; base view ungated (overall feature availability still
+  deferred, per the standing "build capability first, regate later" decision).
+
+### shared/theme.css
+
+- **feat:** new `.aud-bkt-*` class family — fixed 16:9 stage, mirrored column/connector
+  layout, component-scoped round-colour custom properties (hardcoded hex, not new `:root`
+  tokens — same "hardcoded hex in overlay contexts" exception already documented for
+  `.aud-*`/`.pdf-*`), dark/light theme variants, bye/revival/active-glow/just-resolved-
+  flash styling. Purely additive — no existing `.aud-*` class renamed, removed, or
+  reassigned (`git diff` on this session's changes contains zero removed lines matching
+  `.aud-`).
+
+### CONVENTIONS.md
+
+- **docs:** `Audience.renderBracketTree()` documented in Shared component APIs.
+- **docs:** round-colour addendum — bracket-tree view uses blue/amber/green/purple as a
+  round-identity gradient in addition to their existing status-colour meanings elsewhere;
+  documented as a bracket-tree-specific extension, not a platform-wide redefinition.
+  Confirmed this isn't actually new: `throwdown/index.html`'s own
+  `roundColour()`/`pdfRoundColour()` (~line 1118) already implement this exact mapping for
+  Throwdown's own bracket view, audience overlay, and PDF export — simply never written
+  down before this pass.
+
+### Bugs found and fixed during the build
+
+Real findings from actually verifying against a rendered page, not just assertion counts
+— recorded here rather than smoothed into a clean-looking diff, same as the `gates.js`
+stash-conflict note in the MUA-07/v5.12.5 entry above:
+
+- **Round-colour substring collision:** `_bktRoundColour()`'s label check tested
+  `l.includes('final')` before checking for `'quarter'` — since `"quarterfinals"` itself
+  contains the substring `"final"`, the Quarterfinals column rendered green (the Final's
+  colour) instead of blue. Caught by directly inspecting the Design prototype's sampled
+  DOM colours against the ported code's actual output, not by the harness's own pass/fail
+  counts (which had no assertion for round-colour-by-label at the time). Fixed by checking
+  `'quarter'` first; added a permanent regression assertion for it afterward.
+- **`.aud-bkt-matches` had no CSS rule at all:** referenced in the JS template but never
+  given a rule in `theme.css` — it defaulted to `display:block`/`flex-grow:0`, sitting at
+  its own content height (~155px) instead of the ~950px `.aud-bkt-col` actually had
+  available, with the unused space silently absorbed as blank gap by `.aud-bkt-col`'s
+  `justify-content:space-around` rather than erroring. Result: only round labels visible,
+  all match/slot/connector content invisible. Found via `getBoundingClientRect()` on
+  `.aud-match`/`.aud-slot` at the user's direction, then walking the flex chain from
+  `.aud-bkt-stage` down until a definite height stopped propagating. Fixed by giving
+  `.aud-bkt-matches` `flex:1;display:flex;flex-direction:column;justify-content:
+  space-around;min-height:0`, plus defensive `min-height:0` on the rest of the flex-column
+  chain (`.aud-bkt-side`, `.aud-bkt-col`, `.aud-bkt-pair`).
+- **A CSS comment silently truncated a rule:** immediately after the above fix, the fixed
+  stage still overflowed the page horizontally. Root cause was unrelated to layout: a
+  comment describing the round-colour hardcoded-hex exception read
+  `for .aud-*/.pdf-* — see CONVENTIONS.md...` — the `*` closing `.aud-*` sat directly
+  against the `/` opening `/.pdf-*`, forming a literal `*/` that closed the CSS comment
+  mid-sentence. Everything after that point, including the very next rule
+  (`.aud-bkt-viewport{overflow:hidden;...}`), was silently parsed as invalid CSS and
+  discarded until the parser found a recovery point several rules later — so the viewport
+  was never actually clipping its oversized child, and the whole page grew a horizontal
+  scrollbar instead. Fixed by rewording the comment; scanned the rest of this session's
+  added CSS for the same mistake (none found).
+- **Active-glow used the wrong signal, from both directions:** the original design checked
+  whether the *previous* round's slots had a `name` to decide whether the *next* round's
+  placeholder should glow "active." But a round's slots carry real participant names from
+  the moment that round is seeded — true even for round 0, before any match is played — so
+  Semi Finals glowed active from the very start of the tournament, before Quarterfinals had
+  even been played, and the same flawed signal cascaded into the Final once Semi Finals
+  got populated with (unplayed) names. Caught via an unexpected "3 active matches, expected
+  2" test result. Redefined as a same-round check instead — a match's own two slots both
+  carry a `name` but neither carries a `score` yet — which needed no cross-round lookup at
+  all and matches how Throwdown's real atomic score-and-advance actually behaves.
+- **Branded header didn't fully honour the gate:** `eventName` was shown whenever it was
+  set on `bracketData`, regardless of `options.branded`/the `bracket_branding` gate. Per
+  `BRACKET-LIVE-SPEC.md` §2E, `eventName` itself is inside the gated block here — unlike
+  `PdfExport`'s `fallbackTitle` pattern, where only logo/subtitle/date/venue are gated and
+  `eventName` always shows once set. Caught re-reading the spec while building the
+  branded-gating logic properly in the pass that added it; fixed before it shipped.
+
+### Incidental finding — pre-existing, out of scope, not fixed this session
+
+Regression-checking `Audience.show()` against real Throwdown demo data surfaced a
+pre-existing bug in `throwdown/index.html`'s own `showAudience()` (~line 1176, confirmed
+via `git diff` to be completely untouched this session): its history list includes
+redemption-round pairs without checking `phase`, then unconditionally reads `p.t1`/`p.t2`/
+`p.votes1`/`p.votes2` — fields that only exist on main-round pairs. Redemption pairs are
+shaped `{brewers[], votes{}, tiebreaker, winner}` instead (independently confirmed by this
+session's own `BRACKET-LIVE-SPEC.md` §7 findings), so the Redemption Round section of the
+audience history rendered as literal `undefined undefined vs undefined undefined`. Not a
+regression from this session — `throwdown/index.html` is on the hard do-not-touch list —
+and `Audience.show()` itself is confirmed unaffected: it faithfully rendered exactly the
+(buggy) HTML string it was given. Flagged separately for its own fix, not bundled here.
+
+### Regression-checked, explicit pass/fail
+
+Checked against the handoff's own §7 self-verify checklist, each item separately:
+
+- `renderBracketTree()` at bracketSize 8, 16, and 24 — confirmed individually, screenshots
+  taken of each via a real browser (Claude in Chrome), not just DOM assertion counts.
+- Bye slots at size 24 (32-slot pad, 8 real byes) — 🎫 ticket glyph confirmed, count matches.
+- Revival marker badge — confirmed present exactly once at the seeded slot.
+- Newly-resolved-slot flash — confirmed via a three-call test (render → render with one
+  new score → render unchanged): nothing flashes on first paint, exactly the newly-scored
+  match flashes on the second call, an unrelated pending match and an already-decided round
+  both correctly stay quiet, and the flash doesn't reappear on a third no-change call.
+- Both `champMode: 'tree'` and `champMode: 'podium'` — confirmed, including a screenshot of
+  the podium takeover (two tiles: champion/runner-up, full-stage takeover matching the
+  existing `#aud-podium-panel` precedent).
+- Dark and light theme — both confirmed via screenshot, not just class-presence assertions.
+- `branded: true` renders the full identity header (logo/name/subtitle/date/venue);
+  `branded: false` renders fallback-title-only — confirmed via screenshot and assertions,
+  including the `eventName`-gating fix above.
+- `Gates.canAccess('bracket_branding')` gating — confirmed at both a Per-Event+ mock
+  (`{allowed:true}`) and a Community mock (`{allowed:false}`); also confirmed
+  `Gates` being entirely undefined doesn't throw.
+- `bracket_branding` key present in `gates.js`, matches `audience_branding`/`pdf_branding`
+  shape — confirmed directly.
+- `CONVENTIONS.md` updated with the API doc block and round-colour addendum — done.
+- Regression: `Audience.init()`/`.show()`/`.showPodium()`/`.close()` — confirmed zero
+  behavioural change against real Throwdown demo data in a real browser (not just the
+  sandboxed preview pane) — see the incidental finding above.
+- No `.aud-*` class renamed, removed, or reassigned — confirmed via `git diff`, zero
+  removed lines matching `.aud-` across the whole session's diff.
+- Test/demo harness files used for visual verification — never part of the committed
+  diff. Live in the session scratchpad; temporary in-repo copies used only for local
+  browser verification (both the sandboxed preview pane and Claude in Chrome can't load
+  `file://` or scratchpad-path resources directly) were deleted immediately after each
+  check, confirmed via repeated `git status` checks throughout.
+
+### shared/version.js
+
+`SEDUH_VERSION` bumped to `5.13.0`.
+
+---
+
 ## [5.12.5] — MUA-07: BBTC PDF export migrated onto shared/pdf.js · July 2026
 
 BBTC's self-contained inline PDF export replaced with `shared/pdf.js`'s `PdfExport` API —

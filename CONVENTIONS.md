@@ -1,6 +1,6 @@
 # Conventions — Seduh Score
 
-*State: v5.12.4 — matches CHANGELOG.md as of July 2026*
+*State: v5.13.0 — matches CHANGELOG.md as of July 2026*
 
 Coding patterns, architecture decisions, and development standards for the Seduh Score platform. Read this at the start of any new chat session before touching code.
 
@@ -332,6 +332,100 @@ Audience.showPodium();   // full-screen podium takeover — audience_enhanced ga
 | Liga Seduh | ✅ in bind() | ✅ | all four params |
 | BBTC | ✅ in bind() | ✅ | lbHTML = prelim standings; histHTML = match history; podium deferred |
 | Cup Taster | ✅ in bind() | ✅ | single-panel (no lbHTML); podium deferred |
+
+### Bracket-tree renderer (`shared/audience.js`) — POA-62 Phase 1
+
+Approved addition to `audience.js` — a **separate rendering target** from
+`Audience.show()`/`Audience.showPodium()`. Mounts into a caller-provided
+container (Phase 2's `audience/index.html` will own it), not the organiser's
+own `#aud-overlay` — this is a different display surface entirely (the
+projector-scale remote viewer), not a modification of the existing overlay.
+Standalone as of Phase 1 — no Firestore wiring yet (Phase 2).
+
+```javascript
+Audience.renderBracketTree(container, bracketData, options);
+```
+
+- `container` — any DOM element the caller provides.
+- `bracketData` — locked public contract, `BRACKET-LIVE-SPEC.md` §3:
+  ```javascript
+  {
+    bracketSize: number,        // 8, 16, 24, etc. — informational only, the
+                                 // renderer itself branches on nothing but
+                                 // rounds.length/slots.length at call time
+    rounds: [{
+      roundLabel: string,
+      slots: [{ name, score, isBye, revivalMarker }],
+    }],
+    champion: string | null,
+    runnerUp: string | null,
+    eventName, logoUrl, eventSubtitle, eventDate, eventVenue,   // branding — see below
+  }
+  ```
+- `options`:
+  - `branded: boolean` — full identity header (logo + subtitle/date/venue
+    meta line) renders only when `true` **and**
+    `Gates.canAccess('bracket_branding').allowed`; otherwise fallback-title-
+    only (the constant `"Seduh Score"`, not the real `eventName`). Per
+    `BRACKET-LIVE-SPEC.md` §2E, `eventName` itself is inside the gated block
+    here — unlike `PdfExport`'s `fallbackTitle` pattern, where only
+    logo/subtitle/date/venue are gated and `eventName` always shows once set.
+  - `champMode: 'tree' | 'podium'` — `'podium'` is a full takeover mirroring
+    the existing `#aud-podium-panel` precedent exactly (absolutely
+    positioned, covers the whole stage including the header). Only two
+    tiles (champion/runner-up), not three — this data shape carries no
+    2nd/3rd place. The tree keeps rendering underneath even when covered, so
+    the just-resolved diff (below) stays correct if a later call switches
+    back to `'tree'`.
+  - `theme: 'dark' | 'light'` — class swap on `.aud-bkt-stage`
+    (`.aud-bkt-theme-dark`/`.aud-bkt-theme-light`), the same pattern
+    `#aud-overlay` uses for `.aud-dark`/`.aud-light`.
+
+**Re-render model:** full re-render on every call (`container.innerHTML`
+replaced) — matches this codebase's universal render convention, no
+incremental DOM patching. Chosen over incremental updates given the expected
+cadence (roughly one call per match result, not per-frame).
+
+**Size-agnostic by construction:** every layout computation — column split
+(`Math.ceil(matchCount/2)`), connector geometry, per-round slot height,
+active/pending glow — is derived from `rounds.length` and each round's own
+`slots.length` at call time. Nothing branches on `bracketSize` or assumes a
+power-of-2 shape; an irregular (e.g. 13-participant) bracket renders exactly
+as correctly as 8/16/24. A round-to-round relationship that doesn't cleanly
+resolve (e.g. a redemption round breaking the halving chain) degrades to a
+plain TBD placeholder rather than guessing.
+
+**Active/pending glow (`.aud-bkt-active`):** a same-round check, not a
+look-back at the previous round — a match's own two slots both carry a
+`name` but neither carries a `score` yet ("locked in, about to play"). An
+earlier design checked the *previous* round's slots for a name instead, but
+a round's slots carry real names from the moment that round is seeded
+(true even for round 0, before anything is played), so that version lit up
+falsely from minute one and cascaded incorrectly into later rounds.
+
+**Just-resolved flash (`.aud-bkt-just-resolved`):** each call diffs the
+incoming `bracketData` against a snapshot of the *previous* call for that
+same `container` (`_bktPrevData`, a `WeakMap` — so a container's first-ever
+render never flashes anything already on screen). Any slot whose `name` or
+`score` newly *appeared* since that snapshot gets the class baked directly
+into the freshly-built HTML string. The animation (`bktFlash`, 1.2s) is
+finite with `animation-fill-mode:forwards` — it plays once and holds its
+final (zero-alpha, effectively invisible) keyframe rather than looping — so
+no JS cleanup is needed; the next full re-render replaces the DOM anyway.
+
+**Scale-to-fit:** fixed 1920×1080 stage, no responsive/mobile breakpoint —
+this is a fixed large-display context only. A `ResizeObserver` on
+`container` (`_bktObservers`, also container-keyed — a container's children
+including the stage are fully replaced on every call, so the observer must
+outlive any single render) keeps `.aud-bkt-stage`'s `--bkt-scale` custom
+property current as the container resizes.
+
+**Gating:** the base tree view is ungated — available regardless of tier,
+matching the existing text audience view's Lite/Enhanced split (Community
+isn't locked out of the view entirely, just the branded identity block).
+Only the branded header checks `Gates.canAccess('bracket_branding').allowed`
+— `FEATURES` registry entry `{ minTier: 'per_event' }`, same shape as
+`audience_branding`/`pdf_branding`.
 
 ### Sound (`shared/sound.js`)
 
@@ -927,6 +1021,26 @@ Before any future Claude Design session touching `theme.css`, paste this file in
 - Classes: all `.tmr-*`, all `.aud-*`, `#tmr-overlay`, `#aud-overlay`, `#pdf-overlay`, `.pdf-*` print rules
 - Semantic colour meanings: blue = rounds, green = completion/winners, purple = redemption, red = destructive/ties
 
+### Round-colour addendum (bracket-tree-specific — POA-62)
+
+The bracket-tree renderer (`Audience.renderBracketTree()`, see Shared
+component APIs above) colours each round column by its position in the
+bracket: blue for early/mid rounds, amber for the semi-final, green for the
+final, purple for a redemption round. **This reuses blue/amber/green/purple
+as a second, additive meaning — round *identity*, not match *status*** — and
+is scoped to this one view only. It does not change or override the
+semantic colour contract above anywhere else in the platform (blue still
+means rounds/scheduled, green still means completion/winners, purple still
+means redemption, wherever those already appear).
+
+This isn't a new pattern the bracket-tree view introduced — confirmed while
+building it, `throwdown/index.html`'s own `roundColour()`/`pdfRoundColour()`
+functions (~line 1118) already map final→green, semi-final→amber,
+quarter-final/round 2+→blue, redemption→purple, for Throwdown's existing
+bracket view, its audience overlay, and its PDF export. It simply hadn't
+been written down here before this pass. Same treatment MUA-04's
+`audience_branding` and MUA-07's `pdf_branding` each got when they shipped.
+
 ### Known follow-ups from the v4.1 integration
 
 1. Self-host the three Google Fonts as `.woff2` (currently CDN `@import`) — required for true offline competition-day reliability.
@@ -1065,7 +1179,14 @@ Before starting work in a new session — **all session types: Strategy, Code, D
 
 ---
 
-*Last updated: July 2026 — v5.10.3 pass (POA-60, pitch page restructure): directory tree entry
+*Last updated: July 2026 — v5.13.0 pass (POA-62 Phase 1, bracket-tree renderer): new
+"Bracket-tree renderer" subsection under Shared component APIs documenting
+`Audience.renderBracketTree()` (signature, `options`, re-render model, size-agnosticism,
+active-glow, just-resolved flash, scale-to-fit, gating); new "Round-colour addendum" under
+Design System v4.1 documenting the blue/amber/green/purple round-identity reuse as
+bracket-tree-specific and additive, not a platform-wide redefinition — and noting the
+pattern already existed, undocumented, in `throwdown/index.html`'s own `roundColour()`/
+`pdfRoundColour()`. Prior pass — v5.10.3 pass (POA-60, pitch page restructure): directory tree entry
 for `pitch/index.html` updated to reflect the "The Platform" reframe (problem-first, pricing +
 governance sections, version timeline/spiral moved out) and a new `bts/index.html` entry added
 for the "Behind the Seduh" build-story page it moved into. Prior pass — v5.10.2-booth pass (Guess the Bean visual overhaul + booth

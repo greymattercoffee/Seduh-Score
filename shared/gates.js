@@ -32,6 +32,9 @@ const FEATURES = {
   // PDF export (shared/pdf.js, MUA-07 / POA-55)
   'pdf_branding':                { minTier: 'per_event' }, // logo/subtitle/date/venue in PDF header
 
+  // Bracket-tree view (shared/audience.js Audience.renderBracketTree(), POA-62)
+  'bracket_branding':            { minTier: 'per_event' }, // logo/subtitle/date/venue in bracket-tree header
+
   // Platform switches — minTier: null = tier-independent, super admin enables only
   'cup_taster_module':   { minTier: null },
   'audience_links_live': { minTier: null },
