@@ -333,7 +333,7 @@ Audience.showPodium();   // full-screen podium takeover — audience_enhanced ga
 | BBTC | ✅ in bind() | ✅ | lbHTML = prelim standings; histHTML = match history; podium deferred |
 | Cup Taster | ✅ in bind() | ✅ | single-panel (no lbHTML); podium deferred |
 
-### Bracket-tree renderer (`shared/audience.js`) — POA-62 Phase 1
+### Bracket-tree renderer (`shared/audience.js`) — POA-63 Phase 1
 
 Approved addition to `audience.js` — a **separate rendering target** from
 `Audience.show()`/`Audience.showPodium()`. Mounts into a caller-provided
@@ -1021,7 +1021,7 @@ Before any future Claude Design session touching `theme.css`, paste this file in
 - Classes: all `.tmr-*`, all `.aud-*`, `#tmr-overlay`, `#aud-overlay`, `#pdf-overlay`, `.pdf-*` print rules
 - Semantic colour meanings: blue = rounds, green = completion/winners, purple = redemption, red = destructive/ties
 
-### Round-colour addendum (bracket-tree-specific — POA-62)
+### Round-colour addendum (bracket-tree-specific — POA-63)
 
 The bracket-tree renderer (`Audience.renderBracketTree()`, see Shared
 component APIs above) colours each round column by its position in the
@@ -1179,7 +1179,9 @@ Before starting work in a new session — **all session types: Strategy, Code, D
 
 ---
 
-*Last updated: July 2026 — v5.13.0 pass (POA-62 Phase 1, bracket-tree renderer): new
+*Last updated: July 2026 — v5.13.0 pass (POA-63 Phase 1, bracket-tree renderer — renumbered
+from an initial "POA-62" that collided with an unrelated pre-existing backlog item of the
+same number, caught before anything was pushed): new
 "Bracket-tree renderer" subsection under Shared component APIs documenting
 `Audience.renderBracketTree()` (signature, `options`, re-render model, size-agnosticism,
 active-glow, just-resolved flash, scale-to-fit, gating); new "Round-colour addendum" under

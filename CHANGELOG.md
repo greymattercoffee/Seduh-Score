@@ -2,10 +2,18 @@
 
 ---
 
-## [5.13.0] — POA-62 Phase 1: Bracket-tree renderer + bracket_branding gate · July 2026
+## [5.13.0] — POA-63 Phase 1: Bracket-tree renderer + bracket_branding gate · July 2026
+
+**Numbering correction:** this shipped under the number "POA-62" for the first few hours
+of its own history — the Strategy-session handoff that kicked this off was written
+without a `PLAN_OF_ACTION.md` stub of its own and picked a number that turned out to
+already belong to an unrelated backlog item (per-module tier granularity, logged first).
+Caught before anything was pushed; renumbered to POA-63 (the real next-free number) here,
+in `CONVENTIONS.md`, and in `BRACKET-LIVE-SPEC.md`, and a proper `PLAN_OF_ACTION.md` entry
+backfilled so the collision can't recur. Noted plainly rather than quietly relabelled.
 
 New shared rendering capability for a persistent, projector-scale bracket-tree display —
-first half of POA-62 (absorbs the parked POA-36 remote-audience stub). Standalone this
+first half of POA-63 (absorbs the parked POA-36 remote-audience stub). Standalone this
 session: no Firestore, no `audience/index.html` wiring, no Throwdown changes — the
 renderer is verified entirely against hand-built fake data per `BRACKET-LIVE-SPEC.md` §3.
 Phase 2 (separate session) connects it to `throwdown_live/{orgId}` and the actual remote
