@@ -603,6 +603,166 @@ a.tool:hover{border-color:var(--accent);background:var(--surface3)}
   .aud-podium-tile{min-width:min(80vw,320px);transform:none!important}
 }
 
+/* ── Bracket-tree renderer (POA-63 Phase 1) ──
+   Audience.renderBracketTree() — a separate rendering target from #aud-overlay
+   (mounts into a caller-provided container, e.g. Phase 2's audience/index.html),
+   not a modification of the organiser overlay. Fixed 16:9 projector stage,
+   scale-to-fit, no responsive/mobile breakpoint — see CONVENTIONS.md.
+   Round-identity colours are hardcoded hex, component-scoped (not :root tokens),
+   per the same "hardcoded hex in overlay contexts" exception already documented
+   for .aud- and .pdf- prefixed overlays — see CONVENTIONS.md round-colour addendum. Connector-line
+   geometry (top/bottom/right border on .aud-bkt-pair::after) is a deliberate new
+   technique for this codebase; exact alignment is tuned visually against real
+   rendered card heights, not hardcoded pixel math, so it holds at any match count. */
+
+.aud-bkt-viewport{position:relative;overflow:hidden;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#000}
+
+.aud-bkt-stage{
+  --bkt-stage-w:1920px;--bkt-stage-h:1080px;
+  --bkt-blue:#6aa9f5;--bkt-amber:#f0ad4e;--bkt-green:#34d399;--bkt-purple:#a78bfa;--bkt-tie:#ef8f8f;
+  width:var(--bkt-stage-w);height:var(--bkt-stage-h);flex-shrink:0;
+  transform:scale(var(--bkt-scale,1));transform-origin:center;
+  display:flex;flex-direction:column;font-family:var(--font-display);
+  position:relative;overflow:hidden;
+}
+.aud-bkt-stage.aud-bkt-theme-dark{
+  --bkt-bg:var(--surface-deep);--bkt-card:var(--deep-card);--bkt-bd:var(--deep-bd);
+  --bkt-ink:var(--deep-ink);--bkt-ink2:var(--deep-ink2);--bkt-ink3:var(--deep-ink3);
+  background:var(--bkt-bg);color:var(--bkt-ink);
+}
+.aud-bkt-stage.aud-bkt-theme-light{
+  --bkt-bg:var(--bg);--bkt-card:var(--surface);--bkt-bd:var(--border2);
+  --bkt-ink:var(--txt);--bkt-ink2:var(--txt2);--bkt-ink3:var(--txt3);
+  background:var(--bkt-bg);color:var(--bkt-ink);
+}
+
+/* ── Header / identity ── */
+.aud-bkt-hdr{display:flex;align-items:center;gap:16px;padding:18px 32px;flex-shrink:0;border-bottom:1.5px solid var(--bkt-bd)}
+.aud-bkt-hdr-logo{height:56px;width:56px;object-fit:contain;border-radius:8px;flex-shrink:0}
+.aud-bkt-hdr-id{min-width:0}
+.aud-bkt-hdr-sub{font-family:var(--font-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;color:var(--bkt-ink3);margin-bottom:2px}
+.aud-bkt-hdr-name{font-size:clamp(18px,2.4vw,26px);font-weight:800;letter-spacing:-.01em;color:var(--bkt-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aud-bkt-hdr-meta{font-family:var(--font-mono);font-size:11px;color:var(--bkt-ink3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aud-bkt-hdr-live{margin-left:auto;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--bkt-green);padding:5px 12px;border:1.5px solid var(--bkt-green);border-radius:var(--rad-pill)}
+.aud-bkt-hdr-live .dot{width:7px;height:7px;border-radius:50%;background:var(--bkt-green);animation:pulse 1.8s ease-in-out infinite}
+
+/* ── Tree layout ──
+   Every flex-column link in this chain needs BOTH flex:1 (to actually grow
+   into the parent's resolved height, not just sit at flex-basis:auto/content
+   size) and min-height:0 (to override the flex-item default min-height:auto,
+   which otherwise refuses to shrink below content size in a nested column-
+   in-row-in-column chain). .aud-bkt-matches previously had neither — it was
+   referenced in the JS template but never given a rule here, so it rendered
+   as a plain block sized to its own content (~155px) instead of the ~950px
+   .aud-bkt-col actually had available, and .aud-bkt-col's justify-content:
+   space-around then spent that unused space as a gap instead of an error. */
+.aud-bkt-tree{flex:1;display:flex;flex-direction:row;align-items:stretch;padding:24px 32px;gap:0;min-height:0}
+.aud-bkt-side{flex:1;display:flex;flex-direction:row;min-width:0;min-height:0}
+.aud-bkt-side-right{flex-direction:row-reverse}
+.aud-bkt-center{flex:0 0 auto;width:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:0 12px}
+
+.aud-bkt-col{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:var(--space-2,8px);padding:0 14px;min-width:0;min-height:0;position:relative}
+.aud-bkt-col-label{font-family:var(--font-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;text-align:center;padding-bottom:8px;flex-shrink:0}
+.aud-bkt-col-label.aud-bkt-rc-blue{color:var(--bkt-blue)}
+.aud-bkt-col-label.aud-bkt-rc-amber{color:var(--bkt-amber)}
+.aud-bkt-col-label.aud-bkt-rc-green{color:var(--bkt-green)}
+.aud-bkt-col-label.aud-bkt-rc-purple{color:var(--bkt-purple)}
+
+.aud-bkt-matches{flex:1;display:flex;flex-direction:column;justify-content:space-around;min-height:0}
+
+.aud-bkt-pair{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:10px;min-height:0;position:relative}
+/* Connector: a right-facing "]" bracket spanning the pair's own two matches,
+   stubbing out toward the next column. Percentages, not fixed px, so this
+   holds regardless of how many matches share the column (space-around). */
+.aud-bkt-pair::after{
+  content:'';position:absolute;right:-14px;top:25%;bottom:25%;width:14px;
+  border-top:2px solid var(--bkt-bd);border-bottom:2px solid var(--bkt-bd);border-right:2px solid var(--bkt-bd);
+  border-radius:0 5px 5px 0;
+}
+.aud-bkt-pair.aud-bkt-pair-single::after{
+  top:50%;bottom:auto;height:0;border-top:2px solid var(--bkt-bd);border-bottom:none;
+}
+.aud-bkt-side-right .aud-bkt-pair::after{
+  right:auto;left:-14px;border-right:none;border-left:2px solid var(--bkt-bd);border-radius:5px 0 0 5px;
+}
+
+.aud-bkt-match{
+  background:var(--bkt-card);border:1.5px solid var(--bkt-bd);border-top-width:3px;
+  border-radius:9px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.3);
+}
+.aud-bkt-match.aud-bkt-rc-blue{border-top-color:var(--bkt-blue)}
+.aud-bkt-match.aud-bkt-rc-amber{border-top-color:var(--bkt-amber)}
+.aud-bkt-match.aud-bkt-rc-green{border-top-color:var(--bkt-green)}
+.aud-bkt-match.aud-bkt-rc-purple{border-top-color:var(--bkt-purple)}
+
+.aud-bkt-slot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 12px}
+.aud-bkt-slot+.aud-bkt-slot{border-top:1px solid var(--bkt-bd)}
+.aud-bkt-slot-name{flex:1;min-width:0;font-weight:700;font-size:13px;color:var(--bkt-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aud-bkt-slot-score{flex-shrink:0;font-family:var(--font-mono);font-weight:700;font-size:12px;color:var(--bkt-ink2)}
+.aud-bkt-slot.aud-bkt-slot-tbd .aud-bkt-slot-name{color:var(--bkt-ink3);font-style:italic;font-weight:600}
+.aud-bkt-slot.aud-bkt-slot-winner .aud-bkt-slot-name{color:var(--bkt-green)}
+.aud-bkt-slot.aud-bkt-slot-tie .aud-bkt-slot-name{color:var(--bkt-tie)}
+.aud-bkt-slot.aud-bkt-bye .aud-bkt-slot-name{color:var(--bkt-ink3)}
+.aud-bkt-bye-tag{flex-shrink:0;font-size:11px;color:var(--bkt-ink3)}
+
+.aud-bkt-revival{display:inline-flex;align-items:center;gap:2px;font-family:var(--font-mono);font-size:9px;font-weight:700;color:var(--bkt-purple);background:rgba(167,139,250,.15);border:1px solid var(--bkt-purple);border-radius:3px;padding:1px 5px;margin-left:5px;vertical-align:middle;flex-shrink:0}
+
+/* Match's own two slots both named, neither scored yet — see _bktMatchPending in audience.js */
+.aud-bkt-match.aud-bkt-active{box-shadow:0 0 0 2px var(--bkt-blue),0 0 16px rgba(106,169,245,.5);animation:pulse 2s ease-in-out infinite}
+
+/* Slot value changed since the previous renderBracketTree() call on this container */
+@keyframes bktFlash{
+  0%{box-shadow:0 0 0 0 rgba(255,255,255,.9)}
+  30%{box-shadow:0 0 24px 4px rgba(255,255,255,.55)}
+  100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}
+}
+.aud-bkt-match.aud-bkt-just-resolved{animation:bktFlash 1.2s ease-out forwards}
+
+/* ── Pool-shaped rounds (POA-66) ──
+   A round that is N groups of M competitors rather than head-to-head matches
+   — Throwdown's redemption round, and the shape Liga/Cup Taster heats would
+   use. Rendered as ONE column of group cards: no pair wrapper, therefore no
+   connector geometry, and no active-glow, since both are pair-shaped concepts
+   with no meaning for a pool. Group cards deliberately reuse the match card's
+   surface treatment and the existing slot-row styling, so a pool reads as the
+   same visual family as the bracket columns beside it.
+   The pool container needs BOTH flex:1 and min-height:0 for the same reason
+   .aud-bkt-matches does — see the tree-layout note above; without them it
+   sizes to content inside the nested column-in-row-in-column chain and the
+   column's space-around spends the remainder as a gap. */
+.aud-bkt-pool{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:10px;min-height:0}
+.aud-bkt-pool-group{
+  background:var(--bkt-card);border:1.5px solid var(--bkt-bd);border-top-width:3px;
+  border-radius:9px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.3);
+}
+.aud-bkt-pool-group.aud-bkt-rc-blue{border-top-color:var(--bkt-blue)}
+.aud-bkt-pool-group.aud-bkt-rc-amber{border-top-color:var(--bkt-amber)}
+.aud-bkt-pool-group.aud-bkt-rc-green{border-top-color:var(--bkt-green)}
+.aud-bkt-pool-group.aud-bkt-rc-purple{border-top-color:var(--bkt-purple)}
+.aud-bkt-pool-group.aud-bkt-just-resolved{animation:bktFlash 1.2s ease-out forwards}
+
+/* ── Champion card (champMode:'tree') ── */
+.aud-bkt-champion-card{
+  background:var(--bkt-card);border:2px solid var(--bkt-green);border-radius:12px;
+  padding:20px 18px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.35);
+}
+.aud-bkt-champion-label{font-family:var(--font-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.16em;color:var(--bkt-green);margin-bottom:6px}
+.aud-bkt-champion-name{font-size:clamp(16px,2vw,22px);font-weight:800;color:var(--bkt-ink)}
+
+/* ── Podium takeover (champMode:'podium') — mirrors #aud-podium-panel's
+   absolutely-positioned full-panel precedent, simpler 2-entry layout since
+   the bracket-tree data shape only carries champion/runnerUp. ── */
+.aud-bkt-podium-panel{display:none;position:absolute;inset:0;background:var(--bkt-bg);color:var(--bkt-ink);flex-direction:column;align-items:center;justify-content:center;gap:2rem;z-index:10}
+.aud-bkt-podium-panel.show{display:flex}
+.aud-bkt-podium-stage{display:flex;align-items:flex-end;justify-content:center;gap:2rem}
+.aud-bkt-podium-tile{display:flex;flex-direction:column;align-items:center;gap:.75rem;padding:2rem 1.5rem;border-radius:var(--rad);background:var(--bkt-card);border:2px solid var(--bkt-bd);min-width:220px;text-align:center}
+.aud-bkt-podium-tile.aud-bkt-podium-champ{border-color:var(--rank-1);transform:translateY(-24px)}
+.aud-bkt-podium-label{font-family:var(--font-mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--bkt-ink3)}
+.aud-bkt-podium-tile.aud-bkt-podium-champ .aud-bkt-podium-label{color:var(--rank-1)}
+.aud-bkt-podium-name{font-weight:800;color:var(--bkt-ink)}
+.aud-bkt-podium-tile.aud-bkt-podium-champ .aud-bkt-podium-name{font-size:clamp(22px,3vw,34px)}
+.aud-bkt-podium-tile:not(.aud-bkt-podium-champ) .aud-bkt-podium-name{font-size:clamp(16px,2.2vw,22px)}
+
 /* ╔══════════ MUA Chrome Components ══════════╗ */
 /* ───────────────────────────────────────────────────────────────
    MUA-06a — Event band, module toolbar, sticky tabs, bottom sheet.

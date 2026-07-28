@@ -647,6 +647,207 @@ function getNextRoundLabel(b, count) {
   return 'Round ' + (b.mainRoundsDone + 1);
 }
 
+/* ── POA-63 Phase 2: live-bracket translation layer ──────────────────────────
+   BEGIN buildLiveBracketData — pure function, no DOM / no Firestore / no reads
+   of S or any other global. Everything it needs arrives as arguments, so it is
+   unit-testable standalone (scripts/test-live-bracket.js extracts this block
+   between the BEGIN/END markers and runs it in Node — keep the markers intact).
+
+   Translates Throwdown's internal S.bracket into the generalized
+   BRACKET-LIVE-SPEC.md §3 `rounds[]` shape. Deliberately produces the *spec's*
+   shape, not Throwdown's — the whole point of §3 is that Liga/Cup Taster can
+   emit the same thing later without exposing their internals either.          */
+function tdLiveSlot(name, score, isBye, revivedNames) {
+  return {
+    name: name || '',
+    score: score,
+    isBye: !!isBye,
+    // Bracket-wide, not per-slot: Throwdown has no revivalMarker field (see
+    // BRACKET-LIVE-SPEC.md §7), so this is derived. Matches showAudience()'s
+    // and the PDF export's existing `revivedNames.includes(...)` behaviour —
+    // a revived name carries the badge in every round, including rounds before
+    // the revival happened. Consistent with the two shipped surfaces rather
+    // than more correct than them; changing it is a separate decision.
+    revivalMarker: !!name && revivedNames.indexOf(name) !== -1
+  };
+}
+
+// Pair-shaped round ('main' and 'third') → BRACKET-LIVE-SPEC.md §3 bracket round.
+function tdLiveBracketRound(r, revived) {
+  const slots = [];
+  const pairs = Array.isArray(r.pairs) ? r.pairs : [];
+  pairs.forEach(function (p) {
+    // A result is committed only once `winner` is set. votes1/votes2 both
+    // initialise to 0 AND are mutated live as the organiser taps the vote
+    // buttons in the score modal, before "Confirm Result" fires — so reading
+    // them unconditionally would leak provisional taps to the projector and,
+    // worse, render every unplayed match as a scored 0–0, which the renderer
+    // reads as a TIE and which would also suppress the active-glow entirely
+    // (glow requires at least one score to still be null).
+    const settled = !!p.winner;
+    const showScores = settled && !p.bye;
+    slots.push(tdLiveSlot(p.t1, showScores ? p.votes1 : null, p.bye, revived));
+    // A bye's second slot is genuinely empty (t2 === null) — it renders as
+    // the renderer's TBD placeholder, and _bktMatchPending() already
+    // suppresses the glow on any match whose first slot isBye.
+    slots.push(tdLiveSlot(p.t2, showScores ? p.votes2 : null, false, revived));
+  });
+  return { roundLabel: r.label || '', slots: slots };
+}
+
+// Redemption round → BRACKET-LIVE-SPEC.md §3 POOL round (kind:'pool').
+// r.pairs is an array of GROUPS, each { id, brewers[], votes{}, tiebreaker,
+// winner } — not head-to-head pairs despite the field name. Group membership
+// rides on each slot's `group` index so the round keeps a single flat `slots`
+// array, per §3.
+function tdLivePoolRound(r, revived) {
+  const slots = [];
+  const groups = Array.isArray(r.pairs) ? r.pairs : [];
+  groups.forEach(function (g, gi) {
+    const brewers = Array.isArray(g.brewers) ? g.brewers : [];
+    // Same commit rule as the pair path, and for the same reason: judges'
+    // votes are incremented live into g.votes as they are tapped, before the
+    // group is confirmed. Only publish once `winner` is set.
+    const settled = !!g.winner;
+    brewers.forEach(function (name) {
+      const score = (settled && g.votes && g.votes[name] != null) ? g.votes[name] : null;
+      const slot = tdLiveSlot(name, score, false, revived);
+      slot.group = gi;
+      // State the winner explicitly rather than leaving the renderer to infer
+      // it from the top score. A redemption group can be resolved by TIEBREAKER
+      // (renderRedemptionScoreModal's .rdtbtn path sets `tiebreaker` and
+      // `winner` while leaving the votes genuinely TIED), so a score-derived
+      // winner would render that group as an unresolved tie and never show who
+      // actually advanced — wrong on an audience display, and invisible.
+      if (settled && name === g.winner) slot.isWinner = true;
+      slots.push(slot);
+    });
+  });
+  return { roundLabel: r.label || '', kind: 'pool', slots: slots };
+}
+
+function buildLiveBracketData(bracket, participants) {
+  const out = { bracketSize: 0, rounds: [], champion: null, runnerUp: null };
+  if (!bracket || !Array.isArray(bracket.rounds)) return out;
+
+  const revived = Array.isArray(bracket.revivedNames) ? bracket.revivedNames : [];
+
+  // Every round the audience should see: main bracket rounds, redemption
+  // pools, and the 3rd Place playoff — in Throwdown's own generation order,
+  // which is chronological and reads correctly left-to-right.
+  //
+  //   · 'main'       → pair-shaped bracket round (kind omitted = 'bracket')
+  //   · 'redemption' → POOL round (POA-66). N groups of 2–4 brewers, NOT
+  //                    head-to-head. Before POA-66 this could not be
+  //                    expressed: forced through the pair path it dropped a
+  //                    brewer and invented matches between brewers who were
+  //                    never in the same group.
+  //   · 'third'      → ordinary pair shape (buildPairs()), one match. Renders
+  //                    as a single column since POA-67; before that fix it
+  //                    produced an empty labelled twin column.
+  const LIVE_PHASES = ['main', 'redemption', 'third'];
+  const liveRounds = bracket.rounds.filter(function (r) {
+    return r && LIVE_PHASES.indexOf(r.phase) !== -1;
+  });
+  // Champion, runner-up and bracketSize are read from MAIN rounds only — a
+  // 3rd Place round is also pair-shaped and would otherwise be a candidate.
+  const mainRounds = bracket.rounds.filter(r => r && r.phase === 'main');
+
+  out.rounds = liveRounds.map(function (r) {
+    return r.phase === 'redemption'
+      ? tdLivePoolRound(r, revived)
+      : tdLiveBracketRound(r, revived);
+  });
+
+  // ── Project the remaining bracket shape ────────────────────────────────
+  // WHY THIS EXISTS NOW IS NOT WHY IT WAS BUILT. Read this before removing it.
+  //
+  // Originally this worked around a renderer bug: renderBracketTree() treated
+  // rounds[length-1] as THE Final unconditionally and rendered only its first
+  // match, so a live bracket — whose last round mid-event is the round being
+  // played, not the Final — silently lost matches (a 13-competitor bracket
+  // rendered 1 match and 2 names). **That bug is fixed** (POA-65). Measured
+  // after the fix, the unprojected mid-tournament bracket renders all 11 of
+  // its matches. Projection is no longer load-bearing for correctness.
+  //
+  // It is retained for an audience-facing reason instead. The originating
+  // POA-63 request was a printed bracket poster — a full 24-slot bracket with
+  // every slot drawn and empty, waiting to be filled — kept on the projector
+  // throughout the event (Girls Got Drip). That complete shape IS the feature:
+  // without projection, mid-tournament the room sees two mirrored halves
+  // meeting at nothing, and the tournament has no visible destination until
+  // the Final is generated. With it, the room sees where the whole thing is
+  // heading. On an audience display that is the point, not decoration.
+  //
+  // So: project the rounds Throwdown hasn't generated yet as empty TBD
+  // columns, halving down to a one-match Final. Empty slots carry no name, so
+  // the renderer's glow (needs a name) and just-resolved flash (needs a value
+  // to appear) both stay correctly silent on them.
+  //
+  // Caveat, deliberate and accepted (BRACKET-LIVE-SPEC.md §5): with redemption
+  // ON, the next main round's real size is NOT predictable from this round —
+  // redemption winners merge back in, so the demo's 6-match Round 1 was
+  // followed by a 9-competitor round, not a 6-competitor one. Projected
+  // columns can therefore be wrong until the real round is generated, at
+  // which point the next publish overwrites them. Self-correcting.
+  function projectedLabel(advancing, roundNum) {
+    // Mirrors getNextRoundLabel()'s thresholds — same meaning, without
+    // needing the live bracket object that function reads.
+    if (advancing <= 2) return 'Final';
+    if (advancing <= 4) return 'Semi Finals';
+    if (advancing <= 8) return 'Quarter Finals';
+    return 'Round ' + roundNum;
+  }
+
+  // Project from the last PAIR-SHAPED round. A pool round's slot count says
+  // nothing about how many advance from it (that is S.redemptionCap, merged
+  // with the main winners), so it cannot seed the halving chain — which is
+  // simply the redemption caveat below in its sharpest form.
+  let lastBracketIdx = -1;
+  for (let i = out.rounds.length - 1; i >= 0; i--) {
+    if (out.rounds[i].kind !== 'pool') { lastBracketIdx = i; break; }
+  }
+  if (lastBracketIdx !== -1) {
+    const lastRound = out.rounds[lastBracketIdx];
+    let advancing = Math.floor(lastRound.slots.length / 2); // one winner per match, byes included
+    let roundNum = out.rounds.length;
+    while (advancing >= 2) {
+      const matches = Math.ceil(advancing / 2); // buildPairs(): floor(n/2) pairs, +1 bye when odd
+      roundNum++;
+      const slots = [];
+      for (let i = 0; i < matches * 2; i++) slots.push(tdLiveSlot('', null, false, revived));
+      out.rounds.push({ roundLabel: projectedLabel(advancing, roundNum), slots: slots });
+      advancing = matches;
+    }
+  }
+
+  // Same Final lookup as maybeArchiveChampion() / showAudience() / the PDF
+  // export — one established convention, not a fourth variant. Gated on
+  // phase 'done' so a Final that is mid-scoring never publishes a champion.
+  const finalRound = mainRounds.filter(function(r) { return r.label === 'Final'; }).slice(-1)[0];
+  const finalPair = finalRound && Array.isArray(finalRound.pairs) ? finalRound.pairs[0] : null;
+  if (bracket.phase === 'done' && finalPair && finalPair.winner) {
+    out.champion = finalPair.winner;
+    out.runnerUp = finalPair.loser || null;
+  }
+
+  // Informational only (the renderer branches on nothing but rounds.length /
+  // slots.length) — count the competitors actually seeded into round 1, which
+  // is what the display shows, falling back to the roster for a manual bracket
+  // whose slots aren't assigned yet.
+  const firstRound = mainRounds[0];
+  let size = 0;
+  if (firstRound && Array.isArray(firstRound.pairs)) {
+    size = firstRound.pairs.reduce(function(n, p) {
+      return n + (p.t1 ? 1 : 0) + (p.t2 ? 1 : 0);
+    }, 0);
+  }
+  out.bracketSize = size || (Array.isArray(participants) ? participants.length : 0);
+
+  return out;
+}
+/* END buildLiveBracketData ─────────────────────────────────────────────────*/
+
 function openScoring(matchId) {
   S.scoringMatchId = matchId;
   renderScoreModal();

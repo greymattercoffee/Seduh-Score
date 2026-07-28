@@ -1,6 +1,6 @@
 # Seduh Score — Claude Code orientation
 
-*State: v5.12.4 — matches CHANGELOG.md as of July 2026*
+*State: v5.12.5 — matches CHANGELOG.md as of July 2026*
 
 Read these two files in full before touching anything:
 1. `CONVENTIONS.md` — all patterns, naming rules, architecture decisions
@@ -151,10 +151,10 @@ Each module loads shared files via relative paths:
 `pdf.js` — shipped (POA-55 in PLAN_OF_ACTION.md). `PdfExport.open/close/print`
 per the CONVENTIONS.md spec, gated by the `pdf_branding` Gates key. First
 consumer is Throwdown (POA-55 Step 0 pivot — Throwdown had a 30 Aug 2026 event
-and benefited sooner than BBTC needed one). BBTC's current PDF export still
-runs its own self-contained inline overlay, not this module; a stashed BBTC
-refactor (`stash@{0}` on `dev`) already targets this module's API and stays
-parked until its own later session.
+and benefited sooner than BBTC needed one). BBTC migrated onto this module at
+v5.12.5 (MUA-07), closing out the `stash@{0}` refactor that had been parked
+since the July 2026 full-repo audit. Liga/Cup Taster adoption remains
+separate, future work.
 
 ---
 

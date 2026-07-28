@@ -43,6 +43,31 @@ service cloud.firestore {
                     && resource.data.isTest == true;
     }
 
+    // Throwdown live bracket — persistent in-venue display (POA-63 Phase 2)
+    // Doc ID *is* the orgId (BRACKET-LIVE-SPEC.md §2A: one live doc per org,
+    // overwritten in place each event — it self-cleans rather than
+    // accumulating, so there's no isTest/reset-tool concern like
+    // throwdown_records has).
+    //
+    // Read: OPEN, deliberately. Both viewer surfaces (§8) are unauthenticated
+    // by design — a projector in a venue and a public results summary have no
+    // one to log in. Same reasoning as booth's display pages.
+    //
+    // Write: the authenticated org, and only to its own document. Same
+    // ownership shape as throwdown_records above, but matched against the doc
+    // ID rather than a body field, since here the ID carries the identity.
+    // Covers create/update/delete in one rule: an org deleting its own live
+    // doc is a legitimate "stop remote display" outcome, not a risk.
+    //
+    // No booth-style schema lock here on purpose — booth locks its schemas
+    // because those writes are UNauthenticated walk-up clients. These writes
+    // are auth-bound to a single owning org, so the same exposure doesn't
+    // exist.
+    match /throwdown_live/{orgId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == orgId;
+    }
+
     // ── Booth mini-games (POA-59 hardening) ─────────────────────────────
     // Participants are unauthenticated walk-up players — their paths are
     // auth-free but schema-locked. The operator (setup page) signs in as
