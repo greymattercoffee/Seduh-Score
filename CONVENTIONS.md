@@ -355,7 +355,10 @@ Audience.renderBracketTree(container, bracketData, options);
                                  // rounds.length/slots.length at call time
     rounds: [{
       roundLabel: string,
-      slots: [{ name, score, isBye, revivalMarker }],
+      kind: 'bracket' | 'pool', // OPTIONAL — absent means 'bracket'
+      slots: [{ name, score, isBye, revivalMarker,
+                group,          // OPTIONAL — pool rounds only
+                isWinner }],    // OPTIONAL — pool rounds only
     }],
     champion: string | null,
     runnerUp: string | null,
@@ -394,6 +397,39 @@ power-of-2 shape; an irregular (e.g. 13-participant) bracket renders exactly
 as correctly as 8/16/24. A round-to-round relationship that doesn't cleanly
 resolve (e.g. a redemption round breaking the halving chain) degrades to a
 plain TBD placeholder rather than guessing.
+
+**Round-shape rules (POA-65 / POA-66 / POA-67).** The renderer's original
+layout assumptions did not match the real shapes of competition rounds; all
+three rules below were added after live data showed silent data loss. See the
+POA-63 entry in `PLAN_OF_ACTION.md` for the measured before/after.
+
+- **The last round is the Final only when it holds exactly one match**
+  (POA-65). Otherwise it renders as an ordinary mirrored round and the centre
+  carries only the champion card, or nothing. Callers whose state is
+  *incremental* — rounds generated as they are reached, so mid-event the last
+  round is the round being played — previously lost every match in that round
+  but the first, silently.
+- **A round holding a single match is emitted once, not mirror-split**
+  (POA-67). The old unconditional split gave such a round one populated column
+  and one empty, still-labelled twin. Bites any single-match non-final round;
+  3rd Place is the live case.
+- **Pool rounds** (`kind: 'pool'`, POA-66) render as **one column of group
+  cards** — never mirror-split, no pair-connectors, and **no active-glow**
+  (the glow rule is "both slots named, neither scored", which is pair-shaped
+  and meaningless for a pool). A pool round is never treated as the Final.
+  Group membership rides on each slot's optional `group`; slots with no
+  `group` fall into a single group. Use this for any round that is N groups of
+  M competitors rather than head-to-head — Throwdown's redemption round today,
+  Liga heats and Cup Taster flights expected later.
+
+**Pool winner precedence:** **explicit wins, inference is the fallback.** If
+any slot in a group carries `isWinner`, that group is resolved by the
+producer's statement and inference is not consulted. Otherwise the renderer
+crowns the top score, but only once *every* slot in the group is scored;
+several on the top score render as a tie. The explicit path exists because
+some formats resolve a pool out of band — Throwdown's redemption tiebreaker
+names a winner while leaving the votes genuinely tied, and inference alone
+would render those groups as unresolved ties that never show who advanced.
 
 **Active/pending glow (`.aud-bkt-active`):** a same-round check, not a
 look-back at the previous round — a match's own two slots both carry a
