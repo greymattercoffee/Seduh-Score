@@ -603,7 +603,7 @@ a.tool:hover{border-color:var(--accent);background:var(--surface3)}
   .aud-podium-tile{min-width:min(80vw,320px);transform:none!important}
 }
 
-/* ── Bracket-tree renderer (POA-62 Phase 1) ──
+/* ── Bracket-tree renderer (POA-63 Phase 1) ──
    Audience.renderBracketTree() — a separate rendering target from #aud-overlay
    (mounts into a caller-provided container, e.g. Phase 2's audience/index.html),
    not a modification of the organiser overlay. Fixed 16:9 projector stage,

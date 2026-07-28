@@ -272,7 +272,7 @@ Audience.close = function() {
   _currentState = 'hidden';
 };
 
-// ── Bracket-tree renderer (POA-62 Phase 1) ─────────────────────────
+// ── Bracket-tree renderer (POA-63 Phase 1) ─────────────────────────
 // Separate rendering target from #aud-overlay — mounts into a caller-provided
 // container (Phase 2's audience/index.html will own it), not the organiser's
 // own overlay. Public input shape is BRACKET-LIVE-SPEC.md §3, locked — do not
