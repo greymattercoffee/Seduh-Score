@@ -2,6 +2,211 @@
 
 ---
 
+## [5.14.0] — POA-65 / POA-66 / POA-67: Bracket-tree renderer round-shape corrections · July 2026
+
+Interrupts POA-63 Phase 2 between Step 2 and Step 3. Phase 2's translation layer fed the
+Phase 1 renderer **real, incremental tournament state** for the first time, and that exposed
+three defects — all the same underlying flaw: **the renderer's layout assumptions did not
+match the real shapes of competition rounds.** Fixed now, while there was exactly **one**
+caller, rather than accumulating a workaround in every future one.
+
+### Why Phase 1 missed all three — the transferable lesson
+
+**Phase 1's fixtures were all complete, well-formed brackets**: full single-elimination
+chains, padded to a power of two, halving cleanly to a one-match Final. Every one of these
+defects needs a round shape that *isn't* that — a last round that is mid-play rather than a
+Final, a round of pools rather than pairs, a round holding a single match. 18/18 assertions
+passed in Phase 1 and the renderer was signed off, because the fixtures and the code shared
+the same assumption.
+
+This is the same lesson as the demo-groups-of-2 near-miss below, one layer up:
+**fixtures shaped like the happy path validate the happy path.** The shipped demo data and
+the Phase 1 fixtures were both *plausible* and both *wrong for testing* — not because they
+were badly built, but because they were built from the same mental model as the code. It is
+the most transferable thing this session learned.
+
+### shared/audience.js
+
+- **fix (POA-65):** `_bktTreeHTML()` treats the last round as **the Final only when it holds
+  exactly one match**. It previously assumed the last round was always the Final and rendered
+  only `finalMatches[0]`, silently discarding the rest — with no error. Live state is
+  *incremental* (`advanceBracket()` pushes the next round only once the current completes),
+  so mid-event the last round is the round being played.
+  **Measured:** mid-tournament demo **7 of 11 matches → 11**; uneven 13-competitor bracket
+  **1 match and 2 of 13 names → 7 matches and all 13 names.**
+- **fix (POA-67):** a round holding a **single match is emitted once, not mirror-split**. The
+  old unconditional `ceil(n/2)` split gave such a round one populated column and one empty,
+  still-labelled twin — which reads as a rendering bug to an audience. Rounds producing no
+  matches now emit nothing rather than a bare label.
+- **feat (POA-66):** **pool-shaped rounds.** Opted into with `kind: 'pool'` on a round;
+  rendered as **one column of group cards** — never mirror-split, no pair-connectors, no
+  active-glow (the glow rule is "both slots named, neither scored", which is pair-shaped and
+  meaningless for a pool). A pool round is never treated as the Final.
+  **Measured against the pair path it replaces**, at every organiser-configurable group size:
+
+  | Groups | Brewers | Dropped (before → after) | Invented cross-group matches (before → after) |
+  |---|---|---|---|
+  | 2+2+2 | 6 | 0 → 0 | 0 → 0 |
+  | **3+3+3 (default)** | 9 | **1 → 0** | **1 → 0** |
+  | 3+3+2 | 8 | 0 → 0 | **1 → 0** |
+  | 4+4+2 | 10 | 0 → 0 | 0 → 0 |
+
+  Even the "clean" 4+4+2 case previously rendered a 4-brewer pool as two separate 2-person
+  matches — wrong about what happened, just not detectably so.
+
+**Discriminator choice.** `kind: 'bracket' | 'pool'` on the round, with group membership on
+each slot's optional `group` integer. Chosen over a nested `groups: [{ slots: [...] }]`
+because `slots` then stays the **one universal shape every round has** — a consumer that only
+wants "who is in this round" (the public summary surface, a future Liga heat listing) reads
+`slots` without knowing pools exist. Absent `kind` means `'bracket'`, so every pre-existing
+document and caller is unaffected. Grouping resolves by first-seen key, not adjacency.
+
+**Group boundaries are preserved, and that was a deliberate reversal.** The handoff specified
+a pool as "a single column of **N slots**, one per brewer — not pair-grouped". Built that
+way, the screen would show *who was in the round* but not *who actually competed against
+whom* — a redemption round is N groups of M, and both numbers are real information the room
+can see. Flagged as a deviation from the written instruction rather than read as intended;
+Strategy confirmed the group-preserving direction.
+
+### shared/audience.js — `isWinner`, added after the shape was already approved
+
+Recorded as an arc rather than an outcome, because the contract changed *after* sign-off:
+
+1. Strategy approved "Shape A" — `kind` on the round, `group` on the slot — with winner
+   determination by **inference**: top score, but only once every slot in the group is
+   scored; several on the top score render as a tie.
+2. Implementing the translation layer surfaced a case inference cannot express.
+   `renderRedemptionScoreModal`'s tiebreak path sets `tiebreaker` and `winner` **while
+   leaving the votes genuinely tied**. Under inference alone, every tiebreaker-resolved group
+   renders as an unresolved tie and **never shows who advanced** — wrong on an audience
+   display, and invisible.
+3. Added an optional **`isWinner`** slot flag and **flagged it as an addition beyond the
+   approved shape** rather than folding it in quietly. Strategy endorsed it and set the
+   precedence explicitly.
+
+**Precedence, now documented in `BRACKET-LIVE-SPEC.md` §3 and `CONVENTIONS.md`: explicit
+wins, inference is the fallback.** If any slot in a group carries `isWinner`, inference is
+not consulted at all. Scores stay honest either way — a tiebreak group publishes the real
+tied votes *and* marks the real winner. Pool-scoped: pair rounds don't need it, since
+Throwdown's 1v1 confirm button is disabled while scores are level, so a tied pair result can
+never be committed.
+
+### shared/theme.css
+
+- **feat:** new `aud-bkt-pool` / `aud-bkt-pool-group` classes — group cards reuse the match
+  card's surface treatment and the existing slot-row styling, so a pool reads as the same
+  visual family as the bracket columns beside it. Purely additive: **zero removed lines
+  matching `.aud-`**, no class renamed or reassigned.
+- The pool container carries both `flex:1` and `min-height:0` for exactly the reason
+  `.aud-bkt-matches` does — the Phase 1 bug where the entire tree rendered invisible while
+  18/18 assertions passed.
+
+### throwdown/index.html — translation layer revised
+
+- **feat:** redemption rounds re-included, mapped by new `tdLivePoolRound()` to
+  `kind:'pool'` rounds. Closes the ⚠️ open deviation in `BRACKET-LIVE-SPEC.md` §5 — the
+  interim main-rounds-only build state was never a Strategy decision, and is now resolved by
+  fixing the renderer rather than narrowing the feature.
+- **feat:** 3rd Place (`phase:'third'`) included. Previously excluded by an undiscussed
+  build-time call whose stated reason — that it would break the Final's centring — did not
+  survive measurement: `advanceBracket()` pushes it *before* the Final, so the Final remains
+  last regardless.
+- Throwdown's own scoring, bracket and display logic is **provably untouched**: the file's
+  diff is insertions only, zero deletions.
+
+**Projection retained — for a different reason than it was built for.** This distinction is
+load-bearing for whoever reads it next. Projection (appending empty TBD rounds down to a
+one-match Final) was built in Phase 2 Step 2 purely to work around POA-65. **POA-65 is now
+fixed**, and measured after the fix the *unprojected* mid-tournament bracket renders all 11
+of its matches — so projection is no longer load-bearing for correctness and the default
+would have been to delete it. It is kept instead for an **audience-facing** reason: the
+originating POA-63 request was a printed bracket poster, every slot drawn and empty and
+waiting to be filled, on the projector throughout the event. Without it the room sees two
+mirrored halves meeting at nothing, with no visible destination until the Final exists. The
+code comment now opens by saying the reason changed, so nobody re-derives the old one.
+Projection also now seeds from the last **pair-shaped** round — a pool's slot count says
+nothing about how many advance from it.
+
+### Bugs found during the build
+
+- **The tiebreaker case** (see the `isWinner` arc above) — found by reading the redemption
+  score-modal commit path while writing the pool mapper, not by a failing test. Would have
+  shipped as tiebreak-resolved groups silently displaying as unresolved ties.
+- **A wrong test expectation, not a code bug** — a new assertion expected `Quarter Finals`
+  where 4 advancing correctly yields `Semi Finals` per `getNextRoundLabel()`'s own
+  thresholds. Fixed the assertion and documented why, rather than bending the code to it.
+- **Two faulty harness assertions from the previous session's verification** — a revival
+  badge count that compared unique names against rendered occurrences, and a `--bkt-scale`
+  check that raced the `ResizeObserver`. Both were the harness's errors; the eight real
+  failures alongside them were the POA-65 defect.
+
+### Protocol note — `shared/audience.js` do-not-touch was superseded, by Strategy decision
+
+POA-63 Phase 2's handoff placed `shared/audience.js` on its hard do-not-touch list (§5),
+forbade renderer modification (§0.4), and asserted zero-diff on the file (§7). **Strategy
+explicitly superseded all three for this session**, and amending those three places was part
+of its scope. This is recorded so a later reader does not mistake it for a protocol
+violation. The reason: `CONVENTIONS.md` frames this pattern as the reusable model for Liga,
+Cup Taster and BBTC, and a model whose first documented rule is "replicate this workaround or
+silently lose data" is not a model. The file is **read-only again from Phase 2 Step 3
+onward**; the Phase 2 handoff carries an amendment banner saying so.
+
+The additive-only CSS contract was *not* superseded and still holds — it was rescoped to
+`theme.css`, where it is meaningful. `audience.js` shows 2 removed lines mentioning `aud-`
+from restructured JS template strings, with every class still present and used.
+
+### Docs
+
+- **`BRACKET-LIVE-SPEC.md`** — §3 gains `kind`, `group`, `isWinner` and the winner-precedence
+  rule; §5 closes out both the redemption and 3rd Place deviations **with their history
+  retained**, including that an earlier revision wrongly presented the redemption exclusion
+  as a settled Strategy decision.
+- **`CONVENTIONS.md`** — renderer subsection updated to match actual behaviour: all three
+  round-shape rules, each stated with the failure it prevents, plus pool winner precedence.
+- **`HANDOFF-POA63-PHASE2-LIVE-WIRING.md`** — amendment banner plus inline amendments at
+  §0.4, §3c, §4, §5 and §7. Records that Step 2's translation layer was revised **twice** and
+  that Step 3 resumes against the current shape, not the Step 2 original.
+- **`PLAN_OF_ACTION.md`** — POA-65/66/67 closed with measured outcomes (POA-67 written up in
+  full for the first time); the POA-63 entry now carries a callout that the Phase 1 renderer
+  was substantially reworked and that the v5.13.0 entry below reads as more final than it
+  turned out to be.
+
+### Verification
+
+Four suites, all green — and every visual claim checked against a rendered page, not an
+assertion count:
+
+- `scripts/test-live-bracket.js` — **90 assertions** (was 66; runtime-extraction from the
+  HTML preserved, so it still tests shipping code rather than a copy)
+- POA-66 pool rendering — **63 DOM assertions** across all four group shapes
+- Phase 1 regression — **37 DOM assertions**, built on **Phase 1's own fixture generator**
+  lifted verbatim from `bracket-tree-test.html`
+- End-to-end demo → translation layer → renderer — **29 DOM assertions**
+
+### Incidental, out of scope — not acted on
+
+- **POA-64** (redemption rows rendering `undefined` in `showAudience()`) confirmed
+  **untouched**, despite this session working directly adjacent to it in the same file. Its
+  own ticket, its own diff.
+
+### Straggler closed out — the v5.13.0 renumber was not quite "everywhere"
+
+v5.13.0 recorded that the POA-62 → POA-63 correction had been applied "across `CHANGELOG.md`,
+`CONVENTIONS.md` and `BRACKET-LIVE-SPEC.md`", and commit `9827897` was titled as correcting
+the references. **Three code comments were missed** — the renderer's own section headers:
+
+- `shared/audience.js:275` — `Bracket-tree renderer (POA-62 Phase 1)`
+- `shared/gates.js:35` — the `bracket_branding` registry comment
+- `shared/theme.css:606` — the `aud-bkt` CSS block header
+
+All three corrected to POA-63 here rather than logged as a ticket: they are one-word edits in
+files this session already touches, and leaving them meant anyone grepping `POA-62` would find
+bracket-tree code filed under the unrelated **per-module tier granularity / à-la-carte
+pricing** ticket that owns that number. Every remaining `POA-62` reference in the repo is now
+either the real ticket or a deliberate historical account of the collision — verified by grep.
+
+---
+
 ## [5.13.0] — POA-63 Phase 1: Bracket-tree renderer + bracket_branding gate · July 2026
 
 **Numbering correction:** this shipped under the number "POA-62" for the first few hours
