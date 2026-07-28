@@ -411,6 +411,91 @@ function _bktColumnHTML(round, matches) {
     '</div>';
 }
 
+// ── POA-66: pool-shaped rounds ────────────────────────────────────────────
+// Some competition rounds are not head-to-head. Throwdown's redemption round
+// is N groups of M brewers (M organiser-configurable 2–4, default 3, with a
+// possibly-smaller trailing group), each group voting for one winner. Forcing
+// that through the pair-shaped path is not merely ugly — measured, at the
+// default group size of 3 it DROPS a brewer outright (slots are consumed two
+// at a time over floor(n/2)) and INVENTS a head-to-head between two brewers
+// who were never in the same group. A pool round is therefore rendered by its
+// own path: no pair grouping, no connectors, no active-glow (the glow rule is
+// "both named, neither scored", which is meaningless for a pool), and never
+// mirror-split — a pool is one column, not two.
+//
+// Opted into by `kind: 'pool'` on the round. Group membership rides on each
+// slot's optional `group` key, so `round.slots` stays the one universal shape
+// every round has (BRACKET-LIVE-SPEC.md §3) — a consumer that ignores `group`
+// still sees every competitor. Slots with no `group` fall into a single group,
+// so a flat pool is expressible too.
+function _bktPoolGroups(round) {
+  const slots = (round && round.slots) || [];
+  const order = [], byKey = {};
+  slots.forEach(function (s) {
+    const g = (s && s.group != null) ? String(s.group) : '0';
+    if (!byKey[g]) { byKey[g] = []; order.push(g); }
+    byKey[g].push(s);
+  });
+  return order.map(function (k) { return byKey[k]; });
+}
+
+// One group card. A pool resolves to a single winner rather than a head-to-
+// head result, so "winner" here means top score once EVERY brewer in the group
+// has one — a partially-scored group stays neutral rather than crowning an
+// early leader. Several brewers on the top score render as a tie, matching the
+// pair path's behaviour.
+function _bktPoolGroupHTML(slots, colour, justResolved) {
+  // An explicit `isWinner` on any slot wins over score-derived inference. Some
+  // formats resolve a tied pool OUT OF BAND — Throwdown's redemption round has
+  // a tiebreaker that names a winner while leaving the votes genuinely tied —
+  // and inferring from scores alone would render those groups as unresolved
+  // ties, never showing who actually advanced.
+  const explicit = slots.some(function (s) { return s && s.isWinner; });
+  let rows;
+  if (explicit) {
+    rows = slots.map(function (s) { return _bktSlotHTML(s, !!(s && s.isWinner), false); }).join('');
+  } else {
+    // Otherwise: top score, but only once EVERY slot in the group is scored —
+    // a partially-scored group stays neutral rather than crowning an early
+    // leader mid-vote. Several on the top score render as a tie.
+    const allScored = slots.length > 0 && slots.every(function (s) { return s && s.score != null; });
+    let maxScore = null, topCount = 0;
+    if (allScored) {
+      maxScore = Math.max.apply(null, slots.map(function (s) { return s.score; }));
+      topCount = slots.filter(function (s) { return s.score === maxScore; }).length;
+    }
+    rows = slots.map(function (s) {
+      const isTop = allScored && s.score === maxScore;
+      return _bktSlotHTML(s, isTop && topCount === 1, isTop && topCount > 1);
+    }).join('');
+  }
+  const rcCls = colour ? ' aud-bkt-rc-' + colour : '';
+  const jrCls = justResolved ? ' aud-bkt-just-resolved' : '';
+  return '<div class="aud-bkt-pool-group' + rcCls + jrCls + '">' + rows + '</div>';
+}
+
+function _bktPoolColumnHTML(round, prevRound) {
+  const colour = _bktRoundColour(round && round.roundLabel);
+  const rcCls = colour ? ' aud-bkt-rc-' + colour : '';
+  const groups = _bktPoolGroups(round);
+  const prevGroups = prevRound ? _bktPoolGroups(prevRound) : null;
+  const body = groups.map(function (g, i) {
+    const prev = (prevGroups && prevGroups[i]) || null;
+    const justResolved = prev
+      ? g.some(function (s, j) { return _bktSlotChanged(s, prev[j]); })
+      : false;
+    return _bktPoolGroupHTML(g, colour, justResolved);
+  }).join('');
+  return '<div class="aud-bkt-col aud-bkt-col-pool">' +
+    '<div class="aud-bkt-col-label' + rcCls + '">' + ((round && round.roundLabel) || '') + '</div>' +
+    '<div class="aud-bkt-pool">' + body + '</div>' +
+    '</div>';
+}
+
+function _bktIsPool(round) {
+  return !!(round && round.kind === 'pool');
+}
+
 // Mirrored converging tree: every round except the last is split left/right
 // by Math.ceil(matchCount/2) — a plain arithmetic split, no size branching,
 // works identically whether that round's match count is even or odd. The
@@ -424,29 +509,72 @@ function _bktTreeHTML(bracketData, prevBracketData) {
   if (!rounds.length) return '<div class="aud-bkt-tree"></div>';
 
   const prevRounds = (prevBracketData && prevBracketData.rounds) || null;
-  const sideRounds = rounds.slice(0, -1);
-  const finalRoundIdx = rounds.length - 1;
-  const finalRound = rounds[finalRoundIdx];
+  const lastIdx = rounds.length - 1;
+  // A pool round is never the Final — a tournament does not end on a pool, and
+  // its slot count says nothing about match count (POA-66).
+  const lastIsPool = _bktIsPool(rounds[lastIdx]);
+  const lastMatches = lastIsPool ? [] : _bktMatchesForRound(rounds, lastIdx, prevRounds);
+
+  // POA-65 — the last round is THE Final only when it actually holds exactly
+  // one match. The original version assumed it always was, and rendered only
+  // finalMatches[0], so any caller whose last round held more silently LOST
+  // the rest. That is what live (incremental) tournament state looks like:
+  // rounds are generated as they are reached, so mid-event the last round is
+  // the round being played, not the Final. Measured before this fix: a
+  // mid-tournament bracket rendered 7 of 11 matches, and a 13-competitor
+  // single-round bracket rendered 1 match and 2 of 13 names — silently, with
+  // no error. When the last round holds more than one match it is now treated
+  // as an ordinary mirrored round and the centre carries only the champion
+  // card (or nothing).
+  const lastIsFinal = !lastIsPool && lastMatches.length === 1;
+  const sideCount = lastIsFinal ? lastIdx : rounds.length;
 
   let leftHTML = '', rightHTML = '';
-  sideRounds.forEach((round, r) => {
+  for (let r = 0; r < sideCount; r++) {
+    const round = rounds[r];
+    // POA-66 — a pool is one column, emitted once. Same no-mirror-split
+    // treatment as a single-match round below, for the same reason: the split
+    // would otherwise manufacture an empty labelled twin.
+    if (_bktIsPool(round)) {
+      leftHTML += _bktPoolColumnHTML(round, prevRounds ? prevRounds[r] : null);
+      continue;
+    }
     const matches = _bktMatchesForRound(rounds, r, prevRounds);
+    if (!matches.length) continue; // nothing to draw — never emit a bare label
+    // POA-67 — a round holding a single match must not mirror-split. The old
+    // unconditional ceil(n/2) split gave such a round one populated column and
+    // one EMPTY, still-labelled twin on the opposite side, which reads as a
+    // rendering bug on a projector. Bites 3rd Place, which advanceBracket()
+    // pushes before the Final as a non-final round of exactly one match.
+    if (matches.length === 1) {
+      leftHTML += _bktColumnHTML(round, matches);
+      continue;
+    }
     const leftCount = Math.ceil(matches.length / 2);
     leftHTML  += _bktColumnHTML(round, matches.slice(0, leftCount));
     rightHTML += _bktColumnHTML(round, matches.slice(leftCount));
-  });
+  }
 
-  const finalMatches = _bktMatchesForRound(rounds, finalRoundIdx, prevRounds);
   const champHTML = bracketData.champion
     ? '<div class="aud-bkt-champion-card"><div class="aud-bkt-champion-label">🏆 Champion</div>' +
       '<div class="aud-bkt-champion-name">' + bracketData.champion + '</div></div>'
     : '';
-  const centerHTML =
-    '<div class="aud-bkt-center">' +
-      '<div class="aud-bkt-col-label aud-bkt-rc-green">' + ((finalRound && finalRound.roundLabel) || 'Final') + '</div>' +
-      (finalMatches[0] ? finalMatches[0].html : '') +
-      champHTML +
-    '</div>';
+
+  // Centre exists only when there is something to put in it — a real Final,
+  // a champion card, or both. An always-emitted centre would otherwise hold a
+  // 220px dead column mid-tournament.
+  let centerHTML = '';
+  if (lastIsFinal) {
+    const finalRound = rounds[lastIdx];
+    centerHTML =
+      '<div class="aud-bkt-center">' +
+        '<div class="aud-bkt-col-label aud-bkt-rc-green">' + ((finalRound && finalRound.roundLabel) || 'Final') + '</div>' +
+        lastMatches[0].html +
+        champHTML +
+      '</div>';
+  } else if (champHTML) {
+    centerHTML = '<div class="aud-bkt-center">' + champHTML + '</div>';
+  }
 
   return '<div class="aud-bkt-tree">' +
     '<div class="aud-bkt-side aud-bkt-side-left">' + leftHTML + '</div>' +

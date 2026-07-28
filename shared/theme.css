@@ -718,6 +718,29 @@ a.tool:hover{border-color:var(--accent);background:var(--surface3)}
 }
 .aud-bkt-match.aud-bkt-just-resolved{animation:bktFlash 1.2s ease-out forwards}
 
+/* ── Pool-shaped rounds (POA-66) ──
+   A round that is N groups of M competitors rather than head-to-head matches
+   — Throwdown's redemption round, and the shape Liga/Cup Taster heats would
+   use. Rendered as ONE column of group cards: no pair wrapper, therefore no
+   connector geometry, and no active-glow, since both are pair-shaped concepts
+   with no meaning for a pool. Group cards deliberately reuse the match card's
+   surface treatment and the existing slot-row styling, so a pool reads as the
+   same visual family as the bracket columns beside it.
+   The pool container needs BOTH flex:1 and min-height:0 for the same reason
+   .aud-bkt-matches does — see the tree-layout note above; without them it
+   sizes to content inside the nested column-in-row-in-column chain and the
+   column's space-around spends the remainder as a gap. */
+.aud-bkt-pool{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:10px;min-height:0}
+.aud-bkt-pool-group{
+  background:var(--bkt-card);border:1.5px solid var(--bkt-bd);border-top-width:3px;
+  border-radius:9px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.3);
+}
+.aud-bkt-pool-group.aud-bkt-rc-blue{border-top-color:var(--bkt-blue)}
+.aud-bkt-pool-group.aud-bkt-rc-amber{border-top-color:var(--bkt-amber)}
+.aud-bkt-pool-group.aud-bkt-rc-green{border-top-color:var(--bkt-green)}
+.aud-bkt-pool-group.aud-bkt-rc-purple{border-top-color:var(--bkt-purple)}
+.aud-bkt-pool-group.aud-bkt-just-resolved{animation:bktFlash 1.2s ease-out forwards}
+
 /* ── Champion card (champMode:'tree') ── */
 .aud-bkt-champion-card{
   background:var(--bkt-card);border:2px solid var(--bkt-green);border-radius:12px;
