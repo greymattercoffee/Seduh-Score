@@ -10,30 +10,72 @@
 <link rel="icon" href="../shared/assets/favicon-16.png" sizes="16x16" type="image/png">
 <link rel="apple-touch-icon" href="../shared/assets/apple-touch-icon.png">
 <style>
+/* Public results summary (POA-63 Phase 2). Responsive phone -> tablet -> desktop.
+   Deliberately does NOT use Audience.renderBracketTree() — that renderer is a
+   fixed 16:9 projector stage; this is a summary someone opens on a phone.
+   Both read the same throwdown_live/{orgId} document (BRACKET-LIVE-SPEC.md §8). */
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--txt);min-height:100vh;font-family:var(--font-body)}
-.page{max-width:520px;margin:0 auto;padding:2rem 1.25rem 4rem}
+.page{max-width:560px;margin:0 auto;padding:2rem 1.25rem 4rem}
+@media (min-width:768px){ .page{max-width:720px;padding:2.5rem 1.5rem 5rem} }
+@media (min-width:1100px){ .page{max-width:1040px} }
+
 /* Header */
-.remote-hdr{display:flex;align-items:center;gap:10px;margin-bottom:2rem}
+.remote-hdr{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem}
 .remote-mark{color:var(--am);flex-shrink:0;width:32px;height:32px}
 .remote-hdr-label{font-size:10px;font-weight:700;color:var(--am);letter-spacing:.18em;text-transform:uppercase;margin-bottom:2px}
 .remote-hdr-name{font-size:17px;font-weight:700;color:var(--txt);letter-spacing:-.01em}
-/* Updated pill */
-.remote-updated-wrap{display:flex;justify-content:flex-end;margin-bottom:.75rem;min-height:22px}
-#aud-remote-updated{display:none;font-size:11px;font-weight:600;color:var(--gn);background:var(--gn-bg);border:1.5px solid var(--gn-bd);border-radius:var(--rad-pill);padding:3px 10px}
-/* State card */
+
+/* Event identity — only rendered when the document says the org is entitled */
+.ev-id{display:flex;align-items:center;gap:14px;padding:1rem 1.15rem;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rad);margin-bottom:1rem}
+.ev-id-logo{width:52px;height:52px;object-fit:contain;border-radius:8px;flex-shrink:0}
+.ev-id-name{font-family:var(--font-display);font-size:clamp(17px,2.6vw,22px);font-weight:800;letter-spacing:-.01em;color:var(--txt)}
+.ev-id-meta{font-family:var(--font-mono);font-size:11px;color:var(--txt3);margin-top:3px}
+
+/* Status row */
+.remote-updated-wrap{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:.75rem;min-height:24px;flex-wrap:wrap}
+#aud-remote-updated{font-size:11px;font-weight:600;color:var(--txt3)}
+.remote-live-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--gn);background:var(--gn-bg);border:1.5px solid var(--gn-bd);border-radius:var(--rad-pill);padding:4px 12px}
+.remote-live-dot{width:7px;height:7px;border-radius:50%;background:var(--gn);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.remote-done-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--txt3);background:var(--bg);border:1.5px solid var(--border);border-radius:var(--rad-pill);padding:4px 12px}
+
+/* Holding card */
 .remote-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rad);padding:2rem 1.5rem;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
 .remote-icon{font-size:40px;margin-bottom:1rem}
 .remote-title{font-size:20px;font-weight:800;color:var(--txt);margin-bottom:.5rem;letter-spacing:-.01em}
 .remote-body{font-size:14px;color:var(--txt3);line-height:1.6;max-width:340px;margin:0 auto}
-/* Live badge */
-.remote-live-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--gn);background:var(--gn-bg);border:1.5px solid var(--gn-bd);border-radius:var(--rad-pill);padding:4px 12px;margin-bottom:1.25rem}
-.remote-live-dot{width:7px;height:7px;border-radius:50%;background:var(--gn);animation:pulse 1.4s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-/* Results region (live / concluded) */
-.remote-results{margin-top:1.5rem;text-align:left}
-.remote-results-title{font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.14em;margin-bottom:.75rem;font-family:var(--font-mono)}
-.remote-results-empty{font-size:13px;color:var(--txt3);font-style:italic}
+
+/* Podium */
+.sum-podium{display:flex;gap:.75rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.sum-podium-tile{flex:1;min-width:150px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rad);padding:1rem 1.1rem}
+.sum-podium-tile.champ{border-color:var(--gn-bd);background:var(--gn-bg)}
+.sum-podium-lbl{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--txt3);margin-bottom:5px}
+.sum-podium-tile.champ .sum-podium-lbl{color:var(--gn)}
+.sum-podium-name{font-size:clamp(16px,2.2vw,20px);font-weight:800;color:var(--txt)}
+
+/* Rounds */
+.sum-rounds{display:flex;flex-direction:column;gap:1.15rem}
+@media (min-width:1100px){ .sum-rounds{display:grid;grid-template-columns:1fr 1fr;gap:1.15rem 1.5rem;align-items:start} }
+.sum-round-hdr{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--txt3);margin-bottom:.5rem;display:flex;align-items:center;gap:8px}
+.sum-round-hdr .bar{width:3px;height:13px;border-radius:2px;background:var(--border2);flex-shrink:0}
+.sum-round-hdr.rc-blue .bar{background:var(--bl)} .sum-round-hdr.rc-blue{color:var(--bl)}
+.sum-round-hdr.rc-amber .bar{background:var(--am)} .sum-round-hdr.rc-amber{color:var(--am)}
+.sum-round-hdr.rc-green .bar{background:var(--gn)} .sum-round-hdr.rc-green{color:var(--gn)}
+.sum-round-hdr.rc-purple .bar{background:var(--pu)} .sum-round-hdr.rc-purple{color:var(--pu)}
+.sum-match{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rad-s);padding:.6rem .8rem;margin-bottom:6px}
+.sum-row{display:flex;align-items:center;gap:8px;padding:3px 0}
+.sum-row+.sum-row{border-top:1px solid var(--border)}
+.sum-name{flex:1;min-width:0;font-size:14px;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sum-row.win .sum-name{font-weight:800;color:var(--txt)}
+.sum-row.tie .sum-name{color:var(--rd)}
+.sum-score{flex-shrink:0;font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--txt3);min-width:20px;text-align:right}
+.sum-row.win .sum-score{color:var(--gn)}
+.sum-pending{font-size:11px;color:var(--txt3);font-style:italic;padding:2px 0}
+.sum-bye{font-size:10px;font-weight:700;color:var(--txt3);background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:1px 5px;flex-shrink:0}
+.sum-rev{font-size:9px;font-weight:700;color:var(--pu);background:var(--pu-bg);border:1px solid var(--pu-bd);border-radius:3px;padding:1px 4px;margin-left:5px;flex-shrink:0}
+.sum-pool-tag{font-size:9px;font-weight:700;color:var(--pu);background:var(--pu-bg);border:1px solid var(--pu-bd);border-radius:3px;padding:1px 5px}
+
 /* Footer */
 .remote-footer{margin-top:2.5rem;text-align:center;font-size:11px;color:var(--txt3)}
 .remote-footer a{color:var(--am);text-decoration:none;font-weight:600}
@@ -51,9 +93,11 @@ body{background:var(--bg);color:var(--txt);min-height:100vh;font-family:var(--fo
     </div>
   </div>
 
+  <div id="aud-identity"></div>
+
   <div class="remote-updated-wrap">
-    <!-- #aud-remote-updated: visible in State B (live) only; pre-Firebase: always hidden -->
-    <span id="aud-remote-updated">Updated just now</span>
+    <span id="aud-remote-status"></span>
+    <span id="aud-remote-updated"></span>
   </div>
 
   <div id="aud-remote-state"></div>
@@ -64,101 +108,163 @@ body{background:var(--bg);color:var(--txt);min-height:100vh;font-family:var(--fo
 
 </div>
 
-<script src="../shared/gates.js"></script>
 <script>
 'use strict';
+// Read-only public summary. No auth, no writes, no Gates checks — entitlement
+// is resolved by the organiser at write time and arrives as `branded` on the
+// document (BRACKET-LIVE-SPEC.md §2E).
+const SUM_ORG = new URLSearchParams(location.search).get('org') || '';
 
-// ── State determination — pre-Firebase ──────────────────────────────────────
-// Post-Firebase: read eventId from URL path; status from Firestore document.
-function getStubState() {
-  const p = new URLSearchParams(window.location.search);
-  const s = p.get('state');
-  if (s === 'live')      return 'live';
-  if (s === 'concluded') return 'concluded';
-  if (s === 'none')      return 'none';
-  return 'pre'; // default — show holding page
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+const $ = id => document.getElementById(id);
+
+function roundColourClass(label){
+  const l = String(label || '').toLowerCase();
+  if (l.includes('redemption')) return 'rc-purple';
+  if (l.includes('semi'))       return 'rc-amber';
+  if (l.includes('quarter'))    return 'rc-blue';   // before 'final' — "quarterfinals" contains it
+  if (l.includes('final'))      return 'rc-green';
+  if (l.includes('round 1'))    return '';
+  return 'rc-blue';
 }
 
-// ── State templates ──────────────────────────────────────────────────────────
-
-function renderPre() {
-  return '<div class="remote-card">'
-    + '<div class="remote-icon">🕐</div>'
-    + '<div class="remote-title">Event hasn\'t started yet</div>'
-    + '<div class="remote-body">Results will appear here when the event goes live. Check back soon.</div>'
-    + '</div>';
+function card(icon, title, body){
+  return '<div class="remote-card"><div class="remote-icon">' + icon + '</div>'
+    + '<div class="remote-title">' + esc(title) + '</div>'
+    + '<div class="remote-body">' + esc(body) + '</div></div>';
 }
 
-function renderLive() {
-  return '<div class="remote-card">'
-    + '<div class="remote-live-badge"><span class="remote-live-dot"></span>Live</div>'
-    + '<div class="remote-title">Event in progress</div>'
-    + '<div class="remote-body">Live results will appear here once the event host shares them.</div>'
-    + '<div class="remote-results">'
-    + '<div class="remote-results-title">Results</div>'
-    // TODO (v4.7 Firebase): replace with real-time snapshot render
-    + '<div class="remote-results-empty">Waiting for live data…</div>'
-    + '</div>'
-    + '</div>';
+function renderIdentity(d){
+  // Absent branding keys are the unentitled case — render nothing at all.
+  if (!d || d.branded !== true) { $('aud-identity').innerHTML = ''; return; }
+  const meta = [d.eventSubtitle, d.eventDate, d.eventVenue].filter(Boolean).map(esc).join(' · ');
+  $('aud-identity').innerHTML = '<div class="ev-id">'
+    + (d.logoUrl ? '<img class="ev-id-logo" src="' + esc(d.logoUrl) + '" alt="">' : '')
+    + '<div><div class="ev-id-name">' + esc(d.eventName || 'Seduh Score') + '</div>'
+    + (meta ? '<div class="ev-id-meta">' + meta + '</div>' : '') + '</div></div>';
 }
 
-function renderConcluded() {
-  const access = Gates.canAccess('audience_links_concluded').allowed;
-  if (!access) {
-    return '<div class="remote-card">'
-      + '<div class="remote-icon">🏁</div>'
-      + '<div class="remote-title">Event concluded</div>'
-      + '<div class="remote-body">Results for this event are not publicly available.</div>'
+function slotRow(slot, cls){
+  const rev = slot.revivalMarker ? '<span class="sum-rev">⬆ R</span>' : '';
+  const bye = slot.isBye ? '<span class="sum-bye">Bye</span>' : '';
+  const score = (slot.score !== null && slot.score !== undefined)
+    ? '<span class="sum-score">' + esc(slot.score) + '</span>' : '';
+  return '<div class="sum-row' + (cls ? ' ' + cls : '') + '">'
+    + '<span class="sum-name">' + esc(slot.name || '—') + rev + '</span>' + bye + score + '</div>';
+}
+
+// Pair-shaped round: two slots per match, winner = higher score once both scored.
+function renderBracketRound(r){
+  const slots = r.slots || [];
+  let html = '';
+  for (let i = 0; i < Math.floor(slots.length / 2); i++){
+    const a = slots[i*2], b = slots[i*2+1];
+    if (!a || !b) continue;
+    if (!a.name && !b.name) continue;                  // not reached yet — omit
+    const scored = a.score != null && b.score != null;
+    const tie = scored && a.score === b.score;
+    const aCls = scored ? (tie ? 'tie' : (a.score > b.score ? 'win' : '')) : '';
+    const bCls = scored ? (tie ? 'tie' : (b.score > a.score ? 'win' : '')) : '';
+    const pending = (!scored && a.name && b.name && !a.isBye)
+      ? '<div class="sum-pending">Up next</div>' : '';
+    html += '<div class="sum-match">' + slotRow(a, aCls) + slotRow(b, bCls) + pending + '</div>';
+  }
+  return html;
+}
+
+// Pool round: N groups of M. This is the shape the projector could not express
+// before POA-66, and it renders natively here — group by group.
+function renderPoolRound(r){
+  const groups = [], byKey = {};
+  (r.slots || []).forEach(s => {
+    const k = String(s.group == null ? 0 : s.group);
+    if (!byKey[k]) { byKey[k] = []; groups.push(byKey[k]); }
+    byKey[k].push(s);
+  });
+  return groups.map(g => {
+    const explicit = g.some(s => s.isWinner);
+    const allScored = g.length && g.every(s => s.score != null);
+    const max = allScored ? Math.max.apply(null, g.map(s => s.score)) : null;
+    const topCount = allScored ? g.filter(s => s.score === max).length : 0;
+    const rows = g.map(s => {
+      const isWin = explicit ? !!s.isWinner : (allScored && s.score === max && topCount === 1);
+      const isTie = !explicit && allScored && s.score === max && topCount > 1;
+      return slotRow(s, isWin ? 'win' : (isTie ? 'tie' : ''));
+    }).join('');
+    return '<div class="sum-match">' + rows + '</div>';
+  }).join('');
+}
+
+function renderResults(d){
+  const rounds = Array.isArray(d.rounds) ? d.rounds : [];
+  let html = '';
+
+  if (d.champion){
+    html += '<div class="sum-podium">'
+      + '<div class="sum-podium-tile champ"><div class="sum-podium-lbl">🏆 Champion</div>'
+      + '<div class="sum-podium-name">' + esc(d.champion) + '</div></div>'
+      + (d.runnerUp ? '<div class="sum-podium-tile"><div class="sum-podium-lbl">🥈 Runner-Up</div>'
+          + '<div class="sum-podium-name">' + esc(d.runnerUp) + '</div></div>' : '')
       + '</div>';
   }
-  return '<div class="remote-card">'
-    + '<div class="remote-icon">🏁</div>'
-    + '<div class="remote-title">Event concluded</div>'
-    + '<div class="remote-body">The event has ended. Final results will appear below once published by the organiser.</div>'
-    + '<div class="remote-results">'
-    + '<div class="remote-results-title">Final results</div>'
-    // TODO (v4.7 Firebase): replace with concluded snapshot render
-    + '<div class="remote-results-empty">Results not yet published.</div>'
-    + '</div>'
-    + '</div>';
+
+  const body = rounds.map(r => {
+    const inner = r.kind === 'pool' ? renderPoolRound(r) : renderBracketRound(r);
+    if (!inner) return '';                              // projected/empty round — omit
+    return '<div><div class="sum-round-hdr ' + roundColourClass(r.roundLabel) + '">'
+      + '<span class="bar"></span>' + esc(r.roundLabel || '')
+      + (r.kind === 'pool' ? ' <span class="sum-pool-tag">Pool</span>' : '')
+      + '</div>' + inner + '</div>';
+  }).filter(Boolean).join('');
+
+  html += body
+    ? '<div class="sum-rounds">' + body + '</div>'
+    : card('⏳', 'No results yet', 'The bracket is set up but no matches have been published yet.');
+  return html;
 }
 
-function renderNone() {
-  return '<div class="remote-card">'
-    + '<div class="remote-icon">📭</div>'
-    + '<div class="remote-title">No event configured</div>'
-    + '<div class="remote-body">This link doesn\'t point to an active event. If you received this URL from an organiser, it may have changed or expired.</div>'
-    + '</div>';
+function renderState(d){
+  if (!SUM_ORG){
+    $('aud-remote-state').innerHTML = card('📭','No event configured',
+      'This link doesn’t point to an active event. If you received this URL from an organiser, it may have changed or expired.');
+    return;
+  }
+  if (!d){
+    $('aud-remote-state').innerHTML = card('🕐','Event hasn’t started yet',
+      'Results will appear here when the event goes live. Check back soon.');
+    return;
+  }
+  renderIdentity(d);
+  const concluded = !!d.champion;
+  $('aud-remote-status').innerHTML = d.active === true
+    ? (concluded ? '<span class="remote-done-badge">🏁 Final results</span>'
+                 : '<span class="remote-live-badge"><span class="remote-live-dot"></span>Live</span>')
+    : '<span class="remote-done-badge">🏁 Event concluded</span>';
+  $('aud-remote-updated').textContent = d.updatedAt && d.updatedAt.toDate
+    ? 'Updated ' + d.updatedAt.toDate().toLocaleTimeString() : '';
+  $('aud-remote-state').innerHTML = renderResults(d);
 }
 
-// ── Bootstrap ────────────────────────────────────────────────────────────────
-function boot() {
-  // TODO (v4.7 Firebase): read eventId from URL path or ?eventId= param
-  // const eventId = new URLSearchParams(window.location.search).get('eventId');
-  // const doc = await firebase.firestore().doc(`events/${eventId}`).get();
-  // renderState(doc.data()?.status, doc.data());
+// No org in the URL: nothing to listen to, so settle the page immediately.
+// With an org, the module script below drives every state from the snapshot.
+if (!SUM_ORG) renderState(null);
+</script>
 
-  // TODO (audience_links_live gate): Firestore real-time listener
-  // if (Gates.canAccess('audience_links_live').allowed) {
-  //   firebase.firestore().doc(`events/${eventId}`).onSnapshot(snap => { ... });
-  // }
+<script type="module">
+import { db } from '../shared/firebase.js';
+import { doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
-  const state = getStubState();
-  const el = document.getElementById('aud-remote-state');
-  if (!el) return;
-
-  if      (state === 'live')      el.innerHTML = renderLive();
-  else if (state === 'concluded') el.innerHTML = renderConcluded();
-  else if (state === 'none')      el.innerHTML = renderNone();
-  else                            el.innerHTML = renderPre();
-
-  // #aud-remote-updated: always hidden pre-Firebase (no real timestamp available)
-  // TODO (v4.7 Firebase): show and start interval ticker when real-time listener is active
-  const updated = document.getElementById('aud-remote-updated');
-  if (updated) updated.style.display = 'none';
+if (SUM_ORG){
+  onSnapshot(doc(db, 'throwdown_live', SUM_ORG),
+    snap => renderState(snap.exists() ? snap.data() : null),
+    err => {
+      console.warn('[audience summary] snapshot error:', err);
+      document.getElementById('aud-remote-state').innerHTML =
+        '<div class="remote-card"><div class="remote-icon">📡</div>'
+        + '<div class="remote-title">Connection lost</div>'
+        + '<div class="remote-body">Trying to reconnect. Results will reappear automatically.</div></div>';
+    });
 }
-
-boot();
 </script>
 </body>
 </html>
