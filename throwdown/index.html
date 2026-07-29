@@ -59,6 +59,37 @@
 .score-modal-hdr{padding:.85rem 1.25rem;border-bottom:2px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .score-modal-hdr h3{font-size:15px;font-weight:700}
 .score-modal-body{padding:1.25rem}
+/* Remote display (POA-63 Phase 2) — module-scoped, not shared chrome */
+.tb-sec.is-live{border-color:var(--gn-bd);color:var(--gn)}
+.tb-sec.is-bad{border-color:var(--rd-bd);color:var(--rd)}
+.tb-pri-publish{position:relative}
+.tb-pri .lbl{margin-left:2px}
+/* Phones: primary actions collapse to icons. Adding Publish makes three primary
+   buttons, and .tb-primary is flex-shrink:0 inside an overflow:hidden
+   .mod-toolbar (both SHARED, theme.css), so the third button pushed the More
+   button — and with it Save / Load / Reset / Remote — off the edge entirely.
+   Measured at 375px: 406px of content in a 375px bar.
+   Deliberately module-local: widening the shared toolbar to handle more than
+   two primary actions would change bbtc/liga/cup-taster too, which is MUA
+   scope, not this ticket's. Titles carry the labels for screen readers and
+   long-press. Flagged to Strategy. */
+@media (max-width:430px){
+  .tb-pri{padding:0 8px}
+  .tb-pri .lbl{display:none}
+}
+.tb-dot{position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:var(--am);box-shadow:0 0 0 2px var(--surface)}
+.tb-pri.is-busy{opacity:.55;pointer-events:none}
+.rm-status{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin-bottom:.75rem}
+.rm-status.on{color:var(--gn)}
+.rm-status.off{color:var(--txt3)}
+.rm-status.bad{color:var(--rd)}
+.rm-dot{width:9px;height:9px;border-radius:50%;background:currentColor;flex-shrink:0}
+.rm-status.on .rm-dot{animation:pulse 1.6s ease-in-out infinite}
+.rm-links{display:flex;flex-direction:column;gap:.85rem;margin-top:.5rem}
+.rm-link-lbl{font-size:11px;font-weight:700;color:var(--txt3);margin-bottom:4px}
+.rm-link-row{display:flex;gap:6px;align-items:center}
+.rm-link-url{flex:1;min-width:0;font-family:var(--font-mono);font-size:11px;padding:6px 8px}
+.rm-copy{flex-shrink:0}
 .competitor-vote{display:flex;align-items:center;gap:12px;padding:.75rem;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--rad-s);margin-bottom:10px}
 .competitor-vote-name{flex:1;font-size:14px;font-weight:700}
 .vote-btns{display:flex;gap:4px}
@@ -174,6 +205,18 @@
   </div>
 </div>
 
+<!-- Remote display panel (POA-63 Phase 2) — start/stop + viewer links.
+     Reuses the score-modal shell so it reads as the same visual family. -->
+<div id="remote-modal" style="display:none" class="score-modal">
+  <div class="score-modal-box">
+    <div class="score-modal-hdr">
+      <h3 id="rm-title">Remote display</h3>
+      <button class="btn-o" id="rm-close">✕ Close</button>
+    </div>
+    <div class="score-modal-body" id="rm-body"></div>
+  </div>
+</div>
+
 <div class="app" id="app"></div>
 
 <script src="../shared/storage.js"></script>
@@ -200,6 +243,10 @@ const DEFAULT_STATE = () => ({
   manualBracket: false,  // organiser assigns names to slots manually
   manualSlots: 0,        // number of slots (set independently of participant count)
   isTest: true,          // Seduh Records archive flag (POA-40) — default true, safer
+  remoteActive: false,   // POA-63 Phase 2 — "Start remote display" toggled on
+  remoteSynced: true,    // did the last write actually reach Firestore?
+  remotePubHash: '',     // fingerprint of the last successfully published bracket
+  remoteLastPub: null,   // epoch ms of the last successful publish
   participants: [],
   bracket: null,
   matches: [],
@@ -1021,10 +1068,24 @@ function rMain() {
     + '<div class="event-band" id="event-band" data-empty></div>'
     + '<div class="mod-toolbar" id="mod-toolbar">'
     + '<div class="tb-primary">'
-    + '<button class="tb-pri" id="tmrbtn"><span class="ic">⏱</span> Timer</button>'
-    + '<button class="tb-pri" id="audbtn"><span class="ic">📺</span> Audience</button>'
+    + '<button class="tb-pri" id="tmrbtn" title="Timer"><span class="ic">⏱</span><span class="lbl">Timer</span></button>'
+    + '<button class="tb-pri" id="audbtn" title="Audience view"><span class="ic">📺</span><span class="lbl">Audience</span></button>'
+    // Publish is a distinct one-tap action and stays PRIMARY: it is used after
+    // every single result, so it must never be a scroll or a sheet away. Shown
+    // only once the remote display is running — before that there is nothing to
+    // publish to, and an inert button is competition-day noise. The dot means
+    // "the screen is behind the local bracket".
+    + (S.remoteActive
+        ? '<button class="tb-pri tb-pri-publish" id="publishbtn" title="Publish results to the remote display"><span class="ic">⬆</span><span class="lbl">Publish</span>'
+          + (tdLiveHasUnpublished() ? '<span class="tb-dot" title="Unpublished results"></span>' : '')
+          + '</button>'
+        : '')
     + '</div>'
     + '<div class="tb-secondary">'
+    // "Start remote display" is a once-per-event setup action, so it lives in
+    // the secondary row and is allowed to overflow into the More sheet on a
+    // narrow screen. Publish — used after every result — stays primary.
+    + '<button class="tb-sec' + (S.remoteActive ? (S.remoteSynced === false ? ' is-bad' : ' is-live') : '') + '" id="remotebtn" data-act="remote"><span class="ic">📡</span> Remote</button>'
     + (Gates.canAccess('throwdown_report').allowed ? '<button class="tb-sec" id="exportbtn" data-act="export"><span class="ic">📄</span> PDF</button>' : '')
     + '<button class="tb-sec" id="savejsonbtn" data-act="save"><span class="ic">💾</span> Save</button>'
     + '<button class="tb-sec" id="loadjsonbtn" data-act="load"><span class="ic">📂</span> Load</button>'
@@ -1559,6 +1620,246 @@ async function archiveThrowdownRecord(record) {
   }
 }
 
+/* ── POA-63 Phase 2: live remote display ──────────────────────────────────
+   Writes are PUBLISH-GATED (BRACKET-LIVE-SPEC.md §2C). Scoring stays local and
+   immediate exactly as before; a separate, explicit organiser action pushes the
+   result to throwdown_live/{orgId}. The in-venue screen must FOLLOW the MC's
+   announcement, not pre-empt it — at a latte art throwdown the reveal is the
+   moment, and a screen that updates the instant a score is typed spoils it. */
+
+const TD_LIVE_COLL = 'throwdown_live';
+
+// Sentinel meaning "remove this key from the document". Writes use merge:true,
+// so simply omitting a field LEAVES ANY PREVIOUS VALUE IN PLACE — which would
+// let a paying org's branding survive in a world-readable document after it
+// drops to Community and restarts. Mapped to Firestore's deleteField() inside
+// tdLiveWrite(), so the firestore import stays in exactly one place.
+const TD_DELETE = '__td_delete__';
+
+// SINGLE WRITE HOOK. Every throwdown_live write goes through this one function
+// — there is deliberately no other set()/update() call site in this module.
+//
+// Fail-open, log-only: a failed projector sync must NEVER block or interrupt
+// local scoring, and must NEVER surface a user-facing error dialog. Console
+// only, then continue. Same principle as POA-40's archive write and
+// competition-day auth. Returns true/false so callers can update UI, but a
+// false return is never an error path — just "not synced".
+async function tdLiveWrite(fields, label) {
+  const orgId = window._tdUid || null;
+  if (!orgId) {
+    console.warn('[throwdown_live] not signed in — ' + label + ' skipped (non-blocking)');
+    return false;
+  }
+  try {
+    const { doc, setDoc, serverTimestamp, deleteField } =
+      await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const payload = { orgId: orgId, updatedAt: serverTimestamp() };
+    Object.keys(fields).forEach(function (k) {
+      payload[k] = fields[k] === TD_DELETE ? deleteField() : fields[k];
+    });
+    await setDoc(
+      doc(window._sdDb, TD_LIVE_COLL, orgId),
+      payload,
+      { merge: true } // branding is written once at start; publishes must not clear it
+    );
+    return true;
+  } catch (e) {
+    console.warn('[throwdown_live] ' + label + ' failed (non-blocking):', e);
+    return false;
+  }
+}
+
+// The bracket half of the document — BRACKET-LIVE-SPEC.md §3, straight from the
+// translation layer. Never includes branding or `active`; those are start-time
+// concerns and merge:true keeps them intact across publishes.
+function tdLiveBracketFields() {
+  const d = buildLiveBracketData(S.bracket, S.participants);
+  return { bracketSize: d.bracketSize, rounds: d.rounds, champion: d.champion, runnerUp: d.runnerUp };
+}
+
+function tdHash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  return String(h);
+}
+
+function tdLiveFingerprint() {
+  try { return tdHash(JSON.stringify(tdLiveBracketFields())); } catch (e) { return ''; }
+}
+
+// Drives the "unpublished changes" dot. Publish-gating's one real competition-day
+// failure mode is the organiser forgetting to publish after announcing, so the
+// button says when the screen is behind the local bracket.
+function tdLiveHasUnpublished() {
+  return !!S.remoteActive && S.remotePubHash !== tdLiveFingerprint();
+}
+
+function tdViewerUrls() {
+  const orgId = window._tdUid || '';
+  return {
+    bracket: new URL('../audience/bracket.html?org=' + encodeURIComponent(orgId), location.href).href,
+    summary: new URL('../audience/index.html?org=' + encodeURIComponent(orgId), location.href).href
+  };
+}
+
+function publishLiveBracket() {
+  const btn = document.getElementById('publishbtn');
+  if (btn) { btn.disabled = true; btn.classList.add('is-busy'); }
+  tdLiveWrite(tdLiveBracketFields(), 'publish').then(ok => {
+    S.remoteSynced = ok; // a publish that reaches the doc also proves the link
+    if (ok) {
+      S.remotePubHash = tdLiveFingerprint();
+      S.remoteLastPub = Date.now();
+    }
+    save();
+    render();
+  });
+}
+
+// Decision D (BRACKET-LIVE-SPEC.md §2D) — explicit start, never automatic.
+// Copies the branding fields from seduh_handoff AT THIS MOMENT: the viewers are
+// on different devices and have no access to the organiser's sessionStorage.
+// Mid-event branding changes do not resync — known, accepted limitation (§3).
+async function startRemoteDisplay() {
+  EventConfig.writeHandoff(); // make sure the handoff reflects the current form state
+  let h = {};
+  try { h = JSON.parse(sessionStorage.getItem('seduh_handoff') || '{}'); } catch (e) {}
+  // ENTITLEMENT IS RESOLVED HERE AND COPIED ALONGSIDE THE DATA IT GOVERNS
+  // (BRACKET-LIVE-SPEC.md §2E). The viewers are unauthenticated by design and
+  // can never evaluate a tier gate, so the decision is made on the organiser's
+  // device, at the one moment the tier is actually knowable.
+  const branded = Gates.canAccess('bracket_branding').allowed;
+
+  // DON'T SHIP WHAT THE GATE WITHHOLDS. throwdown_live has open read, so
+  // writing the branded fields for an unentitled org would put exactly the
+  // fields a paid tier unlocks into a world-readable document — a paywall that
+  // holds only because the client agrees not to look. When unentitled the keys
+  // are DELETED rather than omitted: merge:true would otherwise preserve values
+  // written back when the org was entitled.
+  const branding = branded
+    ? {
+        eventName:     h.eventName     || S.eventName  || '',
+        // Data URL, capped at 350KB by EventConfig's uploader — comfortably
+        // inside Firestore's 1MiB document limit even alongside a full bracket.
+        logoUrl:       h.logoUrl       || null,
+        eventSubtitle: h.eventSubtitle || '',
+        eventDate:     h.eventDate     || S.eventDate  || '',
+        eventVenue:    h.eventVenue    || S.eventVenue || ''
+      }
+    : {
+        eventName:     TD_DELETE,
+        logoUrl:       TD_DELETE,
+        eventSubtitle: TD_DELETE,
+        eventDate:     TD_DELETE,
+        eventVenue:    TD_DELETE
+      };
+
+  const fields = Object.assign(
+    { active: true, branded: branded },
+    branding,
+    tdLiveBracketFields() // seed the screen immediately, don't leave it blank
+  );
+
+  const ok = await tdLiveWrite(fields, 'start remote display');
+  S.remoteActive  = true;      // local UI state regardless — fail-open
+  S.remoteSynced  = ok;        // ...but never CLAIM it worked when it didn't
+  S.remotePubHash = ok ? tdLiveFingerprint() : '';
+  if (ok) S.remoteLastPub = Date.now();
+  save();
+  renderRemotePanel();
+  render();
+}
+
+async function stopRemoteDisplay() {
+  await tdLiveWrite({ active: false }, 'stop remote display');
+  S.remoteActive = false;
+  save();
+  renderRemotePanel();
+  render();
+}
+
+function openRemotePanel()  { renderRemotePanel(); document.getElementById('remote-modal').style.display = 'flex'; }
+function closeRemotePanel() { document.getElementById('remote-modal').style.display = 'none'; }
+
+function renderRemotePanel() {
+  const body = document.getElementById('rm-body');
+  if (!body) return;
+  const signedIn = !!window._tdUid;
+  const urls = tdViewerUrls();
+  const live = !!S.remoteActive;
+
+  // Three states, not two. Fail-open keeps the organiser in control after a
+  // failed write, but the panel must not then ASSERT that the room is watching
+  // — the only other evidence was a console warning nobody reads at an event.
+  const synced = S.remoteSynced !== false;
+  const statusCls  = !live ? 'off' : (synced ? 'on' : 'bad');
+  const statusText = !live
+    ? 'Off — nothing is being shared'
+    : (synced
+        ? 'Live — the room is following this bracket'
+        : 'Not synced — the screen is NOT receiving this bracket');
+  const status = '<div class="rm-status ' + statusCls + '">'
+    + '<span class="rm-dot"></span>' + statusText + '</div>';
+
+  // Not a gate, a precondition: the rules bind writes to the signed-in org, so
+  // an anonymous organiser simply has nowhere to write to.
+  const authWarn = signedIn ? '' :
+    '<p class="hint" style="margin-bottom:.75rem;color:var(--rd)">You are not signed in, so nothing can be shared yet. '
+    + 'Scoring still works normally — sign in on the front door to enable the remote display.</p>';
+
+  const linkRow = (label, url, id) =>
+    '<div class="rm-link"><div class="rm-link-lbl">' + label + '</div>'
+    + '<div class="rm-link-row"><input class="rm-link-url" id="' + id + '" readonly value="' + url + '">'
+    + '<button class="btn-o rm-copy" data-copy="' + id + '">Copy</button>'
+    + '<a class="btn-o" href="' + url + '" target="_blank" rel="noopener">Open</a></div></div>';
+
+  const links = live
+    ? '<div class="rm-links">'
+      + linkRow('In-venue bracket — put this on the projector', urls.bracket, 'rm-url-bracket')
+      + linkRow('Public summary — share this with people not at the venue', urls.summary, 'rm-url-summary')
+      + '</div>'
+    : '';
+
+  const lastPub = S.remoteLastPub
+    ? '<p class="hint" style="margin-top:.5rem">Last published ' + new Date(S.remoteLastPub).toLocaleTimeString() + '.</p>'
+    : '';
+
+  // Same dot, two different causes — say which. "You have not published yet"
+  // blames the organiser for a write that failed on its own.
+  const unpublished = !tdLiveHasUnpublished() ? ''
+    : (synced
+        ? '<p class="hint" style="margin-top:.5rem;color:var(--am);font-weight:700">The screen is behind — there are results you have not published yet.</p>'
+        : '<p class="hint" style="margin-top:.5rem;color:var(--rd);font-weight:700">Could not reach the display. Nothing has been shared. Check your connection and press '
+          + (live ? '“Start remote display” again' : '“Start remote display”') + '.</p>');
+
+  const primary = live
+    ? '<button class="btn-o" id="rm-stop" style="width:100%">Stop remote display</button>'
+    : '<button class="btn-p" id="rm-start" style="width:100%"' + (signedIn ? '' : ' disabled') + '>Start remote display</button>';
+
+  body.innerHTML = status + authWarn
+    + '<p class="hint" style="margin-bottom:.75rem">Results are only shared when you tap <strong>Publish</strong>, '
+    + 'so the screen follows your announcement instead of getting ahead of it.</p>'
+    + links + lastPub + unpublished
+    + '<div style="margin-top:1rem">' + primary + '</div>';
+
+  const startBtn = document.getElementById('rm-start');
+  if (startBtn) startBtn.onclick = () => startRemoteDisplay();
+  const stopBtn = document.getElementById('rm-stop');
+  if (stopBtn) stopBtn.onclick = () => stopRemoteDisplay();
+  body.querySelectorAll('.rm-copy').forEach(btn => {
+    btn.onclick = () => {
+      const input = document.getElementById(btn.dataset.copy);
+      if (!input) return;
+      input.select();
+      // Clipboard API can reject on insecure origins or without focus; the
+      // selected text is still there to copy manually, so this never blocks.
+      try { navigator.clipboard.writeText(input.value); } catch (e) { try { document.execCommand('copy'); } catch (e2) {} }
+      btn.textContent = 'Copied';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1400);
+    };
+  });
+}
+
 /* ── MUA-06 chrome ── */
 function doReset() {
   if (confirm('Reset ALL throwdown data? Cannot be undone.')) {
@@ -1571,6 +1872,7 @@ function handleToolbarAction(act) {
   else if (act === 'save')   exportJSON();
   else if (act === 'load')   importJSON();
   else if (act === 'podium') Audience.showPodium();
+  else if (act === 'remote') openRemotePanel();
   else if (act === 'reset')  doReset();
 }
 
@@ -1584,6 +1886,7 @@ function buildSheet(overflow, resetInMore) {
     save:   { label: 'Save',        icon: '💾' },
     load:   { label: 'Load',        icon: '📂' },
     podium: { label: 'View podium', icon: '🏆' },
+    remote: { label: 'Remote display', icon: '📡' },
   };
   const rows = overflow.map(id => {
     const a = meta[id] || { label: id, icon: '•' };
@@ -1672,6 +1975,9 @@ function bind() {
   on('loadjsonbtn','click',() => importJSON());
   on('audbtn','click',() => showAudience());
   on('podiumBtn','click',() => Audience.showPodium());
+  on('remotebtn','click',() => openRemotePanel());
+  on('publishbtn','click',() => publishLiveBracket());
+  on('rm-close','click',() => closeRemotePanel());
 
   // MUA-06 toolbar wiring
   on('moreBtn', 'click', openSheet);
