@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Seduh Score — Live Bracket</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<link rel="icon" href="../shared/assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../shared/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="../shared/assets/apple-touch-icon.png">
+<style>
+/* In-venue projector surface (POA-63 Phase 2). Fixed 16:9, no interaction, no
+   responsive breakpoint — this is a large-display context only, per
+   BRACKET-LIVE-SPEC.md §8. The public, responsive summary is index.html. */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#000}
+body{font-family:var(--font-body);cursor:none}
+/* renderBracketTree() mounts here and owns everything inside, including its own
+   ResizeObserver-driven scale-to-fit. It must have real measured dimensions
+   before the first render or the stage computes a zero scale. */
+#bkt-root{position:absolute;inset:0}
+/* Holding states — deliberately plain and legible at projector distance. */
+.bkt-msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.25rem;text-align:center;padding:2rem;background:var(--surface-deep);color:var(--deep-ink)}
+.bkt-msg-mark{width:72px;height:72px;color:var(--am)}
+.bkt-msg-title{font-family:var(--font-display);font-size:clamp(22px,3.2vw,38px);font-weight:800;letter-spacing:-.01em}
+.bkt-msg-body{font-size:clamp(13px,1.5vw,18px);color:var(--deep-ink3);max-width:44ch;line-height:1.6}
+.bkt-msg-tag{font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--deep-ink3)}
+</style>
+</head>
+<body>
+
+<div id="bkt-root"></div>
+
+<script src="../shared/gates.js"></script>
+<script src="../shared/audience.js"></script>
+<script>
+'use strict';
+
+// Read-only viewer. No auth, no writes, no controls — the organiser's device
+// stays in charge of the event; this page only reflects what was published.
+const _bktParams = new URLSearchParams(location.search);
+const BKT_ORG    = _bktParams.get('org') || '';
+const BKT_THEME  = _bktParams.get('theme') === 'light' ? 'light' : 'dark';
+
+const _bktRoot = document.getElementById('bkt-root');
+let _bktLastRenderedActive = false;
+
+const MARK_SVG = '<svg class="bkt-msg-mark" xmlns="http://www.w3.org/2000/svg" viewBox="22 16 56 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Seduh"><circle cx="50" cy="26" r="5.5" fill="currentColor" stroke="none"/><path d="M26 60 a24 24 0 0 1 48 0"/><path d="M35 60 a15 15 0 0 1 30 0"/><path d="M44 60 a6 6 0 0 1 12 0"/></svg>';
+
+function bktMessage(tag, title, body) {
+  // Replaces the whole root, which also tears down any previously rendered
+  // tree. renderBracketTree() keys its ResizeObserver and its just-resolved
+  // snapshot off the CONTAINER, not the stage, so the container itself must
+  // stay the same element across states — only its contents change.
+  _bktRoot.innerHTML =
+    '<div class="bkt-msg">' + MARK_SVG +
+      '<div><div class="bkt-msg-tag">' + tag + '</div>' +
+      '<div class="bkt-msg-title">' + title + '</div></div>' +
+      '<div class="bkt-msg-body">' + body + '</div>' +
+    '</div>';
+  _bktLastRenderedActive = false;
+}
+
+function bktRender(data) {
+  // champMode follows champion presence (BRACKET-LIVE-SPEC.md §3d): once the
+  // Final resolves, the screen becomes the celebration rather than the bracket.
+  const champMode = data.champion ? 'podium' : 'tree';
+  Audience.renderBracketTree(_bktRoot, data, {
+    // Intent flag only. The renderer AND-gates this with
+    // Gates.canAccess('bracket_branding'), which on an unauthenticated page
+    // always resolves to community — see the note in this file's header
+    // comment and BRACKET-LIVE-SPEC.md. Passing the document's own flag means
+    // this page needs no change once that entitlement question is settled.
+    branded:   !!data.branded,
+    champMode: champMode,
+    theme:     BKT_THEME
+  });
+  _bktLastRenderedActive = true;
+}
+
+function bktBoot() {
+  if (!BKT_ORG) {
+    bktMessage('Seduh Score', 'No event linked',
+      'This link is missing its event reference. Ask the organiser for the current bracket link.');
+    return;
+  }
+  bktMessage('Seduh Score', 'Connecting…', 'Waiting for the live bracket.');
+}
+
+bktBoot();
+</script>
+
+<script type="module">
+import { db } from '../shared/firebase.js';
+import { doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+if (BKT_ORG) {
+  // Real-time listener. Full re-render per snapshot is the established model
+  // (POA-63 Phase 1) — the just-resolved flash still works under it because it
+  // diffs bracketData SNAPSHOTS via a container-keyed WeakMap, not the DOM.
+  onSnapshot(doc(db, 'throwdown_live', BKT_ORG),
+    snap => {
+      if (!snap.exists()) {
+        bktMessage('Seduh Score', 'Waiting for the organiser',
+          'The bracket will appear here as soon as the event goes live.');
+        return;
+      }
+      const data = snap.data() || {};
+      if (data.active !== true) {
+        bktMessage('Seduh Score', 'Event not live',
+          'The organiser has not started the remote display, or has ended it for this event.');
+        return;
+      }
+      if (!Array.isArray(data.rounds) || !data.rounds.length) {
+        bktMessage('Seduh Score', 'Bracket not published yet',
+          'The organiser has started the display but has not published any results yet.');
+        return;
+      }
+      bktRender(data);
+    },
+    err => {
+      // Read-only page: nothing to lose, nothing to retry manually. Firestore
+      // reconnects on its own, so say so plainly rather than dead-ending.
+      console.warn('[bracket viewer] snapshot error:', err);
+      bktMessage('Seduh Score', 'Connection lost',
+        'Trying to reconnect. The bracket will reappear automatically.');
+    });
+}
+</script>
+</body>
+</html>
