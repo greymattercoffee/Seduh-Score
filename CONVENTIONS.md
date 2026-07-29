@@ -367,12 +367,28 @@ Audience.renderBracketTree(container, bracketData, options);
   ```
 - `options`:
   - `branded: boolean` — full identity header (logo + subtitle/date/venue
-    meta line) renders only when `true` **and**
-    `Gates.canAccess('bracket_branding').allowed`; otherwise fallback-title-
-    only (the constant `"Seduh Score"`, not the real `eventName`). Per
-    `BRACKET-LIVE-SPEC.md` §2E, `eventName` itself is inside the gated block
+    meta line) renders when `true`; otherwise fallback-title-only (the
+    constant `"Seduh Score"`, not the real `eventName`). Per
+    `BRACKET-LIVE-SPEC.md` §2E, `eventName` itself is inside the branded block
     here — unlike `PdfExport`'s `fallbackTitle` pattern, where only
     logo/subtitle/date/venue are gated and `eventName` always shows once set.
+
+    **This flag is an instruction, not a request to be validated.** The
+    renderer does **not** check `Gates` — entitlement is a caller concern.
+    It briefly did, and that was unbuildable: this renderer's viewer surfaces
+    are unauthenticated by design, `Gates` defaults to `'community'` and only
+    leaves that default in `Gates.init()` (which runs on auth), so the check
+    resolved to `false` on every viewer permanently and a paying org's
+    branding could never render.
+
+    **Callers must resolve entitlement themselves, at a point where the tier
+    is knowable.** For a cross-device surface that means resolving it on the
+    signed-in device and shipping the answer with the data — Throwdown
+    evaluates `Gates.canAccess('bracket_branding')` at "Start remote display"
+    and writes a `branded` boolean into `throwdown_live/{orgId}` beside the
+    branding fields it governs. A same-device caller can simply pass the gate
+    result directly. Either way the rule is the same: **resolve the gate where
+    you can see the tier, then tell the renderer what to do.**
   - `champMode: 'tree' | 'podium'` — `'podium'` is a full takeover mirroring
     the existing `#aud-podium-panel` precedent exactly (absolutely
     positioned, covers the whole stage including the header). Only two
@@ -459,9 +475,10 @@ property current as the container resizes.
 **Gating:** the base tree view is ungated — available regardless of tier,
 matching the existing text audience view's Lite/Enhanced split (Community
 isn't locked out of the view entirely, just the branded identity block).
-Only the branded header checks `Gates.canAccess('bracket_branding').allowed`
-— `FEATURES` registry entry `{ minTier: 'per_event' }`, same shape as
-`audience_branding`/`pdf_branding`.
+The branded header is governed by `bracket_branding` — `FEATURES` registry
+entry `{ minTier: 'per_event' }`, same shape as
+`audience_branding`/`pdf_branding` — but that gate is evaluated by the
+**caller**, not by the renderer. See the `branded` option above.
 
 ### Sound (`shared/sound.js`)
 
@@ -1011,6 +1028,134 @@ offline reliability. Do not start the Firebase adapter until this is decided in 
 Two modules still bypass `Store()` directly (v5.0 pre-condition — do not fix early):
 - BBTC: `localStorage.setItem/getItem/removeItem` directly
 - Dashboard: direct `localStorage` inside `load()`/`save()` wrappers
+
+---
+
+## Live sync pattern — organiser device → public surfaces (POA-63)
+
+**This is the reusable model for Liga, Cup Taster and BBTC, not a Throwdown
+one-off.** Throwdown is simply the first consumer. A future session wiring
+another format should be able to follow this section without reverse-
+engineering `throwdown/index.html`.
+
+The shape: an **organiser's authenticated device** owns the event and writes a
+single org-scoped document; one or more **unauthenticated public surfaces**
+read it live. Everything below exists because that asymmetry — writer knows who
+it is, readers don't — breaks assumptions that hold fine inside a single module.
+
+### The six mechanics
+
+**1. Single atomic write hook.** Exactly **one** function performs the write,
+and every caller goes through it. Not one per action — one per module. Find the
+single point in the module's own state-commit flow where a result is
+*committed* and write from there; do not hook a display function, which fires
+for reasons unrelated to state. Verify by grep: one `setDoc`/`addDoc` call site.
+Scattered writes make the fail-open wrapping (3) impossible to guarantee and
+the publish gate (2) impossible to enforce.
+
+**2. Publish-gated trigger.** Local scoring stays immediate and unchanged. A
+**separate, explicit organiser action** pushes state to the document. The write
+*cadence* is unchanged — still one write per result — but the *trigger* is
+organiser-initiated. This is not caution about write volume; it is because the
+in-venue screen must **follow** the announcement rather than pre-empt it. A
+screen that updates the instant a score is typed spoils the reveal, which at a
+latte art throwdown is the entire moment. Corollary: publish must be separable
+*in time* from confirming the result, so it cannot be folded into the
+confirmation dialog.
+
+**3. Fail-open, log-only.** Every write is wrapped so failure **never** blocks
+or interrupts local scoring and **never** surfaces a user-facing error dialog.
+Console warning, then continue. A failed projector sync must not stop a live
+competition. Same principle as POA-40's archive write and competition-day auth.
+**But fail-open is not permission to lie**: if the write failed, the UI must say
+so. Keep a "did the last write land?" flag and give the status surface three
+states — off / live / **not synced** — rather than two. A panel that reports
+"Live" after a failed write is worse than one that reports nothing, because the
+only other evidence is a console line nobody reads at an event.
+
+**4. Identity and entitlement are copied at start, not read live.** The viewers
+are on other devices and cannot see the organiser's `sessionStorage`, tier
+claims, or anything else. An explicit "start" action copies the branding fields
+**and the entitlement decision** into the document. Known, accepted limitation:
+nothing resyncs — mid-event edits and mid-event **tier changes** both require a
+stop/restart. Document that where the fields are listed, not only in code.
+
+**5. Org-scoped document, open read, uid-bound write.**
+`{collection}/{orgId}`, one live document per org, overwritten in place each
+event so it self-cleans instead of accumulating. Read is open **by design** —
+a projector and a public link have nobody to log in. Write is bound to the
+authenticated org matching the doc id. No booth-style schema lock is needed:
+booth locks schemas because its writers are unauthenticated walk-ups, which is
+the opposite situation.
+
+**6. Rules deploy as their own step.** Adding a collection means
+`firestore.rules` changes, and those do **not** ship with a code merge.
+Separate command, separately verified, tracked as its own checklist item.
+Verify **both directions**: the new collection reads open and writes deny for a
+non-matching org, *and* every pre-existing collection still behaves as before.
+
+### Entitlement: resolve where the tier is visible
+
+> **A public surface must never evaluate a gate. It consumes an answer; it does
+> not compute one.**
+> Resolve entitlement on the signed-in device, write the resolved boolean into
+> the document, and let the surface render what it is told.
+
+This is not a style preference — it is a correctness requirement, and three
+surfaces have already fallen into the trap. `Gates` resolves entirely from the
+signed-in user's claims, and `Gates.init()` runs on auth. **On a page with no
+auth it never runs**, so:
+
+- `_tier` stays `'community'` → every `minTier: 'per_event'` feature resolves
+  **`{allowed:false}`** forever, whatever the org actually pays for;
+- `_switches` stays `{}` → `isEnabled()` returns true → every platform-switch
+  feature resolves **open**, because the page cannot read `platform/switches`
+  (authenticated) to learn otherwise.
+
+So a gate on a public surface fails **closed for tier gates and open for switch
+gates**, and in both cases answers a question it has no data for. It does not
+throw and it does not warn — it silently returns a confident wrong answer.
+
+Renderers follow from this: a `branded`-style option is an **instruction, not a
+request to be validated**. `Audience.renderBracketTree()` deliberately performs
+no `Gates` check for exactly this reason. Entitlement is a caller concern.
+
+### Withheld means absent — and absence must be written
+
+**Do not ship what the gate withholds.** The document is world-readable, so
+writing gated fields for an unentitled org puts precisely the fields a paid
+tier unlocks into public view — a paywall that holds only because the client
+agrees to look away.
+
+The subtlety that will catch any format copying this pattern, the moment an org
+changes tier:
+
+> **Omitting a key and deleting a key are different operations.**
+> Writes use `merge: true` so that publishes don't clear branding. Under merge,
+> *omitting* a field **leaves its previous value in place**. An org that was
+> entitled, then downgrades and restarts, keeps its branding sitting in a public
+> document indefinitely — with `branded:false` alongside it, so nothing renders
+> and nothing looks wrong.
+
+Absence therefore has to be written **explicitly**, via Firestore's
+`deleteField()`. Throwdown routes this through a `TD_DELETE` sentinel that the
+single write hook (1) maps to `deleteField()`, which keeps the firestore import
+and the write in one place. Verify by reading the raw document after a
+downgrade-and-restart: the keys should be **gone**, not falsy.
+
+### Surface split — one document, two renderings
+
+Where both an in-venue display and a public link are wanted, they are separate
+files reading the same document, because their design pressures are
+incompatible: a fixed 16:9 non-interactive projector stage versus a responsive
+page opened on a phone. Do not merge them.
+
+A consequence worth stating so it is not later filed as a responsive bug:
+**`audience/bracket.html` is unreadable at 375px, and that is correct.** It is a
+fixed large-display surface that scales its 1920×1080 stage to fit whatever it
+is given; at phone width it letterboxes down to something legible only on a
+projector. `audience/index.html` is the phone answer. Neither page is a
+fallback for the other.
 
 ---
 
