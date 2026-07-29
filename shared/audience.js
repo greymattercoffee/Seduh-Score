@@ -617,9 +617,23 @@ function _bktApplyScale(container) {
 // constant "Seduh Score" title, never the real event name.
 function _bktHeaderHTML(bracketData, options) {
   options = options || {};
-  const showBrand = !!options.branded
-    && typeof Gates !== 'undefined'
-    && Gates.canAccess('bracket_branding').allowed;
+  // `options.branded` is an INSTRUCTION, not a request to be validated.
+  // Entitlement is a caller concern; this is a renderer.
+  //
+  // This previously AND-ed in Gates.canAccess('bracket_branding'), which was
+  // unbuildable for the surfaces this renderer actually serves: both viewer
+  // pages are unauthenticated by design (a projector and a public summary have
+  // nobody to log in), Gates defaults to 'community' and only leaves it in
+  // Gates.init() — which runs on auth. So the gate resolved to false on every
+  // viewer forever, and a paying org's branding could never render. Measured
+  // both sides in one run: organiser signed in at per_event -> allowed:true;
+  // viewer on the same document -> allowed:false.
+  //
+  // Entitlement is now decided where the tier is knowable — the organiser
+  // evaluates the gate at "Start remote display" and writes `branded` into
+  // throwdown_live/{orgId} alongside the branding fields it governs. See
+  // BRACKET-LIVE-SPEC.md §2E.
+  const showBrand = !!options.branded;
 
   const name = (showBrand && bracketData.eventName) ? bracketData.eventName : 'Seduh Score';
   const logo = (showBrand && bracketData.logoUrl)
