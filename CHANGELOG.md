@@ -2,6 +2,179 @@
 
 ---
 
+## [5.15.0] — POA-63 Phase 2: live bracket wiring + two public viewer surfaces · July 2026
+
+Completes POA-63. The organiser's device now publishes the live bracket to
+`throwdown_live/{orgId}`, and two unauthenticated surfaces read it: a projector page and a
+responsive public summary. Interrupted mid-flight by the POA-65/66/67 renderer session
+(v5.14.0 below), which this entry assumes.
+
+### `BRACKET-LIVE-SPEC.md` §2C — publish-gated writes (Step 0, before any code)
+
+§2C originally specified a write **on every match result entered**. Amended before a line
+was written: the write *cadence* is unchanged — one write per result — but the *trigger*
+moves from automatic to organiser-initiated. The reason is load-bearing, not caution about
+write volume: the in-venue screen must **follow** the MC's announcement rather than pre-empt
+it. At a latte art throwdown the reveal *is* the moment, and a screen that updates the
+instant a score is typed spoils it.
+
+### firestore.rules
+
+- **feat:** `throwdown_live/{orgId}` — open read, write bound to the authenticated org
+  matching the doc id. Open read is deliberate: both viewer surfaces are unauthenticated by
+  design. No booth-style schema lock — booth locks schemas because its writers are
+  unauthenticated walk-ups, the opposite situation. Deployed as its own separate step and
+  verified in **both** directions: new collection reads open / writes deny, and all eight
+  pre-existing collections still behave exactly as before.
+
+### throwdown/index.html — translation layer + write path
+
+- **feat:** `buildLiveBracketData()` — pure function, no DOM, no Firestore, no globals.
+  Translates Throwdown's internal `S.bracket` into the spec's §3 `rounds[]` shape: main
+  rounds, redemption as `kind:'pool'` rounds with group boundaries preserved, and 3rd Place.
+- **feat:** live remote display — single write hook, publish action, start/stop, fail-open.
+- Throwdown's own scoring, bracket and display logic is untouched; the only deletions in the
+  file are two toolbar buttons gaining `<span class="lbl">` wrappers.
+
+**Publish is a distinct one-tap button, and the two options were not equivalent.** The
+handoff left this open. Publish-gating requires publish to be separable *in time* from
+confirming a result — the organiser confirms, announces, *then* publishes. Folding it into
+the confirmation dialog would either trap them in a modal waiting to announce, or fire
+immediately and defeat the gate entirely. The button appears only once the remote display is
+running, and carries a dot when the screen is behind the local bracket.
+
+**The write hook required no restructuring.** `advanceBracket()` already funnels every
+result commit, so the publish path reads committed state rather than intercepting the flow.
+
+### Fail-open, and the three-state panel
+
+Every write is wrapped so failure never blocks scoring and never raises a dialog — verified
+against a *real* rejected write, not just the not-signed-in short-circuit. But fail-open is
+not permission to lie: the panel originally showed green **"Live — the room is following
+this bracket"** after a failed start, when nothing had been written and the only evidence was
+a console warning. Now three states — off / live / **"Not synced — the screen is NOT
+receiving this bracket"** — and the amber staleness line no longer says *"you have not
+published yet"* for a write that failed on its own.
+
+### `audience/bracket.html` — NEW, in-venue projector
+
+Consumes `Audience.renderBracketTree()` unmodified. Real-time listener, full re-render per
+snapshot, fixed 16:9, `cursor:none`, no controls, unauthenticated. `champMode` follows
+`champion` presence. Holding states for missing org / missing doc / not active / started-but-
+nothing-published, plus a reconnect state.
+
+**Unreadable at 375px, and that is correct** — a fixed large-display surface scaling a
+1920×1080 stage. `index.html` is the phone answer; neither page is a fallback for the other.
+Stated in `CONVENTIONS.md` so it isn't later filed as a responsive bug.
+
+### `audience/index.html` — public responsive summary
+
+The POA-16 stub's TODO hooks replaced with real Firestore reads. **Deliberately does not use
+the tree renderer** — it is a summary, not a projector bracket. Branded identity, live /
+concluded badges, champion podium, and round-by-round results including **redemption pools
+rendered natively as groups**, which is the shape the projector could not express before
+POA-66. Projected empty rounds are omitted. Responsive 375px → 1200px, single column to
+two-column grid, no horizontal overflow at any width.
+
+### `BRACKET-LIVE-SPEC.md` §2E — entitlement corrected, and a paywall closed
+
+**§2E was a spec error, and structural.** It locked "branded fields render only when
+`Gates.canAccess('bracket_branding').allowed`" — written without accounting for both viewer
+surfaces being unauthenticated *by design*. `Gates` defaults to `'community'` and only leaves
+that default inside `Gates.init()`, which runs on auth. So on every viewer the gate resolved
+`{allowed:false}` **permanently**, and a paying org's branding could never render. Measured
+both sides against one document: organiser at `per_event` → `allowed:true`; viewer reading
+the same doc → `allowed:false`.
+
+Corrected to resolve entitlement **where the tier is visible**:
+
+- The organiser evaluates the gate at "Start remote display" and writes `branded` into the
+  document beside the fields it governs.
+- **The renderer stops gating.** `options.branded` is an instruction, not a request to be
+  validated. This required an explicit, scoped supersession of the `shared/audience.js`
+  read-only constraint — authorised for removing the gate check only.
+
+**Withheld now means absent.** Writing the branding fields for an unentitled org would put
+exactly the fields a paid tier unlocks into a world-readable document — a paywall holding
+only because the client agrees to look away. The subtlety: writes use `merge:true`, so
+**omitting a key and deleting a key are different operations**. Omission leaves the previous
+value in place, so an org that was entitled, then downgrades and restarts, would keep its
+branding sitting in public with `branded:false` alongside it and nothing looking wrong.
+Absence is now written explicitly via a `TD_DELETE` sentinel that the single write hook maps
+to `deleteField()`. Verified across a real downgrade: 13 document keys → 8, with no event
+name, venue or date anywhere in the raw JSON.
+
+### CONVENTIONS.md — the live-sync pattern, written to be reused
+
+New top-level section documenting the pattern for Liga / Cup Taster / BBTC: the six
+mechanics (single atomic write hook · publish-gated trigger · fail-open-but-never-lie ·
+identity **and entitlement** copied at start · org-scoped doc with open read · rules deployed
+separately), the entitlement rule stated inline rather than by cross-reference, and the
+`merge:true` / `deleteField()` trap. Also updates the renderer subsection: `branded` is an
+instruction, and the renderer performs no `Gates` check.
+
+### Verified
+
+Full end-to-end against the emulator with a seeded `per_event` org — the claim Step 3 could
+not test on its own: signed-in organiser publishes → document appears with branding and pool
+rounds → **unauthenticated** viewer renders it → a locally-scored result does **not** reach
+the viewer until publish fires → after publish the viewer updates without a reload, glows
+2→1, with **exactly one** just-resolved flash. Plus screenshots of both surfaces from real
+Firestore snapshots: branded and unbranded, phone and desktop, a pool round, a publish
+update, and the podium takeover. Translation-layer suite 90/90.
+
+### Incidental — logged, not fixed here
+
+- **POA-68** — the shared toolbar (`.tb-primary`, `theme.css`) cannot hold a third primary
+  action on a phone: primaries never shrink or overflow, so the excess is silently clipped.
+  Measured at 375px: three primary buttons = 406px of content, pushing the "More" button —
+  and with it Save / Load / Reset — off the edge. Worked around module-locally (icon-only
+  primaries ≤430px), so **Throwdown's phone toolbar now diverges from the other three
+  modules** until it's fixed properly. MUA scope.
+- **POA-69** — gates evaluated on unauthenticated surfaces answer questions they have no
+  data for: tier gates fail **closed**, switch gates fail **open**. Three instances in this
+  ticket alone. An inert `audience_links_concluded` gate was dropped from
+  `audience/index.html` as part of this; removing it changed no behaviour.
+- **POA-64** confirmed untouched, despite this work sitting directly beside it.
+
+### Testing lessons — recorded as they were found
+
+This ticket keeps producing these, and they transfer in a way the individual bug fixes do
+not. Two more, both of which produced *confident and wrong* readings before being caught:
+
+- **Stale browser cache while verifying `shared/*` changes through a browser.** The disk
+  was correct, the hosting emulator served the correct bytes (`curl` confirmed), and the
+  browser ran an older copy anyway — reporting a feature as not working when it was.
+  **Cache-busting the HTML was not enough**: `shared/audience.js` is a separate request and
+  cached independently, so the page reloaded fresh while still executing the old shared
+  script. The fix that worked was an explicit `fetch(url, {cache:'reload'})` for each shared
+  asset *before* reloading the page. Any future session verifying a `shared/` change through
+  a browser will hit this; a `?cb=` on the page alone will not save you. Test runs now open
+  with an assertion that the loaded source actually contains the change under test.
+- **`Function.prototype.toString()` includes comments.** A probe asking "does the renderer
+  still check `Gates`?" matched the explanatory comment that had just been written *about
+  removing that check*, and reported the gate as present when it was gone. This is the same
+  failure mode as the Phase 1 CSS bug where `.aud-*/.pdf-*` inside a comment closed the
+  comment early: **text that describes code being read as code.** Replaced with a
+  behavioural probe — render with `branded:true` on a page where `Gates` denies, and check
+  what actually comes out.
+
+- **The preview pane drops query strings on `file://` URLs.** `?org=…` arrived empty, so the
+  page took its no-event branch and a render appeared to fail. Correct over
+  `http://127.0.0.1:5000`. Same family as the two above: the harness lying, not the code.
+
+Alongside the two already recorded in v5.14.0 below — *default configuration is not
+demonstration configuration* (the redemption demo used groups of 2 while the default is 3),
+and *fixtures shaped like the happy path validate the happy path* (Phase 1's fixtures were
+all complete, well-formed brackets).
+
+The through-line across all five: **every one was the verification apparatus producing a
+confident wrong answer, not the product failing.** Three said "broken" when it worked; two
+said "fine" when it didn't. Assertions are only as trustworthy as the thing running them,
+which is why anything visual still needs a rendered check by a human.
+
+---
+
 ## [5.14.0] — POA-65 / POA-66 / POA-67: Bracket-tree renderer round-shape corrections · July 2026
 
 Interrupts POA-63 Phase 2 between Step 2 and Step 3. Phase 2's translation layer fed the
