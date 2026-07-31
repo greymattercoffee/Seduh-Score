@@ -196,6 +196,109 @@ POA-76 alongside POA-73; both are `continueAfterWildCard()` failing to honour th
 Every HTML assertion in this session passed against a page that was displaying that button.
 It took rendering the page and looking at it.
 
+### POA-73 and POA-76 share a root cause — verified, not assumed
+
+`advanceBracket()`'s post-round logic exists in **three** hand-copies:
+`advanceBracket()` itself, `skipWildCard()`, and `continueAfterWildCard()`. Comparing all three
+directly rather than inferring:
+
+| | 3rd-place branch | consumes its own trigger |
+|---|---|---|
+| `advanceBracket()` | ✓ | ✓ (pauses via `pendingWildCard`) |
+| `skipWildCard()` | ✓ | ✓ (`wildCards[rn]=null`, clears pending) |
+| `continueAfterWildCard()` | ✗ **POA-73** | ✗ **POA-76** |
+
+`skipWildCard()` has both properties; `continueAfterWildCard()` has neither. One fix — make it
+consume its trigger and share the advancement tail — closes both tickets. Not fixed here:
+advancement logic, stop-and-flag, three weeks from freeze.
+
+### POA-77 — redemption can produce a group of ONE, reachable under shipped defaults
+
+`buildRedemptionGroups(losers, groupSize)` chunks a shuffled pool by fixed size. Whenever
+`losers % groupSize === 1`, the trailing chunk holds a single brewer, who "wins" a redemption
+group with no opponent: 4 losers → `[3,1]`, 7 → `[3,3,1]`. **8 competitors, redemption on,
+revival off — default settings, no opt-in — reaches it.** `BRACKET-LIVE-SPEC.md` §3 anticipates
+"a possibly-smaller trailing group," but smaller should mean 2, not 1. Not a rendering defect —
+the pool card, projector, and PDF all render a singleton group correctly and honestly; the
+tournament structure feeding them is wrong. Not fixed here.
+
+### The combinatorial sweep — five defects in two days, all found only by playing whole tournaments
+
+`scripts/test-throwdown-sweep.js` — **new**. Plays all 80 combinations of field size (8/12/13/16/
+**32**) × redemption × revival × 3rd place × revival policy (draw-always / draw-once / skip) as
+complete tournaments. 32 was added because it is **the confirmed real event size**, not a
+convenient round number. On the shipped default (redemption round 1 only), 50 of 80 combinations
+are clean; the 30 with issues are exactly POA-73 (non-terminating, and its downstream
+label-collision symptom) and POA-77 — nothing new at any field size, including 32.
+
+The through-line stated plainly: five blocking defects in Throwdown's advancement logic
+(POA-70/71, POA-73, POA-76, POA-77) surfaced in two days, every one pre-existing, every one
+invisible to 89 passing unit assertions, because each prior ticket pointed at one flag and the
+defects live in the *combinations*. `play()`/`makeApi()`/`POOL` are exported behind a
+`require.main` guard so other scripts (the 32-competitor verification below) can drive the exact
+same harness rather than re-deriving the extraction logic.
+
+### 32-competitor verification — the real event configuration, full run + rendered
+
+**Redemption off, revival off, 3rd place on — 30 Aug's actual shape.** Zero structural issues:
+`Round 1 → Round 2 → Quarter Finals → Semi Finals → 3rd Place → Final`, five main-bracket rounds
+(32→16→8→4→2→1), champion resolved. Rendered through the real `Audience.renderBracketTree()`,
+not a hand-authored fixture:
+
+- **POA-65 confirmed at genuine five-round depth.** The Final is the true last published round,
+  renders as the tree's single centre panel with exactly one match and a champion card — not
+  truncated, not one of the mirrored side columns.
+- **POA-67 confirmed.** 3rd Place renders as exactly one column, holding exactly one match.
+- No `undefined` or stray `TBD` anywhere in the rendered tree.
+- **9 mirrored columns** (5 left, 4 right) **+ 1 centre panel**, measured via
+  `getBoundingClientRect()`: **164px on the left, 205px on the right** — the same round rendering
+  at two different widths. See POA-75 immediately below.
+
+### POA-75 — asymmetric column widths, re-decided and fixed
+
+Originally logged (this session, above) as "asymmetric column *sets*" and filed as a legibility
+nice-to-have. The 32-competitor measurement changed the read: it is not different round
+*sequences* per side, it is the **same round rendering at different widths** — Round 1's cards at
+164px left vs 205px right, a ~20% mismatch, reached by **3rd Place alone, no redemption
+involved** — the shipping configuration. Re-decided as a fix, not a backlog item; three weeks was
+judged enough for a self-contained change.
+
+**Root cause.** `.aud-bkt-side{flex:1}` and `.aud-bkt-col{flex:1}` (`shared/theme.css`, unchanged)
+— each side divides its own equal width budget by however many `.aud-bkt-col` children *it*
+holds. A pool round (POA-66) or single-match round like 3rd Place (POA-67) only ever adds a
+column to the left, never mirrored, so an extra left column silently narrows every column on the
+left relative to its counterpart on the right, even for the identical round.
+
+**Fix.** `_bktTreeHTML()` (`shared/audience.js`) now emits a bare, unlabelled
+`<div class="aud-bkt-col" aria-hidden="true">` spacer on the opposite side wherever that
+imbalance would otherwise occur — matching flex-basis without inventing a labelled empty round
+(POA-67 already rejected that as reading like a bug). Verified: all 10 columns (9 real + 1
+spacer) now render at a uniform 164px, down from 164/205. `Audience.renderBracketTree()` has
+exactly one production call site (`audience/bracket.html`) — `audience/index.html` deliberately
+doesn't use it (§8) — so this is a single-surface change.
+
+New guard: `scripts/test-bracket-tree-symmetry.js` — extracts `_bktTreeHTML()` and its pure
+string-builder dependencies (no `document` calls below `renderBracketTree()` itself) and asserts
+left/right `.aud-bkt-col` count parity, which is what produces width parity. Confirmed to fail
+without the fix and pass with it, checked both directions via `git stash`.
+
+**Legibility, quantified but not resolved.** 164px minus ~14px padding each side leaves ~136px
+for a name. Whether the longest name on the real entry list reads from the back of the room at
+that width is a venue-rehearsal question, not one this session could answer — measure it there
+against real names.
+
+### A fourth instance of the verification environment lying about the artifact
+
+Same family as the three already recorded in v5.15.0 (stale shared-script cache,
+`Function.prototype.toString()` matching its own comment, dropped query strings on `file://`
+URLs). Producing a projector screenshot for the 32-competitor verification required the render to
+happen in a browser; the first attempt referenced `shared/audience.js` via an absolute
+`file:///…` `<script src>` from a page that was itself being served over `http://`. The browser
+silently blocked it as mixed content: `typeof Audience === 'undefined'`, **no console error**,
+the render simply never ran. Looked identical to a code failure until inspected directly. Fixed
+by inlining `theme.css` and `audience.js` into the generated verification page rather than
+referencing either — removes the whole class of failure, not just this instance.
+
 ### Files
 
 - `throwdown/index.html` — `isPoolRound()`/`redemptionGroupView()`; pool cards on the Bracket
@@ -204,12 +307,17 @@ It took rendering the page and looking at it.
 - `scripts/test-live-bracket.js` — projection assertions replaced with their inverse, plus a
   direct guard that a multi-match last round is not truncated (89 assertions)
 - `scripts/test-throwdown-fullrun.js` — **new**
+- `scripts/test-throwdown-sweep.js` — **new**, POA-73/76/77 discovery, extended to 32 competitors
+- `scripts/test-bracket-tree-symmetry.js` — **new**, POA-75 regression guard
+- `shared/audience.js` — `_bktTreeHTML()` emits a same-width spacer column (POA-75). The only
+  change to this file across the whole POA-70–77 arc; every other fix in that arc left it at
+  zero diff, confirmed via `git diff` each time.
 - `CONVENTIONS.md` — seventh live-sync mechanic
 - `BRACKET-LIVE-SPEC.md` §5 — projection removal recorded with the full arc retained
   *(gitignored — local only, not in this commit range)*
 
-`shared/audience.js`, `audience/bracket.html`, `audience/index.html`, `firestore.rules`,
-`bbtc/`, `liga/`, `cup-taster/` — **zero diff**, confirmed via `git diff`.
+`audience/bracket.html`, `audience/index.html`, `firestore.rules`, `bbtc/`, `liga/`,
+`cup-taster/` — **zero diff**, confirmed via `git diff`.
 
 ---
 
