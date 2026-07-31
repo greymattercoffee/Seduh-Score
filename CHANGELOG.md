@@ -147,23 +147,60 @@ Verified **identical on v5.15.0** — pre-existing, not introduced here. Not fix
 advancement logic, which the handoff placed under stop-and-flag, three weeks from freeze.
 Logged as its own ticket.
 
-### Incidental, out of scope — two more instances of the same defect
+### POA-74 — the PDF export, the last surface holding the same defect
 
-`generateThrowdownPDF()` reads `p.t1`/`p.votes1` unconditionally in **two** places (the match
-log table and the bracket page), so a PDF exported from an event with redemption prints
-`undefined` in the results table and `TBD`/`TBD` in the printed bracket. Same defect class as
-POA-64/70/71, same file, and `redemptionGroupView()` already supplies what it needs. Not
-touched — the PDF export is a separate gated feature with its own print CSS and needs its own
-verification pass. Flagged for a scoped decision.
+`generateThrowdownPDF()` read `p.t1`/`p.votes1` unconditionally in **two** places. A report
+exported from any event that used redemption printed `undefined` for every name and score in
+the match-log table, and `TBD` / `TBD` with `0 – 0` on the printed bracket page. Fourth and
+fifth instances of the pair-shape assumption; both pages confirmed broken pre-fix and clean
+after. Own commit and own verification, because the PDF is a separately gated path
+(`pdf_branding`) with its own print stylesheet.
+
+**A layout defect underneath it, found by measuring rather than asserting.**
+`.pdf-td-bracket-team` carries `flex:1` — which for a *pair* centres the score between two
+names unambiguously, and is why it has never been a problem. With three brewers it stretched
+every name to a third of the row and parked each score **0px from the next brewer's name and
+~200px from its own**, so `Darwisyah [1] Husna Azlan` read as if the 1 were Husna's. Each
+name+score is now its own flex group; measured after, every score sits ~8px from its own name
+and 114–136px from the next. The markup was correct and every HTML assertion passed — only
+geometry showed it.
 
 `computeParticipantRounds()` branches on `r.phase === 'redemption'` correctly and always has —
 the one place that got it right, and the precedent the new helpers generalise.
 
+### Looking at CSS nobody had ever rendered
+
+`.bslot.redemption.active` and `.hr-rb.rd` existed in the stylesheet and were **unused** —
+styles for a redemption card and a redemption history badge that had never been on screen,
+because the code that would have emitted them never did. Assertions can confirm such rules
+exist and match; they cannot confirm anyone has looked. That is the category the Phase 1
+invisible-tree bug came from, so the new pixels got a rendered pass across every state:
+unscored (`.active`), mid-vote, resolved-on-votes, resolved-by-tiebreaker, and the History
+rows. All correct, no new CSS required anywhere in the session.
+
+**That pass found a bug nothing else had.** See below.
+
+### Found during the visual pass, NOT fixed — a stale, live, destructive button
+
+The **"🃏 REVIVAL DRAW!" reveal panel persists after the organiser has already pressed
+"Continue → Next Round"**, sitting below the redemption round it just created, with the button
+still live. `rBracket()` shows it while `b.mainRoundsDone === drawnRound`, and neither
+`continueAfterWildCard()` nor the redemption branch of `advanceBracket()` increments
+`mainRoundsDone` — so it stays visible for that whole round and the next.
+
+A second tap re-runs `continueAfterWildCard()`, re-collects the same losers, and pushes a
+**duplicate `Redemption Round 1`**. Verified identical on v5.15.0 — pre-existing. Logged as
+POA-76 alongside POA-73; both are `continueAfterWildCard()` failing to honour the contract
+`advanceBracket()` and `skipWildCard()` follow, and they want fixing together.
+
+Every HTML assertion in this session passed against a page that was displaying that button.
+It took rendering the page and looking at it.
+
 ### Files
 
 - `throwdown/index.html` — `isPoolRound()`/`redemptionGroupView()`; pool cards on the Bracket
-  tab; pool rows in the audience overlay and History tab; `tiebreaker` cleared on reopen;
-  projection removed; `name: null`
+  tab; pool rows in the audience overlay, History tab, PDF match log and PDF bracket page;
+  `tiebreaker` cleared on reopen; projection removed; `name: null`
 - `scripts/test-live-bracket.js` — projection assertions replaced with their inverse, plus a
   direct guard that a multi-match last round is not truncated (89 assertions)
 - `scripts/test-throwdown-fullrun.js` — **new**
