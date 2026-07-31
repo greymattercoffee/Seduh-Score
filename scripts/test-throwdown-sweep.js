@@ -46,8 +46,13 @@ function makeApi(S){
   return new Function('S','Gates','save','render','alert',src)(
     S,{canAccess:()=>({allowed:true})},()=>{},()=>{},()=>{});
 }
+// 32 names — the confirmed real event size (Girls Got Drip's actual field).
+// Kept as short single tokens so rBracket()/rHistory() output stays legible
+// when dumped to a terminal; nothing in the harness depends on realism here.
 const POOL=['Aliya','Darwisyah','Seri','Husna','Nadia','Fatin','Raihana','Zulfiqah',
-'Amirah','Norafiza','Syaza','Haziqah','Iman','Balqis','Wardah','Adlina'];
+'Amirah','Norafiza','Syaza','Haziqah','Iman','Balqis','Wardah','Adlina',
+'Qistina','Farah','Nurul','Aisyah','Batrisyia','Nabila','Elena','Sofea',
+'Mia','Alya','Damia','Ellisya','Puteri','Aqilah','Hana','Rania'];
 
 const MAX_STEPS = 60;
 
@@ -116,7 +121,9 @@ function play(cfg){
 }
 
 const results=[];
-[8,12,13,16].forEach(n=>{
+// 32 added because it is the confirmed real event size — the sweep must cover
+// the field that will actually be used, not just convenient small numbers.
+[8,12,13,16,32].forEach(n=>{
  [false,true].forEach(redemption=>{
   [false,true].forEach(wildCard=>{
    [false,true].forEach(thirdPlace=>{
@@ -133,17 +140,24 @@ const results=[];
  });
 });
 
-const bad=results.filter(r=>r.issues.length);
-console.log('runs: '+results.length+'   clean: '+(results.length-bad.length)+'   with issues: '+bad.length+'\n');
-const byIssue={};
-bad.forEach(r=>r.issues.forEach(i=>{
-  const k=i.replace(/at .*/,'at <round>').replace(/\(hit \d+ steps\)/,'');
-  (byIssue[k]=byIssue[k]||[]).push(r.label);
-}));
-Object.keys(byIssue).forEach(k=>{
-  console.log('■ '+k+'   ['+byIssue[k].length+' combos]');
-  byIssue[k].slice(0,8).forEach(l=>console.log('    '+l));
-  if(byIssue[k].length>8) console.log('    … +'+(byIssue[k].length-8)+' more');
-  console.log('');
-});
-if(!bad.length) console.log('no structural failures in any combination');
+// Guard the sweep run/report behind require.main so other scripts (the
+// projector-render check, e.g.) can `require()` this file for `play`/`makeApi`/
+// `POOL` without re-deriving the extraction logic or re-triggering the sweep.
+if (require.main === module) {
+  const bad=results.filter(r=>r.issues.length);
+  console.log('runs: '+results.length+'   clean: '+(results.length-bad.length)+'   with issues: '+bad.length+'\n');
+  const byIssue={};
+  bad.forEach(r=>r.issues.forEach(i=>{
+    const k=i.replace(/at .*/,'at <round>').replace(/\(hit \d+ steps\)/,'');
+    (byIssue[k]=byIssue[k]||[]).push(r.label);
+  }));
+  Object.keys(byIssue).forEach(k=>{
+    console.log('■ '+k+'   ['+byIssue[k].length+' combos]');
+    byIssue[k].slice(0,8).forEach(l=>console.log('    '+l));
+    if(byIssue[k].length>8) console.log('    … +'+(byIssue[k].length-8)+' more');
+    console.log('');
+  });
+  if(!bad.length) console.log('no structural failures in any combination');
+}
+
+module.exports = { play, makeApi, POOL, N, between, ex, SRC };
