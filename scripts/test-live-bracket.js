@@ -105,9 +105,9 @@ console.log('\nCASE 1 — real shipped demo data (buildThrowdownDemo, 12 partici
 const demo = buildThrowdownDemo();
 const live = buildLiveBracketData(demo.bracket, demo.participants);
 
-// 3 real rounds (Round 1 · Redemption Round 1 · Round 3) + 3 projected
-// (Quarter Finals, Semi Finals, Final) because Round 3 leaves 5 advancing.
-eq(live.rounds.length, 6, 'three real rounds + three projected rounds');
+// Exactly the three rounds Throwdown has generated. Projection was removed in
+// POA-72 — the tree shows only rounds that exist.
+eq(live.rounds.length, 3, 'three real rounds, nothing projected (POA-72)');
 eq(live.rounds[0].roundLabel, 'Round 1', 'round 0 label passes through verbatim');
 eq(live.rounds[1].roundLabel, 'Redemption Round 1', 'redemption round IS included (POA-66)');
 eq(live.rounds[1].kind, 'pool', 'redemption round carries kind:"pool"');
@@ -130,7 +130,7 @@ const byeA = r3.slots[8], byeB = r3.slots[9];
 eq(byeA.name, 'Syaza Irdina', 'bye slot carries the advancing name');
 eq(byeA.isBye, true, 'bye slot flagged isBye');
 eq(byeA.score, null, 'bye carries no score (never played)');
-eq(byeB.name, '', 'bye partner slot is empty, not undefined');
+eq(byeB.name, null, 'bye partner slot is null per spec §3, not undefined');
 eq(byeB.isBye, false, 'bye partner is not itself flagged isBye');
 
 // Revival markers — bracket-wide derivation
@@ -147,27 +147,36 @@ ok(allSlots.filter(s => !s.name).every(s => s.revivalMarker === false),
 eq(live.champion, null, 'champion null while bracket.phase !== done');
 eq(live.runnerUp, null, 'runnerUp null while bracket.phase !== done');
 
-/* ══ CASE 1b — projected rounds (the renderer's converging-tree requirement) ══ */
-console.log('\nCASE 1b — projected rounds fill the shape Throwdown has not generated yet');
-const projected = live.rounds.slice(3);
-eq(projected.map(r => r.roundLabel).join(' → '), 'Quarter Finals → Semi Finals → Final',
-   'projection halves 5 advancing → 3 → 2 → 1 with the right labels');
-eq(projected[0].slots.length, 6, 'Quarter Finals projected at 3 matches');
-eq(projected[1].slots.length, 4, 'Semi Finals projected at 2 matches');
-eq(projected[2].slots.length, 2, 'Final projected at exactly 1 match');
-ok(projected.every(r => r.slots.every(s => s.name === '' && s.score === null && !s.isBye)),
-   'every projected slot is empty — no fabricated names or scores');
-ok(projected.every(r => r.slots.every(s => s.revivalMarker === false)),
-   'projected slots never carry a revival badge');
+/* ══ CASE 1b — NO projection; the last round may hold many matches ═════════ */
+console.log('\nCASE 1b — only real rounds are published, and a multi-match last round survives');
 
-// THE reason projection exists: the renderer renders only finalMatches[0] of
-// the LAST round, so the last round must hold exactly one match or live
-// matches are silently dropped.
-eq(live.rounds[live.rounds.length - 1].roundLabel, 'Final', 'last round is the Final');
-eq(rendererMatchCount(live.rounds[live.rounds.length - 1].slots), 1,
-   'last round holds exactly ONE match — nothing can be dropped by the renderer');
+// Every published round corresponds to a round Throwdown actually generated.
+eq(live.rounds.map(r => r.roundLabel).join(' → '),
+   'Round 1 → Redemption Round 1 → Round 3',
+   'published rounds are exactly Throwdown’s generated rounds');
+ok(live.rounds.every(r => r.slots.some(s => s.name)),
+   'no empty projected column is published — every round has real competitors');
+
+// This is the case POA-65 fixed and projection has been MASKING in production
+// ever since: mid-event the last round is the round being played, with N
+// matches, not a one-match Final. With projection gone this is now the normal
+// shape of every live publish, so it is load-bearing rather than theoretical.
+const lastRound = live.rounds[live.rounds.length - 1];
+eq(lastRound.roundLabel, 'Round 3', 'last round is the round being PLAYED, not a Final');
+eq(rendererMatchCount(lastRound.slots), 5,
+   'renderer sees all 5 matches of the multi-match last round — none truncated');
 const realMatchesKept = rendererMatchCount(r1.slots) + rendererMatchCount(r3.slots);
 eq(realMatchesKept, 11, 'all 11 real matches survive into renderable columns');
+eq(live.rounds.reduce((n, r) => n + rendererMatchCount(r.slots), 0) - rendererMatchCount(pool.slots),
+   11, 'no match is invented and none is lost');
+
+// The arithmetic that killed projection (POA-72): Round 1's six winners plus a
+// revival plus up to four redemption survivors is 9–11 into the next round.
+// Projection modelled pure halving and drew SIX slots for them.
+eq(Math.ceil(rendererMatchCount(r1.slots) / 2) * 2, 6,
+   'pure-halving projection would have drawn 6 Quarter Final slots…');
+eq(r3.slots.filter(s => s.name).length, 9,
+   '…but the real next round holds 9 competitors — the shape was unachievable');
 
 /* ══ CASE 2 — the 0-vs-0 trap (the real bug this layer exists to avoid) ══ */
 console.log('\nCASE 2 — unplayed matches must not publish as scored 0–0');
@@ -204,8 +213,7 @@ function pendingCount(round) {
 eq(pendingCount(r1), 0, 'Round 1 (fully scored) glows on zero matches');
 eq(pendingCount(r3), 2, 'Round 3 glows on exactly its 2 genuinely-unplayed matches');
 ok(!rendererMatchPending(byeA, byeB), 'a bye never glows');
-ok(projected.every(r => pendingCount(r) === 0),
-   'projected (empty) rounds never glow — glow requires a name in both slots');
+eq(pendingCount(pool), 0, 'a pool round never glows — the rule is pair-shaped (POA-66)');
 
 // The Phase 1 bug in its live form: an unscored LATER round must not glow
 // while an EARLIER round is still unplayed. Build that exact situation.
@@ -226,7 +234,7 @@ const twoRound = {
 const tr = buildLiveBracketData(twoRound, []);
 eq(pendingCount(tr.rounds[0]), 2, 'Quarterfinals glow — both matches locked in and unplayed');
 eq(pendingCount(tr.rounds[1]), 0, 'Semi Finals do NOT glow before Quarterfinals are scored');
-eq(tr.rounds.length, 2, 'no projection added — last round already holds exactly one match');
+eq(tr.rounds.length, 2, 'exactly the two rounds given — nothing appended (POA-72)');
 
 /* ══ CASE 4 — uneven participant count, via Throwdown's own buildPairs ═══ */
 console.log('\nCASE 4 — uneven bracket (13 participants, built by Throwdown’s buildPairs)');
@@ -249,15 +257,17 @@ eq(rendererMatchCount(ul.rounds[0].slots), 7, 'renderer sees all 7 matches, none
 const named13 = ul.rounds[0].slots.filter(s => s.name).length;
 eq(named13, 13, 'all 13 competitors survive translation');
 
-// Before projection this case rendered ONE match and TWO names — 11 of 13
-// competitors vanished off the projector. This is the regression guard.
-eq(ul.rounds.map(r => r.roundLabel).join(' → '), 'Round 1 → Quarter Finals → Semi Finals → Final',
-   '7 advancing projects to QF → SF → Final');
-eq(rendererMatchCount(ul.rounds[ul.rounds.length - 1].slots), 1, 'projected Final holds one match');
+// THE POA-65 regression guard, now unmasked. Before that fix this rendered ONE
+// match and TWO names — 11 of 13 competitors vanished off the projector.
+// Projection used to hide it by appending a one-match Final; with projection
+// gone (POA-72) the 7-match round IS the last round, so the fix carries it
+// alone. This is the assertion that would fail first if POA-65 regressed.
+eq(ul.rounds.length, 1, 'one generated round → one published round, nothing appended');
+eq(ul.rounds[0].roundLabel, 'Round 1', 'the only round is the real one');
+eq(rendererMatchCount(ul.rounds[ul.rounds.length - 1].slots), 7,
+   'last round holds all SEVEN matches — the renderer truncates nothing');
 const renderable13 = ul.rounds.reduce((n, r) => n + rendererMatchCount(r.slots), 0);
-eq(renderable13, 14, 'all 7 real + 7 projected matches are renderable, none truncated');
-ok(ul.rounds.slice(1).every(r => r.slots.every(s => s.name === '')),
-   'projected rounds invent no competitors');
+eq(renderable13, 7, 'all 7 real matches are renderable, none invented, none dropped');
 
 /* ══ CASE 5 — champion / runner-up at a completed bracket ════════════════ */
 console.log('\nCASE 5 — champion & runner-up');
@@ -327,23 +337,20 @@ eq(tp.slots[1].score, 2, 'both tied scores published honestly');
 eq(tp.slots[1].isWinner, true, 'tiebreaker winner is stated explicitly');
 ok(!tp.slots[0].isWinner, 'the tied loser is not flagged as winner');
 
-// Projection must not be seeded from a pool round.
+// A pool round as the LAST round — the live state the organiser sits in while
+// scoring redemption. Nothing may be appended after it (POA-72), and the pool
+// itself must survive intact as the trailing column.
 const poolLast = { phase: 'redemption', revivedNames: [], rounds: [
   { label: 'Round 1', phase: 'main', pairs: buildPairs(['A','B','C','D','E','F','G','H']) },
   { label: 'Redemption Round 1', phase: 'redemption', pairs: [
     { id: 'x', brewers: ['B','D','F'], votes: { B: 0, D: 0, F: 0 }, tiebreaker: null, winner: null }] },
 ]};
 const pl = buildLiveBracketData(poolLast, []);
+eq(pl.rounds.length, 2, 'pool as last round — nothing projected after it');
 eq(pl.rounds[1].kind, 'pool', 'pool round present');
-eq(pl.rounds[pl.rounds.length - 1].roundLabel, 'Final', 'projection still terminates in a Final');
-eq(rendererMatchCount(pl.rounds[pl.rounds.length - 1].slots), 1, 'projected Final holds one match');
-// Round 1 holds 4 matches → 4 advancing → 'Semi Finals' then 'Final', per
-// getNextRoundLabel()'s own thresholds (<=4 is a semi, not a quarter). Had the
-// pool seeded the chain instead, its 3 slots would have produced 1 match and
-// no projection at all.
-eq(pl.rounds.map(r => r.roundLabel).join(' → '),
-   'Round 1 → Redemption Round 1 → Semi Finals → Final',
-   'projection seeds from the last PAIR-SHAPED round (4 advancing), not the pool');
+eq(pl.rounds[pl.rounds.length - 1].roundLabel, 'Redemption Round 1',
+   'the trailing column is the pool itself, not an invented Final');
+eq(pl.rounds[1].slots.length, 3, 'all three brewers survive as the last column');
 
 /* ══ CASE 6 — degenerate inputs (fail-open posture) ══════════════════════ */
 console.log('\nCASE 6 — degenerate input never throws');

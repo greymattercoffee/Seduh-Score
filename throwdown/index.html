@@ -746,7 +746,12 @@ function getNextRoundLabel(b, count) {
    emit the same thing later without exposing their internals either.          */
 function tdLiveSlot(name, score, isBye, revivedNames) {
   return {
-    name: name || '',
+    // BRACKET-LIVE-SPEC.md §3 specifies `string | null`. This emitted '' until
+    // POA-72; both render as '—' downstream (every consumer tests truthiness,
+    // never equality against ''), so the change is behaviour-neutral and the
+    // spec is now what the code does. The '' was also doing double duty as
+    // projection's empty-slot marker — that coupling went with projection.
+    name: name || null,
     score: score,
     isBye: !!isBye,
     // Bracket-wide, not per-slot: Throwdown has no revivalMarker field (see
@@ -846,67 +851,32 @@ function buildLiveBracketData(bracket, participants) {
       : tdLiveBracketRound(r, revived);
   });
 
-  // ── Project the remaining bracket shape ────────────────────────────────
-  // WHY THIS EXISTS NOW IS NOT WHY IT WAS BUILT. Read this before removing it.
+  // ── No projection: the tree shows only rounds that exist ────────────────
+  // Projection was REMOVED here (POA-72). It is not coming back without new
+  // arithmetic, so the reasoning is kept rather than the code.
   //
-  // Originally this worked around a renderer bug: renderBracketTree() treated
+  // It was built as a POA-65 workaround: renderBracketTree() treated
   // rounds[length-1] as THE Final unconditionally and rendered only its first
   // match, so a live bracket — whose last round mid-event is the round being
-  // played, not the Final — silently lost matches (a 13-competitor bracket
-  // rendered 1 match and 2 names). **That bug is fixed** (POA-65). Measured
-  // after the fix, the unprojected mid-tournament bracket renders all 11 of
-  // its matches. Projection is no longer load-bearing for correctness.
+  // played, not the Final — silently lost matches. POA-65 fixed that, and
+  // projection stopped being load-bearing for correctness.
   //
-  // It is retained for an audience-facing reason instead. The originating
-  // POA-63 request was a printed bracket poster — a full 24-slot bracket with
-  // every slot drawn and empty, waiting to be filled — kept on the projector
-  // throughout the event (Girls Got Drip). That complete shape IS the feature:
-  // without projection, mid-tournament the room sees two mirrored halves
-  // meeting at nothing, and the tournament has no visible destination until
-  // the Final is generated. With it, the room sees where the whole thing is
-  // heading. On an audience display that is the point, not decoration.
+  // It was then RETAINED for the printed-bracket-poster model: a full bracket
+  // with every slot drawn and empty, so the room sees the tournament's
+  // destination rather than two halves meeting at nothing.
   //
-  // So: project the rounds Throwdown hasn't generated yet as empty TBD
-  // columns, halving down to a one-match Final. Empty slots carry no name, so
-  // the renderer's glow (needs a name) and just-resolved flash (needs a value
-  // to appear) both stay correctly silent on them.
+  // That rationale assumed the projected shape was POSSIBLE. It is not.
+  // Projection seeds from the last pair-shaped round and halves by ceil(n/2),
+  // which models pure single-elimination. Revival and redemption ADD
+  // competitors back: six Round 1 winners + 1 revival + up to 4 redemption
+  // survivors is nine to eleven going into the Quarter Finals, and the
+  // projected chain drew six slots for them. It was wrong whenever either
+  // feature was enabled — which for Throwdown is normal operation, not an
+  // edge case. An empty bracket shape only reassures if it is achievable.
   //
-  // Caveat, deliberate and accepted (BRACKET-LIVE-SPEC.md §5): with redemption
-  // ON, the next main round's real size is NOT predictable from this round —
-  // redemption winners merge back in, so the demo's 6-match Round 1 was
-  // followed by a 9-competitor round, not a 6-competitor one. Projected
-  // columns can therefore be wrong until the real round is generated, at
-  // which point the next publish overwrites them. Self-correcting.
-  function projectedLabel(advancing, roundNum) {
-    // Mirrors getNextRoundLabel()'s thresholds — same meaning, without
-    // needing the live bracket object that function reads.
-    if (advancing <= 2) return 'Final';
-    if (advancing <= 4) return 'Semi Finals';
-    if (advancing <= 8) return 'Quarter Finals';
-    return 'Round ' + roundNum;
-  }
-
-  // Project from the last PAIR-SHAPED round. A pool round's slot count says
-  // nothing about how many advance from it (that is S.redemptionCap, merged
-  // with the main winners), so it cannot seed the halving chain — which is
-  // simply the redemption caveat below in its sharpest form.
-  let lastBracketIdx = -1;
-  for (let i = out.rounds.length - 1; i >= 0; i--) {
-    if (out.rounds[i].kind !== 'pool') { lastBracketIdx = i; break; }
-  }
-  if (lastBracketIdx !== -1) {
-    const lastRound = out.rounds[lastBracketIdx];
-    let advancing = Math.floor(lastRound.slots.length / 2); // one winner per match, byes included
-    let roundNum = out.rounds.length;
-    while (advancing >= 2) {
-      const matches = Math.ceil(advancing / 2); // buildPairs(): floor(n/2) pairs, +1 bye when odd
-      roundNum++;
-      const slots = [];
-      for (let i = 0; i < matches * 2; i++) slots.push(tdLiveSlot('', null, false, revived));
-      out.rounds.push({ roundLabel: projectedLabel(advancing, roundNum), slots: slots });
-      advancing = matches;
-    }
-  }
+  // Consequence to keep in mind: the last round in `rounds[]` is now routinely
+  // a multi-match round, which is exactly the case POA-65 fixed and projection
+  // has been masking in production ever since. That fix is now load-bearing.
 
   // Same Final lookup as maybeArchiveChampion() / showAudience() / the PDF
   // export — one established convention, not a fourth variant. Gated on
