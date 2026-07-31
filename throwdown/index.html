@@ -1449,6 +1449,24 @@ function rHistory() {
         const revBadge = name => revivedNames.includes(name)
           ? ' <span style="font-size:9px;font-weight:700;color:var(--pu);background:var(--pu-bg);border:1px solid var(--pu-bd);border-radius:3px;padding:1px 4px">⬆ R</span>'
           : '';
+
+        // Third instance of the same pair-shape assumption (POA-64 named this
+        // one in its own ticket: "same done.map() pattern reading p.t1/
+        // p.votes1, looks like the identical bug"). It was. .hr-row already
+        // wraps and .hr-rb.rd already exists, so N brewers need no new CSS.
+        if (p.phase === 'redemption') {
+          const v = redemptionGroupView(p, revivedNames);
+          return '<div class="hr-row" style="border-left:3px solid '+col.fg+'">'
+            + '<div class="hr-rb rd">'+p.roundLabel+'</div>'
+            + v.brewers.map((br, i) =>
+                (i ? '<div class="hvs">·</div>' : '')
+                + '<div class="hr-t'+(br.isWinner?' w':'')+'">'+br.name+revBadge(br.name)+'</div>'
+                + '<div class="hr-v" style="color:'+(br.isWinner?'var(--am)':'var(--txt3)')+'">'+br.votes+'</div>'
+              ).join('')
+            + (v.tiebreaker ? '<div class="hvs" style="color:var(--pu)">tiebreaker</div>' : '')
+            + '</div>';
+        }
+
         return '<div class="hr-row" style="border-left:3px solid '+col.fg+'">'
           + '<div class="hr-rb" style="background:'+col.bg+';border-color:'+col.bd+';color:'+col.fg+'">'+p.roundLabel+'</div>'
           + '<div class="hr-t'+(p.winner===p.t1?' w':'')+'">'+p.t1+revBadge(p.t1)+'</div>'
@@ -1517,9 +1535,35 @@ function showAudience() {
     else { grouped.push({ label: p.roundLabel, phase: p.phase, matches: [p] }); }
   });
 
+  // A resolved redemption group, for the audience overlay. Same defect and the
+  // same fix as the Bracket tab's rdPoolCard (POA-71) — this function read
+  // p.t1/p.votes1 off a group that has neither and printed
+  // "undefined undefined vs undefined undefined" (POA-64). Sibling of that fix,
+  // not a neighbour: one false assumption, two functions, same file.
+  // Presentation is deliberately NOT shared — a pool of three has no "A vs B"
+  // row to borrow, and this surface is projector-scale hardcoded hex per
+  // CONVENTIONS, not the Bracket tab's token-driven cards.
+  function rdAudRow(g, col) {
+    const v = redemptionGroupView(g, revivedNames);
+    return '<div style="padding:.75rem 1rem;background:#fff;border-radius:8px;margin-bottom:6px;box-shadow:0 1px 4px rgba(0,0,0,.10)">'
+      + v.brewers.map(br =>
+          '<div style="display:flex;align-items:center;gap:10px;padding:3px 0">'
+          + '<span style="flex:1;font-size:17px;font-weight:'+(br.isWinner?800:500)+';color:'+(br.isWinner?'#1C1917':'#9CA3AF')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+br.name+'</span>'
+          + (br.isRevived ? revBadge : '')
+          + '<div style="font-size:28px;font-weight:900;color:'+(br.isWinner?col.bar:'#D1D5DB')+';flex-shrink:0;min-width:34px;text-align:center;line-height:1">'+br.votes+'</div>'
+          + '</div>'
+        ).join('')
+      // Stated outright, because a tiebreak group's votes are genuinely tied —
+      // the room would otherwise see a tie with a winner and no explanation.
+      + (v.tiebreaker ? '<div style="font-size:12px;font-weight:800;color:'+col.fg+';text-align:right;padding-top:5px">Tiebreaker → '+v.winner+'</div>' : '')
+      + '</div>';
+  }
+
   const histHTML = grouped.length ? grouped.map(group => {
     const col = audCol(group.label, group.phase);
     const matchRows = group.matches.map(p => {
+      if (p.phase === 'redemption') return rdAudRow(p, col);
+
       const t1win = p.winner === p.t1;
       const t2win = p.winner === p.t2;
       const t1rev = revivedNames.includes(p.t1);
