@@ -1620,20 +1620,40 @@ function generateThrowdownPDF() {
       + '</div>'
     : '<p class="hint">Tournament still in progress — no champion confirmed yet.</p>';
 
-  // Match log — same data source as rHistory()
+  // Match log — same data source as rHistory(), and `phase` is carried for the
+  // same reason: a redemption entry is a GROUP, not a pair (POA-74).
+  const pdfRevived = b ? (b.revivedNames || []) : [];
   const done = b
-    ? b.rounds.flatMap(r => r.pairs.filter(p => p.winner && !p.bye).map(p => ({ ...p, roundLabel: r.label })))
+    ? b.rounds.flatMap(r => r.pairs.filter(p => p.winner && !p.bye).map(p => ({ ...p, roundLabel: r.label, phase: r.phase })))
     : [];
-  const matchRows = done.map(p =>
-    '<tr>'
-    + '<td><span class="pdf-td-rb">' + p.roundLabel + '</span></td>'
-    + '<td class="' + (p.winner === p.t1 ? 'pdf-td-win' : '') + '">' + p.t1 + '</td>'
-    + '<td style="text-align:center">' + p.votes1 + '</td>'
-    + '<td style="text-align:center;color:#8a7f73;font-size:11px">vs</td>'
-    + '<td style="text-align:center">' + p.votes2 + '</td>'
-    + '<td class="' + (p.winner === p.t2 ? 'pdf-td-win' : '') + '" style="text-align:right">' + p.t2 + '</td>'
-    + '</tr>'
-  ).join('');
+  const matchRows = done.map(p => {
+    // Fourth instance of the pair-shape assumption, found while fixing the
+    // first three (POA-64/70/71). Unbranched, this printed `undefined` for
+    // every name and score in the redemption rows of an exported report.
+    if (p.phase === 'redemption') {
+      const v = redemptionGroupView(p, pdfRevived);
+      return '<tr>'
+        + '<td><span class="pdf-td-rb">' + p.roundLabel + '</span></td>'
+        // A pool of N does not fit the table's Team/Score/vs/Score/Team shape,
+        // so the group occupies the remaining five columns as one cell.
+        + '<td colspan="5">'
+        + v.brewers.map(br =>
+            '<span class="' + (br.isWinner ? 'pdf-td-win' : '') + '">' + br.name + '</span>'
+            + '<span style="color:#8a7f73;padding:0 4px">' + br.votes + '</span>'
+          ).join('<span style="color:#cfc6b8;padding:0 6px">·</span>')
+        + (v.tiebreaker ? '<span style="color:#8a7f73;font-size:10px;padding-left:6px">tiebreaker</span>' : '')
+        + '</td>'
+        + '</tr>';
+    }
+    return '<tr>'
+      + '<td><span class="pdf-td-rb">' + p.roundLabel + '</span></td>'
+      + '<td class="' + (p.winner === p.t1 ? 'pdf-td-win' : '') + '">' + p.t1 + '</td>'
+      + '<td style="text-align:center">' + p.votes1 + '</td>'
+      + '<td style="text-align:center;color:#8a7f73;font-size:11px">vs</td>'
+      + '<td style="text-align:center">' + p.votes2 + '</td>'
+      + '<td class="' + (p.winner === p.t2 ? 'pdf-td-win' : '') + '" style="text-align:right">' + p.t2 + '</td>'
+      + '</tr>';
+  }).join('');
 
   const resultsBody = podiumHtml
     + '<div class="pdf-td-subhead">Match Results</div>'
@@ -1647,6 +1667,31 @@ function generateThrowdownPDF() {
     ? b.rounds.map(round => {
         const col = pdfRoundColour(round.label, round.phase);
         const matches = round.pairs.map(p => {
+          // Fifth instance (POA-74). Unbranched, every redemption slot printed
+          // TBD / TBD with a 0 – 0 score on the printed bracket page. One box
+          // per GROUP, so group boundaries survive the export; .pdf-td-bracket-*
+          // classes are reused verbatim, so the print CSS is unchanged.
+          if (isPoolRound(round)) {
+            const v = redemptionGroupView(p, pdfRevived);
+            return '<div class="pdf-td-bracket-match">'
+              + v.brewers.map(br =>
+                  // Each name+score is its own flex group. .pdf-td-bracket-team
+                  // carries flex:1, which for a PAIR centres the score between
+                  // two names unambiguously — but for three brewers it stretched
+                  // every name to a third of the row and parked each score hard
+                  // against the NEXT brewer's name, 0px away from it and ~200px
+                  // from its own. Overriding to flex:0 1 auto inside a wrapper
+                  // keeps the score attached to the brewer it belongs to,
+                  // without touching the shared print CSS.
+                  '<span style="flex:1;display:flex;align-items:baseline;min-width:0">'
+                  + '<span class="pdf-td-bracket-team ' + (v.settled ? (br.isWinner ? 'winner' : 'loser') : '') + '"'
+                  + ' style="flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + br.name + '</span>'
+                  + '<span class="pdf-td-bracket-score">' + br.votes + '</span>'
+                  + '</span>'
+                ).join('')
+              + (v.tiebreaker ? '<span style="font-size:10px;color:#8a7f73;flex-shrink:0">tiebreaker</span>' : '')
+              + '</div>';
+          }
           const t1cls = p.winner ? (p.winner === p.t1 ? 'winner' : 'loser') : '';
           const t2cls = p.bye ? '' : (p.winner ? (p.winner === p.t2 ? 'winner' : 'loser') : '');
           return '<div class="pdf-td-bracket-match">'
