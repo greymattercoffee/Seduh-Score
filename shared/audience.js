@@ -537,6 +537,19 @@ function _bktTreeHTML(bracketData, prevBracketData) {
     // would otherwise manufacture an empty labelled twin.
     if (_bktIsPool(round)) {
       leftHTML += _bktPoolColumnHTML(round, prevRounds ? prevRounds[r] : null);
+      // POA-75 — a pool/single-match round (see the identical branch below)
+      // only ever adds a column to the LEFT side, never mirrored. Both
+      // .aud-bkt-side and .aud-bkt-col are flex:1 (theme.css), so each side
+      // divides its own EQUAL width budget by however many .aud-bkt-col
+      // children IT holds — one extra column on the left silently narrows
+      // every column on the left relative to its counterpart on the right,
+      // even though both sides are the same round. Measured: 32 competitors,
+      // 3rd Place on, Round 1/2/QF/SF rendered 164px on the left against
+      // 205px on the right — a ~20% mismatch on cards that should match.
+      // An unlabelled, contentless spacer keeps both sides' column COUNT
+      // (and therefore flex-basis) equal without inventing a labelled empty
+      // round, which POA-67 already rejected as reading like a bug.
+      rightHTML += '<div class="aud-bkt-col" aria-hidden="true"></div>';
       continue;
     }
     const matches = _bktMatchesForRound(rounds, r, prevRounds);
@@ -548,6 +561,7 @@ function _bktTreeHTML(bracketData, prevBracketData) {
     // pushes before the Final as a non-final round of exactly one match.
     if (matches.length === 1) {
       leftHTML += _bktColumnHTML(round, matches);
+      rightHTML += '<div class="aud-bkt-col" aria-hidden="true"></div>'; // POA-75, see above
       continue;
     }
     const leftCount = Math.ceil(matches.length / 2);
