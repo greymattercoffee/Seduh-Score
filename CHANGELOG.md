@@ -2,6 +2,325 @@
 
 ---
 
+## [5.16.0] — POA-70/71/72 + POA-64: redemption is usable end to end; projection removed · July 2026
+
+Arising from the first end-to-end Throwdown test run with redemption + revival + 3rd place all
+enabled. The organiser could not proceed past Round 1.
+
+### POA-70 — the divergence, and which surface was lying
+
+The organiser's Bracket tab showed two "Redemption Round 1" cards, both `TBD` / `TBD`, both
+"⏳ Awaiting previous results", while Round 1 was fully scored. The `throwdown_live/{orgId}`
+document fetched moments later held a **fully populated** pool: five brewers in two groups,
+correctly `kind:'pool'`. Two surfaces, contradicting each other.
+
+**Determined by instrumentation, not inference** — the handoff required it and it was the
+right call. A probe replayed the exact setup against Throwdown's own functions, extracted
+verbatim from `throwdown/index.html` at run time, and dumped both sides at the moment Round 1
+completes: Throwdown's own `S.bracket` redemption round, and `buildLiveBracketData()`'s output
+for that same round.
+
+**They agree.** `tdLivePoolRound()` reads `r.pairs[].brewers` verbatim and derives nothing.
+**The translation layer was correct; the organiser's own Bracket tab was the wrong surface.**
+Had this been guessed rather than measured, the obvious "fix" — making the two agree — would
+have been applied to the innocent layer.
+
+### POA-71 — root cause, and a correction to the ticket's own framing
+
+The ticket was written as "find why `advanceBracket()` leaves the round at TBD". **That
+framing misdiagnosed the layer.** `advanceBracket()` and `continueAfterWildCard()` populate
+the redemption round correctly; the round was never empty. Recorded because a wrong layer in a
+ticket title is expensive — it aims the next session at the wrong file.
+
+`rBracket()` rendered **every** round through the pair shape, reading `pair.t1` / `pair.t2`. A
+redemption entry is `{ id, brewers[], votes{}, tiebreaker, winner }` and has neither, so both
+names fell through to `'TBD'`, `hasBoth` was false, the footer landed on "Awaiting previous
+results" — and **no `data-score` button was emitted**, which is what actually blocked the
+organiser.
+
+`renderRedemptionScoreModal()` has been complete since **v3.0.1**, tiebreaker path and all.
+`openScoring()` was only ever reachable from a button no surface rendered. **The scoring UI
+was built; the way into it never was.**
+
+**Pre-existing, not a POA-63 regression.** `git log -S'Awaiting previous results'` returns
+exactly one commit — `b75d7cb` (v3.0.1), the commit that *introduced* redemption — and
+diffing `c804b98~1..HEAD` for `bslot`/`rBracket`/`isRd` changes returns nothing. This session's
+POA-63 work was 201 insertions, 0 deletions, none of it in this code path.
+
+**`advanceBracket()` required no restructuring.** It was never the defective layer, so the
+handoff's stop-and-flag condition was not triggered.
+
+**The redemption cap is not a bug and was not changed.** `S.redemptionCap` limits winners
+advancing **out of** redemption, and the Setup label already reads *"Max revived from
+redemption:"*. Five entering under a max of 4 is correct: six Round 1 losers minus the one
+taken by the revival draw. Semantics and label already agree.
+
+### POA-64 — scoped in as a sibling, not deferred again
+
+Same false assumption — every round is pair-shaped — in two more functions of the same file.
+`showAudience()` printed literal `undefined undefined vs undefined undefined` on the audience
+overlay (captured verbatim against the pre-fix file). `rHistory()` had it too, exactly as
+POA-64's own ticket predicted: *"Also check `rHistory()` — same `done.map()` pattern reading
+`p.t1`/`p.votes1`, looks like the identical bug."* It was.
+
+Strategy reversed a standing "POA-64 stays untouched" instruction on the grounds that leaving
+one instance fixed and the others live in the same file is how a future session reads
+"redemption renders correctly" in this changelog and trusts it for the wrong function.
+Committed separately so each diff stays reviewable alone.
+
+All three surfaces now branch through one shared `redemptionGroupView()`. Derivation is
+shared; **markup deliberately is not** — a pool of three has no "A vs B" row to borrow, and
+the three surfaces have genuinely different presentation contracts (token-driven cards,
+projector-scale hardcoded hex, wrapping history rows). No new CSS was needed anywhere:
+`.bslot.redemption.active` and `.hr-rb.rd` both already existed, unused.
+
+Tiebreak groups now state the tiebreaker outright on every surface. Their votes are genuinely
+tied, so a reader would otherwise see a tie with a winner and no explanation.
+
+### POA-72 — projection removed; Strategy reversed its own earlier decision
+
+Built as a POA-65 workaround (the renderer treated `rounds[length-1]` as the Final and drew
+only its first match, losing 11 of 13 competitors). POA-65 fixed that directly, and projection
+was **retained anyway** for the printed-bracket-poster model — so the room could see the
+tournament's destination rather than two halves meeting at nothing.
+
+**That retention assumed the projected shape was possible. It is not.** Projection seeded from
+the last pair-shaped round and halved by `ceil(n/2)` — pure single-elimination — with no
+knowledge that revival and redemption add competitors **back**. Six Round 1 winners + 1
+revival + up to 4 redemption survivors is nine to eleven going into a Quarter Final projection
+had drawn six slots for. Wrong whenever either feature is enabled, which for Throwdown is
+normal operation, not an edge case.
+
+A projected round is a **prediction rendered indistinguishably from a result** — the same
+class as POA-66's invented cross-group matches and the branded-header paywall leak. An empty
+bracket shape only reassures if it is achievable.
+
+**Now load-bearing:** the last round is routinely a multi-match round again — exactly the case
+POA-65 fixed and projection has been masking in production since. Verified against the **real**
+renderer with **real** translation output (`bracket-poa72-verify.html`, generated from the
+post-fix code rather than hand-authored): 14/14 rendered DOM checks pass.
+
+`CONVENTIONS.md` gains a seventh live-sync mechanic recording the anti-pattern, since that
+section is explicitly the reusable model for Liga/Cup Taster/BBTC.
+
+### `name: ''` → `name: null`
+
+`BRACKET-LIVE-SPEC.md` §3 specified `string | null`; the code emitted `''`. **Code aligned to
+the spec.** Behaviour-neutral — every consumer tests truthiness, never equality against `''`
+(verified repo-wide) — and the `''` was doubling as projection's empty-slot marker, a coupling
+that disappeared with projection.
+
+### A sixth testing lesson — and the apparatus being wrong four times
+
+`scripts/test-live-bracket.js` passed **89 assertions** while redemption was completely
+unusable end to end. It unit-tests a pure function; it cannot see whether a feature can be
+*operated*. The demo fixture hid it further by arriving with its redemption round
+**pre-resolved**, so `isDone` was true, the footer read "🏆 X advances", the TBD/TBD names read
+as cosmetic, and nothing blocked — because no test ever advanced *through* a live redemption
+round.
+
+> **A feature flag that is off in the demo fixture and off in every prior test run is untested
+> regardless of assertion counts.** Same family as demo-groups-of-2 and
+> complete-fixtures-validate-complete-brackets.
+
+New guard: `scripts/test-throwdown-fullrun.js` plays complete tournaments with the flags ON,
+rendering the organiser's Bracket tab at every advancement and asserting it is *operable*.
+Four configurations, all reaching a champion, including 3rd Place generated and resolved.
+
+Worth recording separately: during this session the **verification apparatus produced a
+confident wrong answer four times** — asserting mirror-split rounds emit one column (they emit
+two), that a bye card should carry a Score button, that `'Semi Finals'.includes('Final')` is
+false, and scoring only the last round so the 3rd Place playoff pushed alongside the Final was
+never scored. Every one looked like a code failure first. The handoff's "assertion counts are
+not sufficient" warning applies to the assertions themselves.
+
+### Found during the build, NOT fixed — advancement logic
+
+**Taking the revival draw at every offer never terminates.** `continueAfterWildCard()` lacks
+the 3rd-place branch that `advanceBracket()` and `skipWildCard()` both have. A revival into a
+resolved Semi Finals makes 3 advancing; `getNextRoundLabel(b, 3)` returns `'Semi Finals'`
+(`count <= 4`), so a fresh Semi Finals round is pushed — and a new revival is offered each
+round because `roundNum` increments. The tournament can never reach a Final. Skipping the
+revival escapes it.
+
+Verified **identical on v5.15.0** — pre-existing, not introduced here. Not fixed: it is
+advancement logic, which the handoff placed under stop-and-flag, three weeks from freeze.
+Logged as its own ticket.
+
+### POA-74 — the PDF export, the last surface holding the same defect
+
+`generateThrowdownPDF()` read `p.t1`/`p.votes1` unconditionally in **two** places. A report
+exported from any event that used redemption printed `undefined` for every name and score in
+the match-log table, and `TBD` / `TBD` with `0 – 0` on the printed bracket page. Fourth and
+fifth instances of the pair-shape assumption; both pages confirmed broken pre-fix and clean
+after. Own commit and own verification, because the PDF is a separately gated path
+(`pdf_branding`) with its own print stylesheet.
+
+**A layout defect underneath it, found by measuring rather than asserting.**
+`.pdf-td-bracket-team` carries `flex:1` — which for a *pair* centres the score between two
+names unambiguously, and is why it has never been a problem. With three brewers it stretched
+every name to a third of the row and parked each score **0px from the next brewer's name and
+~200px from its own**, so `Darwisyah [1] Husna Azlan` read as if the 1 were Husna's. Each
+name+score is now its own flex group; measured after, every score sits ~8px from its own name
+and 114–136px from the next. The markup was correct and every HTML assertion passed — only
+geometry showed it.
+
+`computeParticipantRounds()` branches on `r.phase === 'redemption'` correctly and always has —
+the one place that got it right, and the precedent the new helpers generalise.
+
+### Looking at CSS nobody had ever rendered
+
+`.bslot.redemption.active` and `.hr-rb.rd` existed in the stylesheet and were **unused** —
+styles for a redemption card and a redemption history badge that had never been on screen,
+because the code that would have emitted them never did. Assertions can confirm such rules
+exist and match; they cannot confirm anyone has looked. That is the category the Phase 1
+invisible-tree bug came from, so the new pixels got a rendered pass across every state:
+unscored (`.active`), mid-vote, resolved-on-votes, resolved-by-tiebreaker, and the History
+rows. All correct, no new CSS required anywhere in the session.
+
+**That pass found a bug nothing else had.** See below.
+
+### Found during the visual pass, NOT fixed — a stale, live, destructive button
+
+The **"🃏 REVIVAL DRAW!" reveal panel persists after the organiser has already pressed
+"Continue → Next Round"**, sitting below the redemption round it just created, with the button
+still live. `rBracket()` shows it while `b.mainRoundsDone === drawnRound`, and neither
+`continueAfterWildCard()` nor the redemption branch of `advanceBracket()` increments
+`mainRoundsDone` — so it stays visible for that whole round and the next.
+
+A second tap re-runs `continueAfterWildCard()`, re-collects the same losers, and pushes a
+**duplicate `Redemption Round 1`**. Verified identical on v5.15.0 — pre-existing. Logged as
+POA-76 alongside POA-73; both are `continueAfterWildCard()` failing to honour the contract
+`advanceBracket()` and `skipWildCard()` follow, and they want fixing together.
+
+Every HTML assertion in this session passed against a page that was displaying that button.
+It took rendering the page and looking at it.
+
+### POA-73 and POA-76 share a root cause — verified, not assumed
+
+`advanceBracket()`'s post-round logic exists in **three** hand-copies:
+`advanceBracket()` itself, `skipWildCard()`, and `continueAfterWildCard()`. Comparing all three
+directly rather than inferring:
+
+| | 3rd-place branch | consumes its own trigger |
+|---|---|---|
+| `advanceBracket()` | ✓ | ✓ (pauses via `pendingWildCard`) |
+| `skipWildCard()` | ✓ | ✓ (`wildCards[rn]=null`, clears pending) |
+| `continueAfterWildCard()` | ✗ **POA-73** | ✗ **POA-76** |
+
+`skipWildCard()` has both properties; `continueAfterWildCard()` has neither. One fix — make it
+consume its trigger and share the advancement tail — closes both tickets. Not fixed here:
+advancement logic, stop-and-flag, three weeks from freeze.
+
+### POA-77 — redemption can produce a group of ONE, reachable under shipped defaults
+
+`buildRedemptionGroups(losers, groupSize)` chunks a shuffled pool by fixed size. Whenever
+`losers % groupSize === 1`, the trailing chunk holds a single brewer, who "wins" a redemption
+group with no opponent: 4 losers → `[3,1]`, 7 → `[3,3,1]`. **8 competitors, redemption on,
+revival off — default settings, no opt-in — reaches it.** `BRACKET-LIVE-SPEC.md` §3 anticipates
+"a possibly-smaller trailing group," but smaller should mean 2, not 1. Not a rendering defect —
+the pool card, projector, and PDF all render a singleton group correctly and honestly; the
+tournament structure feeding them is wrong. Not fixed here.
+
+### The combinatorial sweep — five defects in two days, all found only by playing whole tournaments
+
+`scripts/test-throwdown-sweep.js` — **new**. Plays all 80 combinations of field size (8/12/13/16/
+**32**) × redemption × revival × 3rd place × revival policy (draw-always / draw-once / skip) as
+complete tournaments. 32 was added because it is **the confirmed real event size**, not a
+convenient round number. On the shipped default (redemption round 1 only), 50 of 80 combinations
+are clean; the 30 with issues are exactly POA-73 (non-terminating, and its downstream
+label-collision symptom) and POA-77 — nothing new at any field size, including 32.
+
+The through-line stated plainly: five blocking defects in Throwdown's advancement logic
+(POA-70/71, POA-73, POA-76, POA-77) surfaced in two days, every one pre-existing, every one
+invisible to 89 passing unit assertions, because each prior ticket pointed at one flag and the
+defects live in the *combinations*. `play()`/`makeApi()`/`POOL` are exported behind a
+`require.main` guard so other scripts (the 32-competitor verification below) can drive the exact
+same harness rather than re-deriving the extraction logic.
+
+### 32-competitor verification — the real event configuration, full run + rendered
+
+**Redemption off, revival off, 3rd place on — 30 Aug's actual shape.** Zero structural issues:
+`Round 1 → Round 2 → Quarter Finals → Semi Finals → 3rd Place → Final`, five main-bracket rounds
+(32→16→8→4→2→1), champion resolved. Rendered through the real `Audience.renderBracketTree()`,
+not a hand-authored fixture:
+
+- **POA-65 confirmed at genuine five-round depth.** The Final is the true last published round,
+  renders as the tree's single centre panel with exactly one match and a champion card — not
+  truncated, not one of the mirrored side columns.
+- **POA-67 confirmed.** 3rd Place renders as exactly one column, holding exactly one match.
+- No `undefined` or stray `TBD` anywhere in the rendered tree.
+- **9 mirrored columns** (5 left, 4 right) **+ 1 centre panel**, measured via
+  `getBoundingClientRect()`: **164px on the left, 205px on the right** — the same round rendering
+  at two different widths. See POA-75 immediately below.
+
+### POA-75 — asymmetric column widths, re-decided and fixed
+
+Originally logged (this session, above) as "asymmetric column *sets*" and filed as a legibility
+nice-to-have. The 32-competitor measurement changed the read: it is not different round
+*sequences* per side, it is the **same round rendering at different widths** — Round 1's cards at
+164px left vs 205px right, a ~20% mismatch, reached by **3rd Place alone, no redemption
+involved** — the shipping configuration. Re-decided as a fix, not a backlog item; three weeks was
+judged enough for a self-contained change.
+
+**Root cause.** `.aud-bkt-side{flex:1}` and `.aud-bkt-col{flex:1}` (`shared/theme.css`, unchanged)
+— each side divides its own equal width budget by however many `.aud-bkt-col` children *it*
+holds. A pool round (POA-66) or single-match round like 3rd Place (POA-67) only ever adds a
+column to the left, never mirrored, so an extra left column silently narrows every column on the
+left relative to its counterpart on the right, even for the identical round.
+
+**Fix.** `_bktTreeHTML()` (`shared/audience.js`) now emits a bare, unlabelled
+`<div class="aud-bkt-col" aria-hidden="true">` spacer on the opposite side wherever that
+imbalance would otherwise occur — matching flex-basis without inventing a labelled empty round
+(POA-67 already rejected that as reading like a bug). Verified: all 10 columns (9 real + 1
+spacer) now render at a uniform 164px, down from 164/205. `Audience.renderBracketTree()` has
+exactly one production call site (`audience/bracket.html`) — `audience/index.html` deliberately
+doesn't use it (§8) — so this is a single-surface change.
+
+New guard: `scripts/test-bracket-tree-symmetry.js` — extracts `_bktTreeHTML()` and its pure
+string-builder dependencies (no `document` calls below `renderBracketTree()` itself) and asserts
+left/right `.aud-bkt-col` count parity, which is what produces width parity. Confirmed to fail
+without the fix and pass with it, checked both directions via `git stash`.
+
+**Legibility, quantified but not resolved.** 164px minus ~14px padding each side leaves ~136px
+for a name. Whether the longest name on the real entry list reads from the back of the room at
+that width is a venue-rehearsal question, not one this session could answer — measure it there
+against real names.
+
+### A fourth instance of the verification environment lying about the artifact
+
+Same family as the three already recorded in v5.15.0 (stale shared-script cache,
+`Function.prototype.toString()` matching its own comment, dropped query strings on `file://`
+URLs). Producing a projector screenshot for the 32-competitor verification required the render to
+happen in a browser; the first attempt referenced `shared/audience.js` via an absolute
+`file:///…` `<script src>` from a page that was itself being served over `http://`. The browser
+silently blocked it as mixed content: `typeof Audience === 'undefined'`, **no console error**,
+the render simply never ran. Looked identical to a code failure until inspected directly. Fixed
+by inlining `theme.css` and `audience.js` into the generated verification page rather than
+referencing either — removes the whole class of failure, not just this instance.
+
+### Files
+
+- `throwdown/index.html` — `isPoolRound()`/`redemptionGroupView()`; pool cards on the Bracket
+  tab; pool rows in the audience overlay, History tab, PDF match log and PDF bracket page;
+  `tiebreaker` cleared on reopen; projection removed; `name: null`
+- `scripts/test-live-bracket.js` — projection assertions replaced with their inverse, plus a
+  direct guard that a multi-match last round is not truncated (89 assertions)
+- `scripts/test-throwdown-fullrun.js` — **new**
+- `scripts/test-throwdown-sweep.js` — **new**, POA-73/76/77 discovery, extended to 32 competitors
+- `scripts/test-bracket-tree-symmetry.js` — **new**, POA-75 regression guard
+- `shared/audience.js` — `_bktTreeHTML()` emits a same-width spacer column (POA-75). The only
+  change to this file across the whole POA-70–77 arc; every other fix in that arc left it at
+  zero diff, confirmed via `git diff` each time.
+- `CONVENTIONS.md` — seventh live-sync mechanic
+- `BRACKET-LIVE-SPEC.md` §5 — projection removal recorded with the full arc retained
+  *(gitignored — local only, not in this commit range)*
+
+`audience/bracket.html`, `audience/index.html`, `firestore.rules`, `bbtc/`, `liga/`,
+`cup-taster/` — **zero diff**, confirmed via `git diff`.
+
+---
+
 ## [5.15.0] — POA-63 Phase 2: live bracket wiring + two public viewer surfaces · July 2026
 
 Completes POA-63. The organiser's device now publishes the live bracket to

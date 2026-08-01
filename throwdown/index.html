@@ -421,6 +421,46 @@ function isRoundComplete(round) {
   return round.pairs.every(p => p.bye || p.winner !== null);
 }
 
+/* ── Redemption rounds are NOT pair-shaped ───────────────────────────────────
+   A redemption entry is { id, brewers[], votes{}, tiebreaker, winner } — it has
+   no t1/t2/votes1/votes2 at all (BRACKET-LIVE-SPEC.md §7). Any surface that
+   reads a round's `pairs` without branching on this renders `undefined` or
+   `TBD` against real, correct data. That single false assumption — every round
+   is pair-shaped — is what POA-64 and POA-70/71 both turned out to be, in
+   different functions of this same file.
+
+   computeParticipantRounds() already branches correctly; these two helpers make
+   the branch reusable rather than re-derived, differently, per surface. */
+function isPoolRound(round) {
+  return !!round && round.phase === 'redemption';
+}
+
+// Normalised, presentation-free view of one redemption group. Each surface
+// renders this in its own idiom — a scoring card, a projector row, a history
+// row, a print table. The DERIVATION is shared; the markup deliberately is not,
+// because a pool of three has no "A vs B" shape to borrow.
+function redemptionGroupView(g, revivedNames) {
+  const brewers = Array.isArray(g.brewers) ? g.brewers : [];
+  const votes = g.votes || {};
+  const rev = revivedNames || [];
+  return {
+    id: g.id,
+    winner: g.winner || null,
+    // Set only when renderRedemptionScoreModal's tiebreak path resolved the
+    // group, which leaves the votes genuinely TIED — so a surface that infers
+    // a winner from the top score would show that group as unresolved.
+    tiebreaker: g.tiebreaker || null,
+    settled: !!g.winner,
+    totalVotes: brewers.reduce((n, name) => n + (votes[name] || 0), 0),
+    brewers: brewers.map(name => ({
+      name: name,
+      votes: votes[name] || 0,
+      isWinner: !!g.winner && name === g.winner,
+      isRevived: rev.indexOf(name) !== -1,
+    })),
+  };
+}
+
 function advanceBracket() {
   const b = S.bracket;
   const lastRound = b.rounds[b.rounds.length - 1];
@@ -706,7 +746,12 @@ function getNextRoundLabel(b, count) {
    emit the same thing later without exposing their internals either.          */
 function tdLiveSlot(name, score, isBye, revivedNames) {
   return {
-    name: name || '',
+    // BRACKET-LIVE-SPEC.md §3 specifies `string | null`. This emitted '' until
+    // POA-72; both render as '—' downstream (every consumer tests truthiness,
+    // never equality against ''), so the change is behaviour-neutral and the
+    // spec is now what the code does. The '' was also doing double duty as
+    // projection's empty-slot marker — that coupling went with projection.
+    name: name || null,
     score: score,
     isBye: !!isBye,
     // Bracket-wide, not per-slot: Throwdown has no revivalMarker field (see
@@ -806,67 +851,32 @@ function buildLiveBracketData(bracket, participants) {
       : tdLiveBracketRound(r, revived);
   });
 
-  // ── Project the remaining bracket shape ────────────────────────────────
-  // WHY THIS EXISTS NOW IS NOT WHY IT WAS BUILT. Read this before removing it.
+  // ── No projection: the tree shows only rounds that exist ────────────────
+  // Projection was REMOVED here (POA-72). It is not coming back without new
+  // arithmetic, so the reasoning is kept rather than the code.
   //
-  // Originally this worked around a renderer bug: renderBracketTree() treated
+  // It was built as a POA-65 workaround: renderBracketTree() treated
   // rounds[length-1] as THE Final unconditionally and rendered only its first
   // match, so a live bracket — whose last round mid-event is the round being
-  // played, not the Final — silently lost matches (a 13-competitor bracket
-  // rendered 1 match and 2 names). **That bug is fixed** (POA-65). Measured
-  // after the fix, the unprojected mid-tournament bracket renders all 11 of
-  // its matches. Projection is no longer load-bearing for correctness.
+  // played, not the Final — silently lost matches. POA-65 fixed that, and
+  // projection stopped being load-bearing for correctness.
   //
-  // It is retained for an audience-facing reason instead. The originating
-  // POA-63 request was a printed bracket poster — a full 24-slot bracket with
-  // every slot drawn and empty, waiting to be filled — kept on the projector
-  // throughout the event (Girls Got Drip). That complete shape IS the feature:
-  // without projection, mid-tournament the room sees two mirrored halves
-  // meeting at nothing, and the tournament has no visible destination until
-  // the Final is generated. With it, the room sees where the whole thing is
-  // heading. On an audience display that is the point, not decoration.
+  // It was then RETAINED for the printed-bracket-poster model: a full bracket
+  // with every slot drawn and empty, so the room sees the tournament's
+  // destination rather than two halves meeting at nothing.
   //
-  // So: project the rounds Throwdown hasn't generated yet as empty TBD
-  // columns, halving down to a one-match Final. Empty slots carry no name, so
-  // the renderer's glow (needs a name) and just-resolved flash (needs a value
-  // to appear) both stay correctly silent on them.
+  // That rationale assumed the projected shape was POSSIBLE. It is not.
+  // Projection seeds from the last pair-shaped round and halves by ceil(n/2),
+  // which models pure single-elimination. Revival and redemption ADD
+  // competitors back: six Round 1 winners + 1 revival + up to 4 redemption
+  // survivors is nine to eleven going into the Quarter Finals, and the
+  // projected chain drew six slots for them. It was wrong whenever either
+  // feature was enabled — which for Throwdown is normal operation, not an
+  // edge case. An empty bracket shape only reassures if it is achievable.
   //
-  // Caveat, deliberate and accepted (BRACKET-LIVE-SPEC.md §5): with redemption
-  // ON, the next main round's real size is NOT predictable from this round —
-  // redemption winners merge back in, so the demo's 6-match Round 1 was
-  // followed by a 9-competitor round, not a 6-competitor one. Projected
-  // columns can therefore be wrong until the real round is generated, at
-  // which point the next publish overwrites them. Self-correcting.
-  function projectedLabel(advancing, roundNum) {
-    // Mirrors getNextRoundLabel()'s thresholds — same meaning, without
-    // needing the live bracket object that function reads.
-    if (advancing <= 2) return 'Final';
-    if (advancing <= 4) return 'Semi Finals';
-    if (advancing <= 8) return 'Quarter Finals';
-    return 'Round ' + roundNum;
-  }
-
-  // Project from the last PAIR-SHAPED round. A pool round's slot count says
-  // nothing about how many advance from it (that is S.redemptionCap, merged
-  // with the main winners), so it cannot seed the halving chain — which is
-  // simply the redemption caveat below in its sharpest form.
-  let lastBracketIdx = -1;
-  for (let i = out.rounds.length - 1; i >= 0; i--) {
-    if (out.rounds[i].kind !== 'pool') { lastBracketIdx = i; break; }
-  }
-  if (lastBracketIdx !== -1) {
-    const lastRound = out.rounds[lastBracketIdx];
-    let advancing = Math.floor(lastRound.slots.length / 2); // one winner per match, byes included
-    let roundNum = out.rounds.length;
-    while (advancing >= 2) {
-      const matches = Math.ceil(advancing / 2); // buildPairs(): floor(n/2) pairs, +1 bye when odd
-      roundNum++;
-      const slots = [];
-      for (let i = 0; i < matches * 2; i++) slots.push(tdLiveSlot('', null, false, revived));
-      out.rounds.push({ roundLabel: projectedLabel(advancing, roundNum), slots: slots });
-      advancing = matches;
-    }
-  }
+  // Consequence to keep in mind: the last round in `rounds[]` is now routinely
+  // a multi-match round, which is exactly the case POA-65 fixed and projection
+  // has been masking in production ever since. That fix is now load-bearing.
 
   // Same Final lookup as maybeArchiveChampion() / showAudience() / the PDF
   // export — one established convention, not a fourth variant. Gated on
@@ -1237,10 +1247,52 @@ function rBracket() {
       + '<button class="btn-p" id="start-manual">▶ Start bracket</button>';
     return out;
   }
+  const revivedNames = b.revivedNames || [];
+  const revivedBadge = '<span style="display:inline-flex;align-items:center;gap:2px;font-size:9px;font-weight:700;color:var(--pu);background:var(--pu-bg);border:1px solid var(--pu-bd);border-radius:3px;padding:1px 5px;margin-left:5px;vertical-align:middle">⬆ R</span>';
+
+  // One redemption group as a Bracket-tab card. Reuses the pair card's .bslot-*
+  // classes verbatim — a pool card is the same card with N rows instead of two,
+  // so it needs no new CSS (.bslot.redemption and .bslot.redemption.active
+  // already exist). Crucially it emits the data-score button the pair path
+  // emits: renderRedemptionScoreModal() has been complete since v3.0.1 but
+  // openScoring() was only ever reachable from a button no surface rendered.
+  const rdPoolCard = (g, round, col, gi) => {
+    const v = redemptionGroupView(g, revivedNames);
+    const isCurrent = !isRoundComplete(round);
+    const cls = v.settled ? ' done' : isCurrent ? ' active' : '';
+
+    const rows = v.brewers.map((br, i) =>
+        (i ? '<div class="bslot-divider"></div>' : '')
+      + '<div class="bslot-team'+(br.isWinner?' winner-row':'')+'">'
+      + '<span class="bslot-name'+(v.settled ? (br.isWinner?' winner':' loser') : '')+'">'
+      + br.name + (br.isRevived ? revivedBadge : '') + '</span>'
+      + (br.votes > 0 ? '<span class="bslot-votes">'+br.votes+'</span>' : '')
+      + '</div>'
+    ).join('');
+
+    let footer;
+    if (v.settled) {
+      footer = '<div class="bslot-footer"><span class="bslot-status done-lbl">🏆 '+v.winner+' advances'
+        + (v.tiebreaker ? ' · tiebreaker' : '')
+        + '</span><button class="btn-sm btn-o" style="font-size:10px" data-reopen="'+g.id+'">Edit</button></div>';
+    } else if (isCurrent) {
+      footer = '<div class="bslot-footer"><span class="bslot-status ready">Ready to score</span>'
+        + '<button class="btn-sm btn-am" data-score="'+g.id+'">▶ Score</button></div>';
+    } else {
+      footer = '<div class="bslot-footer"><span class="bslot-status">⏳ Awaiting previous results</span></div>';
+    }
+
+    return '<div class="bslot'+cls+' redemption" style="border-top-color:'+col.fg+'">'
+      + '<div class="bslot-hdr" style="background:'+col.bg+';color:'+col.fg+'">'
+      + '<span>Group '+(gi+1)+' · '+v.brewers.length+' brewers</span>'
+      + (v.totalVotes ? '<span style="font-size:10px">'+v.totalVotes+' / '+S.judges+' votes</span>' : '')
+      + '</div>'
+      + '<div class="bslot-teams">'+rows+'</div>' + footer + '</div>';
+  };
+
   b.rounds.forEach((round, ri) => {
-    const isRd = round.phase === 'redemption';
+    const isRd = isPoolRound(round);
     const col = roundColour(round.label, round.phase);
-    const revivedNames = b.revivedNames || [];
     out += '<div class="bracket-section">'
       + '<div class="section-title" style="color:'+col.fg+';border-left:3px solid '+col.fg+';padding-left:8px">'
       + (isRd ? '🔄 ' : round.phase === 'third' ? '🥉 ' : '⚔️ ')
@@ -1248,15 +1300,18 @@ function rBracket() {
       + (isRd ? ' <span class="badge badge-pu" style="font-size:9px">Redemption</span>' : '')
       + (round.phase === 'third' ? ' <span class="badge badge-bl" style="font-size:9px">3rd Place</span>' : '')
       + '</div>'
-      + round.pairs.map(pair => {
+      + round.pairs.map((pair, pi) => {
+          // A redemption round's entries are groups, not pairs — reading t1/t2
+          // off them is what rendered TBD/TBD with no Score button (POA-71).
+          if (isRd) return rdPoolCard(pair, round, col, pi);
+
           const isCurrent = !isRoundComplete(round);
           const isDone = pair.winner !== null;
           const hasBoth = pair.t1 && pair.t2 && !pair.bye;
           const cls = pair.bye ? '' : isDone ? ' done' : hasBoth && isCurrent ? ' active' : '';
-          const rdCls = isRd ? ' redemption' : '';
+          const rdCls = '';
           const t1revived = revivedNames.includes(pair.t1);
           const t2revived = pair.t2 && revivedNames.includes(pair.t2);
-          const revivedBadge = '<span style="display:inline-flex;align-items:center;gap:2px;font-size:9px;font-weight:700;color:var(--pu);background:var(--pu-bg);border:1px solid var(--pu-bd);border-radius:3px;padding:1px 5px;margin-left:5px;vertical-align:middle">⬆ R</span>';
 
           let footer = '';
           if (pair.bye) {
@@ -1364,6 +1419,24 @@ function rHistory() {
         const revBadge = name => revivedNames.includes(name)
           ? ' <span style="font-size:9px;font-weight:700;color:var(--pu);background:var(--pu-bg);border:1px solid var(--pu-bd);border-radius:3px;padding:1px 4px">⬆ R</span>'
           : '';
+
+        // Third instance of the same pair-shape assumption (POA-64 named this
+        // one in its own ticket: "same done.map() pattern reading p.t1/
+        // p.votes1, looks like the identical bug"). It was. .hr-row already
+        // wraps and .hr-rb.rd already exists, so N brewers need no new CSS.
+        if (p.phase === 'redemption') {
+          const v = redemptionGroupView(p, revivedNames);
+          return '<div class="hr-row" style="border-left:3px solid '+col.fg+'">'
+            + '<div class="hr-rb rd">'+p.roundLabel+'</div>'
+            + v.brewers.map((br, i) =>
+                (i ? '<div class="hvs">·</div>' : '')
+                + '<div class="hr-t'+(br.isWinner?' w':'')+'">'+br.name+revBadge(br.name)+'</div>'
+                + '<div class="hr-v" style="color:'+(br.isWinner?'var(--am)':'var(--txt3)')+'">'+br.votes+'</div>'
+              ).join('')
+            + (v.tiebreaker ? '<div class="hvs" style="color:var(--pu)">tiebreaker</div>' : '')
+            + '</div>';
+        }
+
         return '<div class="hr-row" style="border-left:3px solid '+col.fg+'">'
           + '<div class="hr-rb" style="background:'+col.bg+';border-color:'+col.bd+';color:'+col.fg+'">'+p.roundLabel+'</div>'
           + '<div class="hr-t'+(p.winner===p.t1?' w':'')+'">'+p.t1+revBadge(p.t1)+'</div>'
@@ -1432,9 +1505,35 @@ function showAudience() {
     else { grouped.push({ label: p.roundLabel, phase: p.phase, matches: [p] }); }
   });
 
+  // A resolved redemption group, for the audience overlay. Same defect and the
+  // same fix as the Bracket tab's rdPoolCard (POA-71) — this function read
+  // p.t1/p.votes1 off a group that has neither and printed
+  // "undefined undefined vs undefined undefined" (POA-64). Sibling of that fix,
+  // not a neighbour: one false assumption, two functions, same file.
+  // Presentation is deliberately NOT shared — a pool of three has no "A vs B"
+  // row to borrow, and this surface is projector-scale hardcoded hex per
+  // CONVENTIONS, not the Bracket tab's token-driven cards.
+  function rdAudRow(g, col) {
+    const v = redemptionGroupView(g, revivedNames);
+    return '<div style="padding:.75rem 1rem;background:#fff;border-radius:8px;margin-bottom:6px;box-shadow:0 1px 4px rgba(0,0,0,.10)">'
+      + v.brewers.map(br =>
+          '<div style="display:flex;align-items:center;gap:10px;padding:3px 0">'
+          + '<span style="flex:1;font-size:17px;font-weight:'+(br.isWinner?800:500)+';color:'+(br.isWinner?'#1C1917':'#9CA3AF')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+br.name+'</span>'
+          + (br.isRevived ? revBadge : '')
+          + '<div style="font-size:28px;font-weight:900;color:'+(br.isWinner?col.bar:'#D1D5DB')+';flex-shrink:0;min-width:34px;text-align:center;line-height:1">'+br.votes+'</div>'
+          + '</div>'
+        ).join('')
+      // Stated outright, because a tiebreak group's votes are genuinely tied —
+      // the room would otherwise see a tie with a winner and no explanation.
+      + (v.tiebreaker ? '<div style="font-size:12px;font-weight:800;color:'+col.fg+';text-align:right;padding-top:5px">Tiebreaker → '+v.winner+'</div>' : '')
+      + '</div>';
+  }
+
   const histHTML = grouped.length ? grouped.map(group => {
     const col = audCol(group.label, group.phase);
     const matchRows = group.matches.map(p => {
+      if (p.phase === 'redemption') return rdAudRow(p, col);
+
       const t1win = p.winner === p.t1;
       const t2win = p.winner === p.t2;
       const t1rev = revivedNames.includes(p.t1);
@@ -1521,20 +1620,40 @@ function generateThrowdownPDF() {
       + '</div>'
     : '<p class="hint">Tournament still in progress — no champion confirmed yet.</p>';
 
-  // Match log — same data source as rHistory()
+  // Match log — same data source as rHistory(), and `phase` is carried for the
+  // same reason: a redemption entry is a GROUP, not a pair (POA-74).
+  const pdfRevived = b ? (b.revivedNames || []) : [];
   const done = b
-    ? b.rounds.flatMap(r => r.pairs.filter(p => p.winner && !p.bye).map(p => ({ ...p, roundLabel: r.label })))
+    ? b.rounds.flatMap(r => r.pairs.filter(p => p.winner && !p.bye).map(p => ({ ...p, roundLabel: r.label, phase: r.phase })))
     : [];
-  const matchRows = done.map(p =>
-    '<tr>'
-    + '<td><span class="pdf-td-rb">' + p.roundLabel + '</span></td>'
-    + '<td class="' + (p.winner === p.t1 ? 'pdf-td-win' : '') + '">' + p.t1 + '</td>'
-    + '<td style="text-align:center">' + p.votes1 + '</td>'
-    + '<td style="text-align:center;color:#8a7f73;font-size:11px">vs</td>'
-    + '<td style="text-align:center">' + p.votes2 + '</td>'
-    + '<td class="' + (p.winner === p.t2 ? 'pdf-td-win' : '') + '" style="text-align:right">' + p.t2 + '</td>'
-    + '</tr>'
-  ).join('');
+  const matchRows = done.map(p => {
+    // Fourth instance of the pair-shape assumption, found while fixing the
+    // first three (POA-64/70/71). Unbranched, this printed `undefined` for
+    // every name and score in the redemption rows of an exported report.
+    if (p.phase === 'redemption') {
+      const v = redemptionGroupView(p, pdfRevived);
+      return '<tr>'
+        + '<td><span class="pdf-td-rb">' + p.roundLabel + '</span></td>'
+        // A pool of N does not fit the table's Team/Score/vs/Score/Team shape,
+        // so the group occupies the remaining five columns as one cell.
+        + '<td colspan="5">'
+        + v.brewers.map(br =>
+            '<span class="' + (br.isWinner ? 'pdf-td-win' : '') + '">' + br.name + '</span>'
+            + '<span style="color:#8a7f73;padding:0 4px">' + br.votes + '</span>'
+          ).join('<span style="color:#cfc6b8;padding:0 6px">·</span>')
+        + (v.tiebreaker ? '<span style="color:#8a7f73;font-size:10px;padding-left:6px">tiebreaker</span>' : '')
+        + '</td>'
+        + '</tr>';
+    }
+    return '<tr>'
+      + '<td><span class="pdf-td-rb">' + p.roundLabel + '</span></td>'
+      + '<td class="' + (p.winner === p.t1 ? 'pdf-td-win' : '') + '">' + p.t1 + '</td>'
+      + '<td style="text-align:center">' + p.votes1 + '</td>'
+      + '<td style="text-align:center;color:#8a7f73;font-size:11px">vs</td>'
+      + '<td style="text-align:center">' + p.votes2 + '</td>'
+      + '<td class="' + (p.winner === p.t2 ? 'pdf-td-win' : '') + '" style="text-align:right">' + p.t2 + '</td>'
+      + '</tr>';
+  }).join('');
 
   const resultsBody = podiumHtml
     + '<div class="pdf-td-subhead">Match Results</div>'
@@ -1548,6 +1667,31 @@ function generateThrowdownPDF() {
     ? b.rounds.map(round => {
         const col = pdfRoundColour(round.label, round.phase);
         const matches = round.pairs.map(p => {
+          // Fifth instance (POA-74). Unbranched, every redemption slot printed
+          // TBD / TBD with a 0 – 0 score on the printed bracket page. One box
+          // per GROUP, so group boundaries survive the export; .pdf-td-bracket-*
+          // classes are reused verbatim, so the print CSS is unchanged.
+          if (isPoolRound(round)) {
+            const v = redemptionGroupView(p, pdfRevived);
+            return '<div class="pdf-td-bracket-match">'
+              + v.brewers.map(br =>
+                  // Each name+score is its own flex group. .pdf-td-bracket-team
+                  // carries flex:1, which for a PAIR centres the score between
+                  // two names unambiguously — but for three brewers it stretched
+                  // every name to a third of the row and parked each score hard
+                  // against the NEXT brewer's name, 0px away from it and ~200px
+                  // from its own. Overriding to flex:0 1 auto inside a wrapper
+                  // keeps the score attached to the brewer it belongs to,
+                  // without touching the shared print CSS.
+                  '<span style="flex:1;display:flex;align-items:baseline;min-width:0">'
+                  + '<span class="pdf-td-bracket-team ' + (v.settled ? (br.isWinner ? 'winner' : 'loser') : '') + '"'
+                  + ' style="flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + br.name + '</span>'
+                  + '<span class="pdf-td-bracket-score">' + br.votes + '</span>'
+                  + '</span>'
+                ).join('')
+              + (v.tiebreaker ? '<span style="font-size:10px;color:#8a7f73;flex-shrink:0">tiebreaker</span>' : '')
+              + '</div>';
+          }
           const t1cls = p.winner ? (p.winner === p.t1 ? 'winner' : 'loser') : '';
           const t2cls = p.bye ? '' : (p.winner ? (p.winner === p.t2 ? 'winner' : 'loser') : '');
           return '<div class="pdf-td-bracket-match">'
@@ -2109,7 +2253,11 @@ function bind() {
     // Find and reset pair for editing
     for (const round of S.bracket.rounds) {
       const p = round.pairs.find(x=>x.id===b.dataset.reopen);
-      if (p) { p.winner=null; p.loser=null; break; }
+      // A redemption group carries `tiebreaker` instead of `loser`. Clearing
+      // the winner without it would leave a stale tiebreak decision attached to
+      // a group that is being re-scored. Only reachable since POA-71 gave
+      // redemption cards an Edit button at all.
+      if (p) { p.winner=null; p.loser=null; if (isPoolRound(round)) p.tiebreaker=null; break; }
     }
     S.scoringMatchId = b.dataset.reopen;
     renderScoreModal();

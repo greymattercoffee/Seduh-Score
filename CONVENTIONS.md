@@ -1043,7 +1043,7 @@ single org-scoped document; one or more **unauthenticated public surfaces**
 read it live. Everything below exists because that asymmetry — writer knows who
 it is, readers don't — breaks assumptions that hold fine inside a single module.
 
-### The six mechanics
+### The seven mechanics
 
 **1. Single atomic write hook.** Exactly **one** function performs the write,
 and every caller goes through it. Not one per action — one per module. Find the
@@ -1093,6 +1093,31 @@ the opposite situation.
 Separate command, separately verified, tracked as its own checklist item.
 Verify **both directions**: the new collection reads open and writes deny for a
 non-matching org, *and* every pre-existing collection still behaves as before.
+
+**7. Publish only rounds that exist. Never project the ones that don't.**
+Throwdown shipped a translation layer that appended empty "TBD" columns for
+rounds it had not generated yet, halving down to a one-match Final, so the room
+could see the tournament's destination. **Removed in POA-72, and no format
+should reinvent it.** Projection has to model how competitors advance, and it
+modelled pure single-elimination halving — which is wrong the moment a format
+adds competitors *back*. Throwdown's revival draw and redemption round both do:
+six Round 1 winners + 1 revival + up to 4 redemption survivors is nine to
+eleven going into a Quarter Final the projection had drawn six slots for. That
+is normal operation for the format, not an edge case.
+
+The general rule, which outlives the specific arithmetic: **a public surface
+must not assert a tournament state the tournament does not have.** Same class
+as inventing cross-group matches out of a pool round, and same class as showing
+a branded header an org has not paid for — a projected round is a *prediction*
+rendered indistinguishably from a result. An empty bracket shape only reassures
+if it is achievable; if it contradicts the real structure it is worse than no
+shape at all. If a future format genuinely wants the poster look, it must
+derive the shape from that format's own advancement rules, not from halving.
+
+Corollary to verify when adopting this: with projection gone, the last round in
+the document is routinely the round being **played**, holding N matches — not a
+one-match Final. Renderers that assume `rounds[length-1]` is the Final and draw
+only its first match will silently drop competitors.
 
 ### Entitlement: resolve where the tier is visible
 
