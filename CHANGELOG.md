@@ -2,6 +2,173 @@
 
 ---
 
+## [docs] KB-PROTOCOL.md — fifth "why this exists" instance, third drift axis · July 2026
+
+Closes the item parked at the end of POA-73's `kb-recon` finding: that
+finding wasn't just another version-stamp anecdote — it was a failure mode
+this protocol had no check for. `KB-PROTOCOL.md` updated, three edits:
+
+- **"Why this exists," fifth instance added** — CONVENTIONS.md asserted
+  `.claude/skills/kb-recon/SKILL.md` existed as a built, auto-invoked skill;
+  `git log --all -S"kb-recon"` showed the string entering the repo in one
+  commit that added only that prose, no file ever created. Every mechanical
+  check in this protocol would have reported CONVENTIONS.md as perfectly in
+  sync throughout, because sync was never what it was wrong about.
+- **Third drift axis added** — "Doc-vs-doc" and "KB-vs-repo" were the only
+  two axes this protocol checked for. Added a third: **claim-vs-reality
+  drift** — does a document's claim that a specific artifact was built
+  actually hold, independent of whether its version stamp matches.
+- **New Section 5 step 3: artifact-existence check** — when a Tier A/B
+  document asserts a file/skill/script was built, verify against the repo
+  (`git log --all -S"<name>"` or a direct file check) rather than trusting
+  the claim. Old steps 3–9 renumbered to 4–10, no content changes beyond the
+  number; the internal cross-reference in old step 8 ("does not do steps
+  3–7") updated to "steps 3–8" to stay correct under the new numbering.
+
+**Also re-synced:** `.claude/skills/kb-recon/SKILL.md` (built last session)
+explicitly commits to re-syncing itself "in the same session" that
+`KB-PROTOCOL.md`'s procedure changes — it just did, so its own numbered
+procedure gained the same artifact-existence step (renumbered 3–9
+accordingly) and its "Section 5, step 7" cross-reference was corrected to
+"step 8." Left as an explicit self-referential note in the skill: it was
+built the same week its own non-existence would have been exactly the kind
+of claim this new check exists to catch.
+
+**Version stamp:** not bumped. Content-only edit, no new CHANGELOG.md
+numbered version cut this session — same category as POA-73's CLAUDE.md
+edits, which didn't bump its stamp either. `KB-PROTOCOL.md`'s pre-existing
+`v5.12.4` stamp (already `MISMATCH` against CHANGELOG's v5.16.0 before this
+session, per every prior `check-doc-versions.sh` run this cycle) is
+unrelated to today's edits and left untouched — out of scope for this
+ticket.
+
+---
+
+## [docs] POA-73 resolved — six Delegation Strategy subagents, per-agent decisions · July 2026
+
+Closes the finding from the freeze-window context-engineering refactor: CLAUDE.md's
+Delegation Strategy named six subagents, none of which existed as
+`.claude/agents/*.md` files. Spec was locked in a prior Strategy session
+(`POA-73.md`) with a per-agent decision, not a blanket build-or-scrap call.
+
+**Built:**
+- `.claude/agents/code-reviewer.md` (new) — fires after any code is
+  written/modified; checks CSS contract, Gates pattern, and other
+  CONVENTIONS.md patterns relevant to the touched file.
+- `.claude/agents/module-pattern-checker.md` (new) — fires before finalizing
+  a new module's architecture; checks the single-file module pattern, gate
+  registration, storage key format, demo data pattern, and structural
+  consistency against CONVENTIONS.md.
+- `.claude/skills/kb-recon/SKILL.md` (new) — **a second, deeper finding
+  surfaced mid-session.** The spec's `kb-sync` row assumed folding into an
+  existing `kb-recon` skill "since it already covers the intent." It didn't
+  exist. Verified with `git log --all -S"kb-recon"`: the string appears in
+  exactly one commit (`0d1c510`, "docs: reconcile KB to v5.10.2"), which only
+  added prose to CONVENTIONS.md *claiming* the skill existed — no file was
+  ever created, then or since. Same class of gap as the six agents, one
+  layer deeper (asserted in a doc as settled fact, not just named in a
+  delegation line). Flagged to the user mid-session rather than silently
+  building on the false premise or asserting a "must have been folded in
+  elsewhere" story; user confirmed: build it now. The new skill packages
+  `KB-PROTOCOL.md`'s trigger matrix (Section 3) and audit procedure (Section
+  5) as an auto-invoked skill, firing on a CHANGELOG bump, a POA item
+  closing, or a business-fact decision — the automation CONVENTIONS.md has
+  described since July 11 but that never actually existed. `KB-PROTOCOL.md`
+  remains authoritative; the skill is a summary, per its own header, and
+  must be re-synced if the trigger matrix or tier table changes.
+
+**Not built (per locked decisions in POA-73.md):**
+- `scoring-logic-auditor` — "no need," Firdaus's call. The spec gave no
+  replacement wording for this line (unlike `ui-accessibility-reviewer`,
+  below, which got one). Judgment call made here: removed the line entirely
+  rather than leave a delegation instruction pointing at an agent that will
+  never exist — flagging this explicitly since it's the one row this session
+  resolved without an explicit instruction to match, on a line CLAUDE.md
+  previously called "non-negotiable." Worth a one-line confirmation from
+  Firdaus that dropping it outright (vs. a main-thread reword like
+  `ui-accessibility-reviewer` got) was the intent.
+- `ui-accessibility-reviewer` — reworded to a main-thread checklist step
+  (touch targets, contrast, tab/nav reachability) rather than a dispatched
+  agent, per the spec's exact replacement text.
+- `spec-writer` — removed from the Delegation Strategy list; it's a skill,
+  not an agent, matching CLAUDE.md's own existing wording elsewhere.
+
+CLAUDE.md's Delegation Strategy section now names only two dispatched agents
+(`code-reviewer`, `module-pattern-checker`), both backed by real files, plus
+the pre-existing `Explore`/general-purpose-refactor lines. `kb-sync` is gone
+with no replacement line — `kb-recon` is auto-invoked, so no manual trigger
+instruction is needed for it, consistent with how `css-contract` and
+`gates-pattern` aren't referenced in Delegation Strategy either.
+
+`scripts/check-doc-versions.sh` re-run after these edits: CLAUDE.md still
+`OK` at v5.16.0 (no new version bump this session — same anchor as the prior
+`[docs]` entry). Other Tier A/B docs' pre-existing `MISMATCH` status
+unchanged, out of scope.
+
+**Addendum (same-day follow-up):** Firdaus confirmed the `scoring-logic-auditor`
+removal above overshot the actual intent ("don't build a dedicated agent,"
+not "drop scrutiny on scoring logic") — restored as a reworded main-thread
+line, same treatment as `ui-accessibility-reviewer`, correcting the prior
+session's judgment call.
+
+---
+
+## [docs] Tooling context-engineering refactor — CLAUDE.md trimmed, two skills extracted · July 2026
+
+Freeze-window, tooling-only session (no module/feature code touched), executing
+`CONTEXT-ENGINEERING-AUDIT.md`'s findings via a handoff. Goal: reduce CLAUDE.md's
+always-loaded footprint per session without loosening any rule's substance —
+moving where information lives, not what it says.
+
+**Task 1 finding — stop-and-flag, bigger than anticipated:** the handoff asked
+whether the six subagents CLAUDE.md's Delegation Strategy names
+(`code-reviewer`, `scoring-logic-auditor`, `module-pattern-checker`,
+`ui-accessibility-reviewer`, `kb-sync`, `spec-writer`) already carry their own
+"invoke me when…" trigger description. They don't — because none of them exist
+as files at all. There is no `.claude/agents/` directory anywhere (checked both
+this repo and the user-level `~/.claude/agents/`), and `.claude/skills/` was
+empty before this session. CLAUDE.md's Delegation Strategy section is
+currently the *only* place these six trigger rules live; there is no
+agent-definition layer to defer to. Per the handoff's own branch logic this is
+a decision for a Strategy session, not something to author unprompted — flagged
+to the user mid-session, who confirmed: skip the Delegation Strategy trim,
+proceed with the two independent skill extractions only. **Not resolved this
+session** — carried forward as an open item for Strategy.
+
+**What moved:**
+- `.claude/skills/css-contract/SKILL.md` (new) — the full CSS contract
+  token/class list, moved out of CLAUDE.md's "CSS contract — never violate"
+  section. CLAUDE.md now carries a two-line pointer instead, loading the skill
+  before any `theme.css` / `.tmr-*` / `.aud-*` / `.pdf-*` work.
+- `.claude/skills/gates-pattern/SKILL.md` (new) — the full `FEATURES` registry
+  and gate pattern (B3) detail (previously living in CONVENTIONS.md, pointed to
+  from CLAUDE.md). CLAUDE.md now keeps only the worst-case guardrail (never
+  call `Gates.getTier()`/`isEnabled()` directly) and the one-line
+  `Gates.canAccess()` example, pointing to the skill for the rest.
+
+**Explicitly not touched** (per the handoff's Task 5): git workflow rules
+(`main`/`dev`, never push main), "never access GitHub URLs directly," the
+CHANGELOG-before-closing rule, the two-file read order, the architecture tree,
+KB-PROTOCOL.md's audit procedure/trigger matrix/severity levels, and the
+spec-before-code gate in CONVENTIONS.md. CONVENTIONS.md itself was not edited —
+its `FEATURES` registry / B3 text stays where it is; the new skill mirrors it
+rather than replacing it.
+
+**Size delta (Task 6 checkpoint):** CLAUDE.md 176 lines / 916 words →
+165 lines / 878 words (−11 lines, −38 words, ~4%). Modest because the largest
+single section (Delegation Strategy) stayed in place pending the Task 1 finding
+above — the CSS-contract and Gates sections were the only two in scope this
+session.
+
+**Version stamp:** CLAUDE.md bumped v5.12.5 → v5.16.0 (was stale against
+CHANGELOG.md by several releases; now matches). `scripts/check-doc-versions.sh`
+run before and after: CLAUDE.md now reports `OK`. Other Tier A/B docs
+(`CONVENTIONS.md`, `KB-PROTOCOL.md`, `PLAN_OF_ACTION.md`, `README.md`,
+`ROADMAP.md`, `STRATEGY.md`) still show pre-existing `MISMATCH` — unrelated to
+this session's scope, not touched.
+
+---
+
 ## [5.16.0] — POA-70/71/72 + POA-64: redemption is usable end to end; projection removed · July 2026
 
 Arising from the first end-to-end Throwdown test run with redemption + revival + 3rd place all
