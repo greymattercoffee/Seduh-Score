@@ -1,6 +1,6 @@
 # Seduh Score — Claude Code orientation
 
-*State: v5.12.5 — matches CHANGELOG.md as of July 2026*
+*State: v5.16.0 — matches CHANGELOG.md as of July 2026*
 
 Read these two files in full before touching anything:
 1. `CONVENTIONS.md` — all patterns, naming rules, architecture decisions
@@ -13,33 +13,23 @@ Read these two files in full before touching anything:
 
 Pure exploration/research (no edits): delegate to Explore, don't grep in the main thread.
 After writing or modifying code in any module: use code-reviewer.
-After implementing or changing scoring, bracket, or ranking logic: use scoring-logic-auditor — non-negotiable for anything touching redistribution math.
+After implementing or changing scoring, bracket, or ranking logic: verify
+against test fixtures covering non-happy-path shapes before closing the
+session — this project's defect history (POA-65/66/67, POA-70/71) is
+entirely in this category.
 Before finalizing a new module's architecture (e.g. Cup Taster): use module-pattern-checker.
-After UI/UX changes to timekeeper, score entry, or judge-facing screens: use ui-accessibility-reviewer.
-After finishing a module or spec, or periodically: use kb-sync to catch drift the KB recon skill hasn't picked up yet.
+After UI/UX changes to timekeeper, score entry, or judge-facing screens: check touch target sizes (44px minimum, per MUA conventions), contrast, and tab/nav reachability yourself before closing the session — no dispatched agent for this; it's a main-thread checklist step.
 For multi-module or multi-file refactors: spawn parallel general-purpose subagents per module, then synthesize in the main thread.
-When drafting or revising a module spec: use the `spec-writer` skill.
 
 ---
 
 ## Non-negotiables
 
 ### CSS contract — never violate
-These token names and overlay classes are read directly by
-module files and shared JS. Renaming or removing any of them
-silently breaks the platform:
-
-**Contract tokens (never rename or remove):**
-`--txt`, `--txt2`, `--txt3`, `--am`, `--am-h`, `--am-bg`,
-`--am-bd`, `--bl`, `--bl-bg`, `--bl-bd`, `--gn`, `--gn-bg`,
-`--gn-bd`, `--rd`, `--rd-bg`, `--rd-bd`, `--pu`, `--pu-bg`,
-`--pu-bd`, `--accent`, `--accent-h`, `--accent-bg`,
-`--accent-bd`, `--accent-ink`, `--bg`, `--surface`, `--ink`
-
-**Overlay classes (never rename or remove):**
-All `.tmr-*` classes, all `.aud-*` classes,
-`#tmr-overlay`, `#aud-overlay`, `#pdf-overlay`,
-all `.pdf-*` print rules
+Certain CSS token names and overlay classes are read directly by module
+files and shared JS. Renaming or removing any of them silently breaks the
+platform — load the `css-contract` skill before touching `theme.css` or
+any `.tmr-*`/`.aud-*`/`.pdf-*` surface.
 
 ### Git — never push to main
 All changes go to `dev` branch only.
@@ -64,8 +54,8 @@ if (!access.allowed) { /* reason: 'tier' or 'disabled' */ }
 
 Modules must never call `Gates.getTier()` or `Gates.isEnabled()`
 directly, and must never inline tier/switch checks locally. Gated
-elements are hidden, not disabled. See CONVENTIONS.md for the full
-`FEATURES` registry and gate pattern (B3).
+elements are hidden, not disabled. Load the `gates-pattern` skill for
+the full `FEATURES` registry and gate pattern (B3).
 
 ---
 

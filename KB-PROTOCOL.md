@@ -81,13 +81,31 @@ the first three instances in this section were all patched (the specific
 stale doc fixed) without the underlying mechanism changing, and each
 recurred in a new shape. This one shouldn't recur in the same shape again.
 
-There are **two independent axes of drift** to check, not one:
+A fifth instance, different in kind from the first four: CONVENTIONS.md
+asserted `.claude/skills/kb-recon/SKILL.md` existed as a built,
+auto-invoked skill — prose describing a finished artifact. `git log --all
+-S"kb-recon"` showed the string entering the repo in exactly one commit,
+which added only that prose; the file itself was never created. This is
+not a stamp mismatch or a status marker gone stale — every mechanical
+check in this protocol would have reported CONVENTIONS.md as perfectly in
+sync throughout, because sync was never what it was wrong about. A
+document can match CHANGELOG.md's version exactly and still assert a
+false thing about the repo. Confirmed only when a Code session checked
+git history directly instead of trusting the claim.
+
+There are **three independent axes of drift** to check, not two:
 
 1. **Doc-vs-doc drift** — do the documents agree with each other and with
    CHANGELOG.md (the ground truth)?
 2. **KB-vs-repo drift** — does the knowledge base snapshot I'm reading in this
    session match what's actually in the local repo? (Strategy sessions only
    ever see the KB upload, never the live files.)
+3. **Claim-vs-reality drift** — when a document asserts that a specific
+   file, skill, or script was built, does that artifact actually exist? A
+   document can be perfectly current on the first two axes and still be
+   wrong on this one — neither a version-stamp match nor a fresh KB sync
+   confirms a named artifact is real (see "Why this exists," fifth
+   instance).
 
 ---
 
@@ -200,29 +218,38 @@ or automatically per the trigger matrix above.
    replaced (this happened to README.md in the first application of this
    protocol: the new top-line stamp said v5.4.0 while the pre-existing
    footer still said v5.3.3, until a same-day follow-up fixed it).
-3. For `PLAN_OF_ACTION.md` specifically: check the "NEXT UP" line and any
+3. **Artifact-existence check.** When any Tier A/B document asserts that a
+   specific file, skill, or script was **built** — not just that a
+   decision was made, but that an artifact exists — verify it against the
+   actual repo rather than taking the claim as read. In a Code session:
+   `git log --all -S"<name>"` or a direct file check. In a Strategy
+   session, which can't see the live repo: flag the claim for a Code
+   session to verify rather than treating a clean version-stamp match as
+   confirmation — it isn't (see "Why this exists," fifth instance, and
+   axis 3 above).
+4. For `PLAN_OF_ACTION.md` specifically: check the "NEXT UP" line and any
    status markers against what CHANGELOG.md says has shipped since the last
    clean audit — a version-stamp match doesn't guarantee status markers
    inside the document are also current.
-4. For `ROADMAP.md` specifically: check the "Current State" table and the
+5. For `ROADMAP.md` specifically: check the "Current State" table and the
    Master Version Timeline row for the anchor version.
-5. For **Tier B** documents: run the same check if a minor/major bump has
+6. For **Tier B** documents: run the same check if a minor/major bump has
    happened since the last audit, or if the session concerns a business
    fact.
-6. For **Tier C** documents: confirm a closed initiative carries its
+7. For **Tier C** documents: confirm a closed initiative carries its
    `Superseded as of vX.Y` stamp. No other check needed.
-7. **KB-vs-repo check** (Strategy sessions only): confirm the KB upload
+8. **KB-vs-repo check** (Strategy sessions only): confirm the KB upload
    timestamps for any Tier A document match what's expected given the
    session history — if in doubt, ask for the local repo file to be
    re-uploaded rather than assume the KB snapshot is current. See
    `CLAUDE.md`'s `## KB sync architecture` section for which docs sync via
    the GitHub integration (manual-trigger "Sync now") vs. which stay on
    manual upload by necessity (gitignored docs).
-8. If working in the local repo (Code session), run
+9. If working in the local repo (Code session), run
    `scripts/check-doc-versions.sh` — it mechanically checks step 2 across
-   all Tier A/B documents in one pass. It does not do steps 3–7; those still
+   all Tier A/B documents in one pass. It does not do steps 3–8; those still
    need a read-through.
-9. Report findings grouped by severity (Section 4). **Do not silently
+10. Report findings grouped by severity (Section 4). **Do not silently
    auto-fix fact drift or status drift** — surface it and let the correction
    happen deliberately, the same way any other strategic decision gets
    locked in this chat before it's written back to the KB.
