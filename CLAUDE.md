@@ -11,6 +11,17 @@ Read these two files in full before touching anything:
 ## Delegation Strategy
 
 
+Before drafting an approach for any non-trivial request: run a Clarification
+Gate yourself — resolve fillable assumptions, pick the most likely reading
+when a request is ambiguous, and check whether a smaller change meets the
+same underlying need, using existing module conventions and judgment as the
+basis for each call. Escalate to the user only what's left after that: a
+genuine blocker that changes scope or behavior, not a routine gap. No
+dispatched agent for this — `spec-writer` was decided against as standalone
+tooling (see CHANGELOG.md's POA-73 resolution); it's a main-thread pre-diff
+step, same treatment as the touch-target checklist below, and it complements
+`code-reviewer`/`module-pattern-checker`'s post-diff enforcement rather than
+duplicating it.
 Pure exploration/research (no edits): delegate to Explore, don't grep in the main thread.
 After writing or modifying code in any module: use code-reviewer.
 After implementing or changing scoring, bracket, or ranking logic: verify

@@ -2,6 +2,107 @@
 
 ---
 
+## [docs] Clarification Gate — think-before-coding folded into CLAUDE.md · August 2026
+
+`Handoff and Spec Files/think-before-coding-addition.md` specified a
+"Clarification Gate" (assumption/interpretation/simplicity checks before
+drafting success criteria, escalating only genuine blockers) as an addition
+to `spec-writer`'s `SKILL.md`.
+
+**Premise didn't hold, checked before editing:** `spec-writer` doesn't exist
+as a file anywhere in the repo or at the user level (`~/.claude/skills/`).
+This matches the POA-73 resolution above, which explicitly decided *not* to
+build `spec-writer` as standalone tooling — same class of gap `kb-recon`'s
+"why this exists" entry and the artifact-existence check exist to catch.
+Flagged to the user rather than authoring a new skill file to match the
+doc's assumption; user directed folding the content into existing tooling
+instead of building new infra.
+
+**Landed:** `CLAUDE.md`'s Delegation Strategy gained a new main-thread
+checklist step — same treatment `ui-accessibility-reviewer` got when it hit
+this identical gap (see POA-73 resolution below): no dispatched agent, run
+the check yourself before closing the gap it's meant to close. This one
+runs earlier in the lifecycle than that precedent, though — pre-diff, before
+an approach is drafted, rather than post-diff — so it's positioned first in
+the Delegation Strategy list, ahead of `code-reviewer`/`module-pattern-checker`,
+which it complements rather than duplicates (those enforce simplicity and
+surgical-change discipline after a diff exists; this resolves ambiguity
+before one does).
+
+**Version stamp:** not bumped — content-only addition, same category as the
+`KB-PROTOCOL.md` entry below.
+
+---
+
+## [docs] Full docs housekeeping pass — Section 5 audit, all Tier A/B · July 2026
+
+First full run of `KB-PROTOCOL.md`'s Section 5 Audit Procedure since it
+gained step 3 (artifact-existence check) and the third drift axis
+(claim-vs-reality). Anchor: v5.16.0.
+
+**Stamps moved (all six Tier A/B docs plus KB-PROTOCOL.md itself, all were
+stale):** `CONVENTIONS.md` v5.13.0 → v5.16.0, `KB-PROTOCOL.md` v5.12.4 →
+v5.16.0, `PLAN_OF_ACTION.md` v5.12.4 → v5.16.0, `README.md` v5.12.4 →
+v5.16.0 (its footer "Current version" line was separately three versions
+further stale, at v5.8.0 — the exact footer-contradiction failure shape
+Section 5 step 2 warns about, now reconciled in the same edit),
+`ROADMAP.md` v5.12.4 → v5.16.0, `STRATEGY.md` v5.12.4 → v5.16.0.
+`scripts/check-doc-versions.sh`: exit 1 (6 mismatches) before, exit 0 (7/7
+match) after.
+
+**Content backfilled, not just stamps.** `ROADMAP.md`'s Current State table
+and Master Version Timeline had not been touched since v5.12.4 — four
+versions of real shipped work (POA-63 Phases 1–2, POA-65/66/67, POA-70/71/
+72/64/75, the bracket-tree renderer and Throwdown's redemption/projection
+overhaul) were absent. Backfilled: four new timeline rows (v5.13.0–v5.16.0),
+a Throwdown Current State row update, and an `audience.js` shared-component
+note. `CONVENTIONS.md` and `KB-PROTOCOL.md` needed stamp-only fixes — their
+actual content (the seventh live-sync mechanic; the fifth "why this exists"
+instance and third drift axis) was already current, just not dated at the top.
+
+**Step 3, artifact-existence check — first full sweep, clean.** Verified
+against the repo rather than trusted: `shared/pdf.js`, `Audience.
+renderBracketTree()` in `shared/audience.js`, `.claude/agents/code-reviewer.md`
++ `module-pattern-checker.md`, `.claude/skills/kb-recon/SKILL.md`,
+`shared/assets/founder-firdaus.jpg`, `booth/assets/reveal.mp3`,
+`firestore.indexes.json`, `storage.rules`, and all four `scripts/test-*.js`
+guards referenced across the six documents. All exist as claimed — no
+phantom artifacts found this pass.
+
+**Fact drift found, surfaced per Section 5 step 10 — not auto-fixed:**
+`Handoff and Spec Files/POA-73.md` (+ its addendum,
+`POA-73-addendum-scoring-line.md`) use the ticket number "POA-73" for the
+CLAUDE.md Delegation Strategy subagent decisions — already resolved, see the
+`[docs] POA-73 resolved` entries below. That number was already taken:
+`PLAN_OF_ACTION.md`'s own registry has carried a **different, unrelated,
+still-open** POA-73 ("Revival draw taken at every offer never terminates,"
+🔴 blocking) since before the Handoff file was authored. Same collision
+shape as the POA-62/63 numbering collision (documented in `PLAN_OF_ACTION.md`
+POA-63) — except that one was caught before its commit was pushed and
+renumbered; this one was not, and both numbers are now live in
+`CHANGELOG.md` itself. Anyone reading a `[docs] POA-73 resolved` entry
+without also checking `PLAN_OF_ACTION.md` could reasonably conclude the
+blocking revival-draw bug is closed. It is not. Needs a Strategy decision —
+most likely renumbering the Handoff-file ticket to the next free number,
+matching the POA-63 precedent — not applied here per Section 5 step 10
+("do not silently auto-fix... fact drift").
+
+**Minor, lower-priority, not fixed this pass:** two Tier C documents in
+`Handoff and Spec Files/` — `LIGA-SPEC.md` and `CUP-TASTER-SPEC.md` — carry
+no stamp at all (neither `State:` nor `Superseded as of`), despite both
+initiatives (Liga v4.0, Cup Taster v4.4.0) having closed months ago. Outside
+this pass's six-document scope; flagged for whenever those specs are next
+touched.
+
+**KB sync reminder — axis 2, not covered by this pass.** `STRATEGY.md`,
+`ROADMAP.md`, and `PLAN_OF_ACTION.md` are gitignored and don't sync via the
+GitHub integration — the fixes above are live in the local repo only until
+manually re-uploaded to the Claude Projects knowledge base. `CLAUDE.md`,
+`CONVENTIONS.md`, `KB-PROTOCOL.md`, and `README.md` will pick up via the next
+GitHub "Sync now."
+
+---
+
 ## [docs] KB-PROTOCOL.md — fifth "why this exists" instance, third drift axis · July 2026
 
 Closes the item parked at the end of POA-73's `kb-recon` finding: that

@@ -1,6 +1,6 @@
 # Conventions — Seduh Score
 
-*State: v5.13.0 — matches CHANGELOG.md as of July 2026*
+*State: v5.16.0 — matches CHANGELOG.md as of July 2026*
 
 Coding patterns, architecture decisions, and development standards for the Seduh Score platform. Read this at the start of any new chat session before touching code.
 
@@ -1385,7 +1385,13 @@ Before starting work in a new session — **all session types: Strategy, Code, D
 
 ---
 
-*Last updated: July 2026 — v5.13.0 pass (POA-63 Phase 1, bracket-tree renderer — renumbered
+*Last updated: July 2026 — v5.16.0 pass (POA-70/71/72/64, redemption end-to-end +
+projection removal): new "7. Publish only rounds that exist. Never project the
+ones that don't." mechanic under "Live sync pattern" — the seventh, added after
+projection's halving-based shape proved incompatible with revival/redemption
+adding competitors back into the bracket. General rule stated for reuse by any
+future format: a public surface must not assert a tournament state the
+tournament does not have. Prior pass — v5.13.0 pass (POA-63 Phase 1, bracket-tree renderer — renumbered
 from an initial "POA-62" that collided with an unrelated pre-existing backlog item of the
 same number, caught before anything was pushed): new
 "Bracket-tree renderer" subsection under Shared component APIs documenting

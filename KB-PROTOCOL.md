@@ -1,6 +1,6 @@
 # KB Consistency Protocol — Seduh Score
 
-*State: v5.12.4 — matches CHANGELOG.md as of July 2026*
+*State: v5.16.0 — matches CHANGELOG.md as of July 2026*
 
 *Load this document into any session — Strategy, Code, or Design — to run a
 drift audit. It is the single reference point for checking whether the
@@ -328,7 +328,13 @@ the first place.
 
 ---
 
-*Protocol established: July 2026. Last updated: July 2026 — `MUA_mobile_audit.md`
+*Protocol established: July 2026. Last updated: July 2026 — v5.16.0 full docs
+housekeeping pass: stamp reconciliation across all Tier A/B docs (this document
+included — v5.12.4 → v5.16.0, four versions behind, itself an instance of the
+drift this protocol tracks), first full sweep of Section 5 step 3's
+artifact-existence check (all artifacts checked verified real), and a fact-drift
+finding surfaced rather than silently fixed — see CHANGELOG.md's `[docs]` entry
+for this pass. Prior — `MUA_mobile_audit.md`
 removed from registry — file no longer exists on disk or in git history; local-only
 working doc (consistent with the `.gitignore`-excluded `PLAN_OF_ACTION_MUA.md`
 pattern), untraceable, not a supersession. Prior update: `THROWDOWN-ARCHIVE-SPEC.md`
