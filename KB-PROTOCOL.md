@@ -1,6 +1,6 @@
 # KB Consistency Protocol — Seduh Score
 
-*State: v5.16.0 — matches CHANGELOG.md as of July 2026*
+*State: v5.16.1 — matches CHANGELOG.md as of September 2026*
 
 *Load this document into any session — Strategy, Code, or Design — to run a
 drift audit. It is the single reference point for checking whether the

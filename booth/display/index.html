@@ -41,9 +41,10 @@
   } else {
     const q = `?session=${encodeURIComponent(sessionId)}`;
     app.innerHTML = `
-      <div class="booth-lead">Select display</div>
+      <div class="booth-lead">Select game and screen orientation</div>
       <div class="booth-select-row">
-        <a class="btn-p" href="guess/${q}">Guess the Bean →</a>
+        <a class="btn-p" href="guess/${q}&orientation=landscape">Guess the Bean — Landscape (16:9)</a>
+        <a class="btn-o" href="guess/${q}&orientation=portrait">Guess the Bean — Portrait (9:16)</a>
         <a class="btn-o" href="grinder/${q}">Grinder Challenge →</a>
       </div>
     `;

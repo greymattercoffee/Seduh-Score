@@ -173,6 +173,22 @@
   .booth-notice .n-title{font-family:var(--font-display);font-weight:800;font-size:26px;
     color:var(--st-ink);margin-bottom:8px}
   .booth-notice .n-sub{font-size:16px;color:var(--st-ink3)}
+  /* Portrait displays keep the bullseye as the focal point and stack the
+     arrival/results feed below it. Applied explicitly via ?orientation=portrait
+     so a browser window's shape never changes the chosen venue layout. */
+  html[data-orientation="portrait"] #content-area{flex-direction:column}
+  html[data-orientation="portrait"] #stage-sec{flex:3 1 0;padding:var(--space-3)}
+  html[data-orientation="portrait"] #prox-section{
+    flex:2 1 0;border-left:0;border-top:1px solid var(--st-line);
+    padding:var(--space-3) var(--space-4)
+  }
+  html[data-orientation="portrait"] .feed-row,
+  html[data-orientation="portrait"] .res-row{padding:8px 12px;margin-bottom:6px}
+  html[data-orientation="portrait"] #booth-footer{gap:18px;padding:12px 20px}
+  html[data-orientation="portrait"] #qr-card{padding:7px}
+  html[data-orientation="portrait"] #qr-container{width:96px;height:96px}
+  html[data-orientation="portrait"] #tagline{display:none}
+  html[data-orientation="portrait"] #winner-banner{max-width:calc(100% - 32px);padding:13px 22px}
 </style>
 </head>
 <body>
@@ -257,6 +273,11 @@
   const CACHE_KEY = 'seduh_booth_guess_display_cache';
   const params = new URLSearchParams(location.search);
   const DEMO = params.get('demo') === '1';
+  // Display orientation is presentation-only: landscape remains the default
+  // for existing bookmarks, while venue portrait screens opt in explicitly.
+  const ORIENTATION = params.get('orientation') === 'portrait' ? 'portrait' : 'landscape';
+  const QR_SIZE = ORIENTATION === 'portrait' ? 96 : 112;
+  document.documentElement.dataset.orientation = ORIENTATION;
   const sessionId = DEMO ? (params.get('session') || 'demo') : params.get('session');
 
   if (!sessionId) {
@@ -754,7 +775,7 @@
     if (!qrRendered) {
       const guessUrl = `${location.origin}/booth/guess/?session=${encodeURIComponent(sessionId)}${DEMO ? '&demo=1' : ''}`;
       new QRCode(document.getElementById('qr-container'), {
-        text: guessUrl, width: 112, height: 112,
+        text: guessUrl, width: QR_SIZE, height: QR_SIZE,
         colorDark: '#1a1108', colorLight: '#ffffff'
       });
       qrRendered = true;

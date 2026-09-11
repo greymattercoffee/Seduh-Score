@@ -2,6 +2,24 @@
 
 ---
 
+## [5.16.1] — Guess the Bean portrait display · September 2026
+
+### Booth
+
+- **Portrait display option** — Guess the Bean now supports both landscape
+  **16:9** (default) and portrait **9:16** venue screens. Open the display
+  with `?orientation=portrait` to stack the bullseye above the live feed;
+  existing display URLs remain landscape with no session or Firestore schema
+  change.
+- **Display launcher** — the Booth display chooser now provides labelled
+  Guess the Bean links for both screen orientations.
+- **Portrait QR fix** — the generated code now matches its portrait container
+  size, preventing overlap with the “Scan to play” call to action.
+
+### Platform
+
+- `SEDUH_VERSION` bumped to `5.16.1`.
+
 ## [docs] Clarification Gate — think-before-coding folded into CLAUDE.md · August 2026
 
 `Handoff and Spec Files/think-before-coding-addition.md` specified a
